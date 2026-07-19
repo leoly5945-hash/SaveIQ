@@ -1,5 +1,5 @@
 # Render Blueprint for DealHunter staging.
-# Replace all <PLACEHOLDER> values before applying this Blueprint.
+# Replace all placeholder values before applying this Blueprint.
 #
 # Required Render workspace setup:
 # - Workspace: SaveIQ
@@ -16,7 +16,7 @@ services:
     plan: starter
     region: oregon
     image:
-      url: "<CONTAINER_REGISTRY>/saveiq-engine@sha256:<BACKEND_DIGEST>"
+      url: "ghcr.io/leoly5945-hash/saveiq-engine@sha256:56f1fd7018859d10409494b6a8a2145150a23093debec9f429a38b5c4168eac9"
       creds:
         fromRegistryCreds:
           name: ghcr-saveiq
@@ -33,7 +33,7 @@ services:
       - key: LOG_LEVEL
         value: info
       - key: API_CORS_ORIGINS
-        value: "https://<STAGING_WEB_HOST>"
+        value: "https://dealhunter-staging-web.onrender.com"
       - key: ADMIN_API_TOKEN
         sync: false
       - key: DATABASE_URL
@@ -52,7 +52,7 @@ services:
     plan: starter
     region: oregon
     image:
-      url: "<CONTAINER_REGISTRY>/saveiq-web@sha256:<FRONTEND_DIGEST>"
+      url: "ghcr.io/leoly5945-hash/saveiq-web@sha256:06309fc475f748e7b1756d730ddb37becfe7231a495f9c7061777e81d560ccac"
       creds:
         fromRegistryCreds:
           name: ghcr-saveiq
@@ -64,7 +64,7 @@ services:
       - key: NODE_ENV
         value: production
       - key: NEXT_PUBLIC_API_BASE_URL
-        value: "https://<STAGING_API_HOST>"
+        value: "https://dealhunter-staging-api.onrender.com"
       - key: NEXT_PUBLIC_BRAND_NAME
         value: DealHunter
       - key: STAGING_NOINDEX
@@ -76,7 +76,7 @@ services:
     plan: starter
     region: oregon
     image:
-      url: "<CONTAINER_REGISTRY>/saveiq-engine@sha256:<BACKEND_DIGEST>"
+      url: "ghcr.io/leoly5945-hash/saveiq-engine@sha256:56f1fd7018859d10409494b6a8a2145150a23093debec9f429a38b5c4168eac9"
       creds:
         fromRegistryCreds:
           name: ghcr-saveiq
@@ -105,7 +105,7 @@ services:
     region: oregon
     schedule: "*/30 * * * *"
     image:
-      url: "<CONTAINER_REGISTRY>/saveiq-engine@sha256:<BACKEND_DIGEST>"
+      url: "ghcr.io/leoly5945-hash/saveiq-engine@sha256:56f1fd7018859d10409494b6a8a2145150a23093debec9f429a38b5c4168eac9"
       creds:
         fromRegistryCreds:
           name: ghcr-saveiq
