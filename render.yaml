@@ -20,7 +20,7 @@ services:
       creds:
         fromRegistryCreds:
           name: ghcr-saveiq
-    dockerCommand: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 10000"
+    dockerCommand: python -m app.server
     healthCheckPath: /health
     envVars:
       - key: PORT

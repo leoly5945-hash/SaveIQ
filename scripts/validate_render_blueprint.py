@@ -116,8 +116,8 @@ def validate_env(services: dict[str, dict[str, Any]]) -> None:
     web_env = env_map(services["dealhunter-staging-web"])
 
     api_command = services["dealhunter-staging-api"].get("dockerCommand")
-    if not isinstance(api_command, str) or "alembic upgrade head" not in api_command:
-        fail("API service must run Alembic migrations before startup")
+    if api_command != "python -m app.server":
+        fail("API service must use the Render-friendly Python startup entrypoint")
 
     admin_token = api_env.get("ADMIN_API_TOKEN")
     if admin_token is None or admin_token.get("sync") is not False:
