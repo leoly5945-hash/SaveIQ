@@ -13,7 +13,7 @@ services:
   - type: web
     name: dealhunter-staging-api
     runtime: image
-    plan: starter
+    plan: free
     region: oregon
     image:
       url: "ghcr.io/leoly5945-hash/saveiq-engine@sha256:56f1fd7018859d10409494b6a8a2145150a23093debec9f429a38b5c4168eac9"
@@ -49,7 +49,7 @@ services:
   - type: web
     name: dealhunter-staging-web
     runtime: image
-    plan: starter
+    plan: free
     region: oregon
     image:
       url: "ghcr.io/leoly5945-hash/saveiq-web@sha256:06309fc475f748e7b1756d730ddb37becfe7231a495f9c7061777e81d560ccac"
@@ -70,66 +70,9 @@ services:
       - key: STAGING_NOINDEX
         value: "true"
 
-  - type: worker
-    name: dealhunter-staging-worker
-    runtime: image
-    plan: starter
-    region: oregon
-    image:
-      url: "ghcr.io/leoly5945-hash/saveiq-engine@sha256:56f1fd7018859d10409494b6a8a2145150a23093debec9f429a38b5c4168eac9"
-      creds:
-        fromRegistryCreds:
-          name: ghcr-saveiq
-    dockerCommand: python -m app.workers.placeholder
-    envVars:
-      - key: APP_NAME
-        value: DealHunter Worker
-      - key: ENVIRONMENT
-        value: staging
-      - key: LOG_LEVEL
-        value: info
-      - key: DATABASE_URL
-        fromDatabase:
-          name: dealhunter-staging-postgres
-          property: connectionString
-      - key: REDIS_URL
-        fromService:
-          type: keyvalue
-          name: dealhunter-staging-redis
-          property: connectionString
-
-  - type: cron
-    name: dealhunter-staging-scheduler
-    runtime: image
-    plan: starter
-    region: oregon
-    schedule: "*/30 * * * *"
-    image:
-      url: "ghcr.io/leoly5945-hash/saveiq-engine@sha256:56f1fd7018859d10409494b6a8a2145150a23093debec9f429a38b5c4168eac9"
-      creds:
-        fromRegistryCreds:
-          name: ghcr-saveiq
-    dockerCommand: python -m app.workers.scheduler_tick
-    envVars:
-      - key: APP_NAME
-        value: DealHunter Scheduler
-      - key: ENVIRONMENT
-        value: staging
-      - key: LOG_LEVEL
-        value: info
-      - key: DATABASE_URL
-        fromDatabase:
-          name: dealhunter-staging-postgres
-          property: connectionString
-      - key: REDIS_URL
-        fromService:
-          type: keyvalue
-          name: dealhunter-staging-redis
-          property: connectionString
-
   - type: keyvalue
     name: dealhunter-staging-redis
-    plan: starter
+    plan: free
     region: oregon
     ipAllowList: []
     maxmemoryPolicy: allkeys-lru
@@ -138,7 +81,7 @@ databases:
   - name: dealhunter-staging-postgres
     databaseName: dealhunter
     user: dealhunter
-    plan: basic-256mb
+    plan: free
     region: oregon
     postgresMajorVersion: 16
     ipAllowList: []

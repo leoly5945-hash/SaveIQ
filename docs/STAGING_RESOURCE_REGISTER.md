@@ -15,14 +15,14 @@ tokens, passwords, private registry credentials, or database URLs.
 
 ## Services
 
-| Resource          | Render ID | Hostname | Image digest  | Status | Notes                                       |
-| ----------------- | --------- | -------- | ------------- | ------ | ------------------------------------------- |
-| Frontend web      | TODO      | TODO     | `sha256:TODO` | TODO   | Must send `X-Robots-Tag: noindex, nofollow` |
-| API backend       | TODO      | TODO     | `sha256:TODO` | TODO   | `/health` must be healthy                   |
-| Background worker | TODO      | n/a      | `sha256:TODO` | TODO   | Placeholder worker only                     |
-| Scheduler         | TODO      | n/a      | `sha256:TODO` | TODO   | Placeholder scheduler tick only             |
-| PostgreSQL        | TODO      | n/a      | n/a           | TODO   | Internal connection only                    |
-| Redis / Key Value | TODO      | n/a      | n/a           | TODO   | Internal connection only                    |
+| Resource          | Render ID | Hostname | Image digest  | Status   | Notes                                        |
+| ----------------- | --------- | -------- | ------------- | -------- | -------------------------------------------- |
+| Frontend web      | TODO      | TODO     | `sha256:TODO` | TODO     | Must send `X-Robots-Tag: noindex, nofollow`  |
+| API backend       | TODO      | TODO     | `sha256:TODO` | TODO     | `/health` must be healthy                    |
+| PostgreSQL        | TODO      | n/a      | n/a           | TODO     | Free staging database; expires after 30 days |
+| Redis / Key Value | TODO      | n/a      | n/a           | TODO     | Free in-memory staging cache                 |
+| Background worker | Deferred  | n/a      | n/a           | Deferred | Add after staging gate if needed             |
+| Scheduler         | Deferred  | n/a      | n/a           | Deferred | Add after staging gate if needed             |
 
 ## Validation Evidence
 

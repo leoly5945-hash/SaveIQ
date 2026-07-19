@@ -86,7 +86,7 @@ override the published Postgres port.
 ## Render Staging Blueprint
 
 Staging is provisioned from `render.yaml` as a Render Blueprint. Do not create the frontend, API,
-worker, scheduler, PostgreSQL, or Redis / Key Value services manually.
+PostgreSQL, or Redis / Key Value services manually.
 
 Before applying the Blueprint in the SaveIQ Render workspace:
 
@@ -124,6 +124,10 @@ Before applying the Blueprint in the SaveIQ Render workspace:
 6. Apply the Blueprint in Render, wait for all resources to become healthy, then update
    `docs/STAGING_RESOURCE_REGISTER.md` with resource identifiers, hostnames, image digests, and
    health status. Never place secrets in the register.
+
+The staging Blueprint intentionally uses free web, Postgres, and Key Value instances and defers the
+background worker and scheduler until they are needed. Render free Postgres expires after 30 days,
+and free Key Value data is in-memory only.
 
 Confirm the staging frontend is not indexable:
 

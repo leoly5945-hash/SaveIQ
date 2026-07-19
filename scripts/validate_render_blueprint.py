@@ -20,8 +20,6 @@ DIGEST_PATTERN = re.compile(r"@sha256:[a-fA-F0-9]{64}$")
 EXPECTED_SERVICES = {
     "dealhunter-staging-api": "web",
     "dealhunter-staging-web": "web",
-    "dealhunter-staging-worker": "worker",
-    "dealhunter-staging-scheduler": "cron",
     "dealhunter-staging-redis": "keyvalue",
 }
 EXPECTED_DATABASES = {"dealhunter-staging-postgres"}
@@ -87,8 +85,6 @@ def validate_services(
     for name in (
         "dealhunter-staging-api",
         "dealhunter-staging-web",
-        "dealhunter-staging-worker",
-        "dealhunter-staging-scheduler",
     ):
         service = services[name]
         if service.get("runtime") != "image":
