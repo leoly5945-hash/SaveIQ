@@ -1,0 +1,144 @@
+# Render Blueprint for DealHunter staging.
+# Replace all <PLACEHOLDER> values before applying this Blueprint.
+#
+# Required Render workspace setup:
+# - Workspace: SaveIQ
+# - Billing enabled
+# - Registry credential named ghcr-saveiq with access to the GHCR images
+
+previews:
+  generation: off
+
+services:
+  - type: web
+    name: dealhunter-staging-api
+    runtime: image
+    plan: starter
+    region: oregon
+    image:
+      url: "<CONTAINER_REGISTRY>/saveiq-engine@sha256:<BACKEND_DIGEST>"
+      creds:
+        fromRegistryCreds:
+          name: ghcr-saveiq
+    preDeployCommand: alembic upgrade head
+    dockerCommand: uvicorn app.main:app --host 0.0.0.0 --port 10000
+    healthCheckPath: /health
+    envVars:
+      - key: PORT
+        value: "10000"
+      - key: APP_NAME
+        value: DealHunter API
+      - key: ENVIRONMENT
+        value: staging
+      - key: LOG_LEVEL
+        value: info
+      - key: API_CORS_ORIGINS
+        value: "https://<STAGING_WEB_HOST>"
+      - key: ADMIN_API_TOKEN
+        sync: false
+      - key: DATABASE_URL
+        fromDatabase:
+          name: dealhunter-staging-postgres
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: dealhunter-staging-redis
+          property: connectionString
+
+  - type: web
+    name: dealhunter-staging-web
+    runtime: image
+    plan: starter
+    region: oregon
+    image:
+      url: "<CONTAINER_REGISTRY>/saveiq-web@sha256:<FRONTEND_DIGEST>"
+      creds:
+        fromRegistryCreds:
+          name: ghcr-saveiq
+    dockerCommand: npm run start
+    healthCheckPath: /api/health
+    envVars:
+      - key: PORT
+        value: "10000"
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_PUBLIC_API_BASE_URL
+        value: "https://<STAGING_API_HOST>"
+      - key: NEXT_PUBLIC_BRAND_NAME
+        value: DealHunter
+      - key: STAGING_NOINDEX
+        value: "true"
+
+  - type: worker
+    name: dealhunter-staging-worker
+    runtime: image
+    plan: starter
+    region: oregon
+    image:
+      url: "<CONTAINER_REGISTRY>/saveiq-engine@sha256:<BACKEND_DIGEST>"
+      creds:
+        fromRegistryCreds:
+          name: ghcr-saveiq
+    dockerCommand: python -m app.workers.placeholder
+    envVars:
+      - key: APP_NAME
+        value: DealHunter Worker
+      - key: ENVIRONMENT
+        value: staging
+      - key: LOG_LEVEL
+        value: info
+      - key: DATABASE_URL
+        fromDatabase:
+          name: dealhunter-staging-postgres
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: dealhunter-staging-redis
+          property: connectionString
+
+  - type: cron
+    name: dealhunter-staging-scheduler
+    runtime: image
+    plan: starter
+    region: oregon
+    schedule: "*/30 * * * *"
+    image:
+      url: "<CONTAINER_REGISTRY>/saveiq-engine@sha256:<BACKEND_DIGEST>"
+      creds:
+        fromRegistryCreds:
+          name: ghcr-saveiq
+    dockerCommand: python -m app.workers.scheduler_tick
+    envVars:
+      - key: APP_NAME
+        value: DealHunter Scheduler
+      - key: ENVIRONMENT
+        value: staging
+      - key: LOG_LEVEL
+        value: info
+      - key: DATABASE_URL
+        fromDatabase:
+          name: dealhunter-staging-postgres
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: dealhunter-staging-redis
+          property: connectionString
+
+  - type: keyvalue
+    name: dealhunter-staging-redis
+    plan: starter
+    region: oregon
+    ipAllowList: []
+    maxmemoryPolicy: allkeys-lru
+
+databases:
+  - name: dealhunter-staging-postgres
+    databaseName: dealhunter
+    user: dealhunter
+    plan: basic-256mb
+    region: oregon
+    postgresMajorVersion: 16
+    ipAllowList: []
