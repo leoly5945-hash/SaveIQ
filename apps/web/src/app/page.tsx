@@ -1,9 +1,8 @@
-import { getApiBaseUrl, getBrandName } from "@/lib/config";
+import { getBrandName } from "@/lib/config";
 
 import { SearchExperience } from "./search-experience";
 
 export default function Home() {
-  const apiBaseUrl = getApiBaseUrl();
   const brandName = getBrandName();
 
   return (
@@ -13,7 +12,7 @@ export default function Home() {
         <p className="environment-note">Staging mock data only</p>
       </header>
 
-      <SearchExperience apiBaseUrl={apiBaseUrl} />
+      <SearchExperience searchEndpoint="/api/search" />
     </main>
   );
 }

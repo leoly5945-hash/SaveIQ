@@ -29,7 +29,7 @@ type SearchResponse = {
 };
 
 type SearchExperienceProps = {
-  apiBaseUrl: string;
+  searchEndpoint: string;
 };
 
 function formatMoney(cents: number, currency: string) {
@@ -39,7 +39,7 @@ function formatMoney(cents: number, currency: string) {
   }).format(cents / 100);
 }
 
-export function SearchExperience({ apiBaseUrl }: SearchExperienceProps) {
+export function SearchExperience({ searchEndpoint }: SearchExperienceProps) {
   const [query, setQuery] = useState("wireless earbuds");
   const [merchant, setMerchant] = useState("");
   const [brand, setBrand] = useState("");
@@ -73,8 +73,16 @@ export function SearchExperience({ apiBaseUrl }: SearchExperienceProps) {
     }
     params.set("freshness", "fresh");
     params.set("limit", "12");
-    return `${apiBaseUrl}/search?${params.toString()}`;
-  }, [apiBaseUrl, brand, category, hasCashback, hasCoupon, merchant, query]);
+    return `${searchEndpoint}?${params.toString()}`;
+  }, [
+    brand,
+    category,
+    hasCashback,
+    hasCoupon,
+    merchant,
+    query,
+    searchEndpoint,
+  ]);
 
   async function runSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
