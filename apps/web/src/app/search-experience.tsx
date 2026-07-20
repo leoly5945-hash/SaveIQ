@@ -2,6 +2,8 @@
 
 import { type FormEvent, useMemo, useState } from "react";
 
+const QUICK_SEARCHES = ["buds", "coffee", "backpack"];
+
 type SearchResult = {
   offer_id: number;
   product_id: number;
@@ -104,14 +106,52 @@ export function SearchExperience({ searchEndpoint }: SearchExperienceProps) {
     }
   }
 
+  function clearFilters() {
+    setQuery("");
+    setMerchant("");
+    setBrand("");
+    setCategory("");
+    setHasCoupon(false);
+    setHasCashback(false);
+    setResults([]);
+    setStatus("idle");
+  }
+
+  function applyQuickSearch(term: string) {
+    setQuery(term);
+    setMerchant("");
+    setBrand("");
+    setCategory("");
+    setHasCoupon(false);
+    setHasCashback(false);
+    setResults([]);
+    setStatus("idle");
+  }
+
   return (
     <section className="search-workspace" aria-labelledby="search-heading">
       <div className="search-copy">
         <p className="eyebrow">Mock affiliate search</p>
         <h1 id="search-heading">Find normalized DealHunter offers</h1>
+        <p className="search-subtitle">
+          Search the seeded mock feed by product, merchant, brand, category,
+          coupon, cashback, and freshness.
+        </p>
       </div>
 
       <form className="search-panel" onSubmit={runSearch}>
+        <div className="quick-searches" aria-label="Quick searches">
+          {QUICK_SEARCHES.map((term) => (
+            <button
+              key={term}
+              type="button"
+              onClick={() => applyQuickSearch(term)}
+            >
+              {term}
+            </button>
+          ))}
+        </div>
+
         <label className="field search-field">
           <span>Search products</span>
           <input
@@ -168,59 +208,91 @@ export function SearchExperience({ searchEndpoint }: SearchExperienceProps) {
           <button type="submit" disabled={status === "loading"}>
             {status === "loading" ? "Searching" : "Search"}
           </button>
+          <button
+            className="secondary-button"
+            type="button"
+            onClick={clearFilters}
+          >
+            Clear
+          </button>
         </div>
       </form>
 
       <div className="results-panel" aria-live="polite">
         {status === "idle" ? (
           <p className="state-message">
-            Run a search against the staging API mock feed.
+            Run a search or pick a quick search above.
           </p>
         ) : null}
         {status === "empty" ? (
-          <p className="state-message">No matching offers found.</p>
+          <div className="state-block">
+            <h2>No matching offers found</h2>
+            <p className="state-message">
+              Clear filters or try a broader term like buds, coffee, or
+              backpack.
+            </p>
+          </div>
         ) : null}
         {status === "error" ? (
-          <p className="state-message">
-            Search is unavailable. Check the API health endpoint.
-          </p>
+          <div className="state-block">
+            <h2>Search is unavailable</h2>
+            <p className="state-message">
+              Check the API health endpoint and try again.
+            </p>
+          </div>
         ) : null}
         {status === "ready" ? (
-          <div className="result-list">
-            {results.map((result) => {
-              const currentPrice =
-                result.sale_price_cents ?? result.price_cents;
-              return (
-                <article className="result-card" key={result.offer_id}>
-                  <div>
-                    <p className="merchant-name">{result.merchant}</p>
-                    <h2>{result.title}</h2>
-                    <p className="result-meta">
-                      {[result.brand, result.category, result.market]
-                        .filter(Boolean)
-                        .join(" · ")}
-                    </p>
-                  </div>
-                  <div className="price-block">
-                    <p className="price">
-                      {formatMoney(currentPrice, result.currency)}
-                    </p>
-                    {result.sale_price_cents ? (
-                      <p className="compare-price">
-                        was {formatMoney(result.price_cents, result.currency)}
+          <>
+            <div className="results-toolbar">
+              <h2>{results.length} matching offers</h2>
+              <p>Sorted by lowest current price</p>
+            </div>
+            <div className="result-list">
+              {results.map((result) => {
+                const currentPrice =
+                  result.sale_price_cents ?? result.price_cents;
+                return (
+                  <article className="result-card" key={result.offer_id}>
+                    <div>
+                      <p className="merchant-name">{result.merchant}</p>
+                      <h3>{result.title}</h3>
+                      <p className="result-meta">
+                        {[result.brand, result.category, result.market]
+                          .filter(Boolean)
+                          .join(" · ")}
                       </p>
+                    </div>
+                    <div className="price-block">
+                      <p className="price">
+                        {formatMoney(currentPrice, result.currency)}
+                      </p>
+                      {result.sale_price_cents ? (
+                        <p className="compare-price">
+                          was {formatMoney(result.price_cents, result.currency)}
+                        </p>
+                      ) : null}
+                    </div>
+                    <div className="badge-row">
+                      <span>{result.freshness_status}</span>
+                      {result.has_coupon ? <span>Coupon</span> : null}
+                      {result.has_cashback ? <span>Cashback</span> : null}
+                      <span>{result.provider_source}</span>
+                    </div>
+                    {result.product_url ? (
+                      <a
+                        className="source-link"
+                        href={result.product_url}
+                        rel="noreferrer"
+                        target="_blank"
+                      >
+                        Open mock product URL
+                      </a>
                     ) : null}
-                  </div>
-                  <div className="badge-row">
-                    <span>{result.freshness_status}</span>
-                    {result.has_coupon ? <span>Coupon</span> : null}
-                    {result.has_cashback ? <span>Cashback</span> : null}
-                    <span>{result.provider_source}</span>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
+                  </article>
+                );
+              })}
+            </div>
+          </>
         ) : null}
       </div>
     </section>

@@ -59,7 +59,9 @@ a {
 .result-meta,
 .price,
 .compare-price,
-.state-message {
+.state-message,
+.search-subtitle,
+.results-toolbar p {
   margin: 0;
 }
 
@@ -81,6 +83,7 @@ a {
 .search-copy {
   display: grid;
   gap: 10px;
+  max-width: 880px;
 }
 
 .eyebrow {
@@ -99,10 +102,29 @@ a {
   box-shadow: var(--shadow);
 }
 
+.search-subtitle {
+  color: var(--muted);
+  font-size: 1.02rem;
+  line-height: 1.6;
+}
+
 .search-panel {
   display: grid;
   gap: 16px;
   padding: 24px;
+}
+
+.quick-searches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.quick-searches button {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  min-height: 38px;
+  padding: 0 14px;
 }
 
 .filter-grid {
@@ -181,6 +203,11 @@ button:disabled {
   opacity: 0.68;
 }
 
+.secondary-button {
+  background: #eef1f5;
+  color: var(--foreground);
+}
+
 .results-panel {
   min-height: 220px;
   padding: 18px;
@@ -188,7 +215,24 @@ button:disabled {
 
 .state-message {
   color: var(--muted);
-  padding: 28px 6px;
+  line-height: 1.5;
+}
+
+.state-block,
+.results-toolbar {
+  display: grid;
+  gap: 8px;
+  padding: 10px 6px 18px;
+}
+
+.results-toolbar {
+  align-items: end;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.results-toolbar p {
+  color: var(--muted);
+  font-size: 0.9rem;
 }
 
 .result-list {
@@ -246,18 +290,29 @@ button:disabled {
 }
 
 h1,
-h2 {
+h2,
+h3 {
   margin: 0;
 }
 
 h1 {
-  font-size: clamp(2rem, 4vw, 3.5rem);
+  font-size: clamp(2.35rem, 6vw, 4.25rem);
   line-height: 1.05;
 }
 
-h2 {
+h2,
+h3 {
   font-size: 1.1rem;
   line-height: 1.35;
+}
+
+.source-link {
+  color: var(--accent-strong);
+  font-size: 0.9rem;
+  font-weight: 800;
+  grid-column: 1 / -1;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
 }
 
 @media (max-width: 760px) {
@@ -271,6 +326,11 @@ h2 {
     flex-direction: column;
   }
 
+  .results-toolbar {
+    align-items: start;
+    grid-template-columns: 1fr;
+  }
+
   .filter-grid,
   .result-card {
     grid-template-columns: 1fr;
@@ -282,5 +342,9 @@ h2 {
 
   button {
     width: 100%;
+  }
+
+  h1 {
+    font-size: 2.6rem;
   }
 }
