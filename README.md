@@ -137,6 +137,16 @@ curl -sI https://<web-host>/ | grep -i x-robots-tag
 
 The header must include `noindex, nofollow`.
 
+Seed staging with deterministic mock affiliate data and verify both API search and the web search
+proxy:
+
+```bash
+ADMIN_API_TOKEN=<render-admin-token> PYTHON=.venv/bin/python make staging-seed-mock
+```
+
+The token must come from Render's `ADMIN_API_TOKEN` environment variable. Do not commit it or paste
+it into docs.
+
 For template-only validation before placeholders are replaced:
 
 ```bash
