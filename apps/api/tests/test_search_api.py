@@ -52,6 +52,23 @@ def test_search_returns_normalized_mock_offers() -> None:
         session.close()
 
 
+def test_search_matches_terms_instead_of_requiring_exact_phrase() -> None:
+    client, session = make_client()
+    headers = {"X-Admin-Token": "dev-admin-token"}
+    try:
+        client.post("/admin/affiliate/sync/mock", headers=headers)
+
+        response = client.get("/search?q=wireless%20earbuds")
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["count"] == 2
+        assert all("Earbuds" in result["offer_title"] for result in payload["results"])
+    finally:
+        app.dependency_overrides.clear()
+        session.close()
+
+
 def test_search_filters_coupon_cashback_and_freshness() -> None:
     client, session = make_client()
     headers = {"X-Admin-Token": "dev-admin-token"}

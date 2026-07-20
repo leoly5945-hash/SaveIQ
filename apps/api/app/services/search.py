@@ -59,6 +59,24 @@ def _normalized(value: str | None) -> str | None:
     return stripped or None
 
 
+def _query_terms(value: str | None) -> list[str]:
+    normalized = _normalized(value)
+    if normalized is None:
+        return []
+    return [term for term in normalized.split() if len(term) >= 3]
+
+
+def _text_match(pattern: str) -> ColumnElement[bool]:
+    return or_(
+        CanonicalProduct.title.ilike(pattern),
+        MerchantListing.title.ilike(pattern),
+        Offer.title.ilike(pattern),
+        Merchant.name.ilike(pattern),
+        CanonicalProduct.brand.has(Brand.name.ilike(pattern)),
+        CanonicalProduct.category.has(Category.name.ilike(pattern)),
+    )
+
+
 def _merchant_has_coupon() -> ColumnElement[bool]:
     return exists().where(
         Coupon.merchant_id == Merchant.id,
@@ -91,25 +109,15 @@ def search_offers(
     db: Session,
     filters: SearchFilters,
 ) -> list[SearchResultRow]:
-    query_text = _normalized(filters.query)
+    query_terms = _query_terms(filters.query)
     merchant = _normalized(filters.merchant)
     brand = _normalized(filters.brand)
     category = _normalized(filters.category)
 
     statement = _base_query()
 
-    if query_text:
-        pattern = f"%{query_text}%"
-        statement = statement.where(
-            or_(
-                CanonicalProduct.title.ilike(pattern),
-                MerchantListing.title.ilike(pattern),
-                Offer.title.ilike(pattern),
-                Merchant.name.ilike(pattern),
-                CanonicalProduct.brand.has(Brand.name.ilike(pattern)),
-                CanonicalProduct.category.has(Category.name.ilike(pattern)),
-            )
-        )
+    if query_terms:
+        statement = statement.where(or_(*(_text_match(f"%{term}%") for term in query_terms)))
     if merchant:
         statement = statement.where(Merchant.name.ilike(f"%{merchant}%"))
     if brand:
