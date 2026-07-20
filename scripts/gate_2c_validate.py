@@ -164,9 +164,12 @@ def validate_openapi_inventory() -> Check:
 
 def validate_consumer_smoke() -> Check:
     body = request_text(f"{WEB_URL}/")
-    if "DealHunter" not in body or "Foundation status" not in body:
-        fail("frontend landing page did not render the expected foundation marker")
-    return Check("Consumer web smoke", "PASS", "foundation page rendered")
+    expected_markers = ("Foundation status", "Mock affiliate search")
+    if "DealHunter" not in body or not any(
+        marker in body for marker in expected_markers
+    ):
+        fail("frontend page did not render an expected staging marker")
+    return Check("Consumer web smoke", "PASS", "staging web page rendered")
 
 
 def guardrail_checks() -> list[Check]:

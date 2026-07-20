@@ -10,12 +10,14 @@ from app.models.affiliate import (
     CashbackOffer,
     Category,
     Coupon,
+    FreshnessStatus,
     Merchant,
     MerchantListing,
     Offer,
     PriceHistory,
     ProductIdentifier,
     RawProviderRecord,
+    RecordStatus,
 )
 
 __all__ = [
@@ -28,10 +30,12 @@ __all__ = [
     "CanonicalProduct",
     "Category",
     "Coupon",
+    "FreshnessStatus",
     "Merchant",
     "MerchantListing",
     "Offer",
     "PriceHistory",
     "ProductIdentifier",
     "RawProviderRecord",
+    "RecordStatus",
 ]

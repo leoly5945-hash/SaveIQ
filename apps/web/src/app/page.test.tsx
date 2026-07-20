@@ -20,10 +20,10 @@ function collectText(node: ReactNode): string {
 }
 
 describe("Home", () => {
-  it("renders foundation status", () => {
+  it("renders the mock search shell", () => {
     const text = collectText(Home()).replace(/\s+/g, " ");
 
-    expect(text).toContain("DealHunter foundation");
-    expect(text).toContain("Mock interface only");
+    expect(text).toContain("DealHunter");
+    expect(text).toContain("Staging mock data only");
   });
 });

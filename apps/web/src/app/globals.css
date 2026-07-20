@@ -4,8 +4,11 @@
   --foreground: #20242c;
   --muted: #606a78;
   --accent: #0f766e;
+  --accent-strong: #0b5d57;
+  --accent-soft: #dff5f1;
   --surface: #ffffff;
   --border: #d7dce3;
+  --shadow: 0 16px 48px rgb(32 36 44 / 10%);
 }
 
 * {
@@ -37,51 +40,213 @@ a {
 
 .app-shell {
   display: grid;
-  gap: 24px;
+  gap: 32px;
   margin: 0 auto;
-  max-width: 980px;
-  padding: 48px 24px;
+  max-width: 1160px;
+  padding: 32px 24px 56px;
 }
 
-.status-panel {
+.topbar {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.brand-mark,
+.environment-note,
+.eyebrow,
+.merchant-name,
+.result-meta,
+.price,
+.compare-price,
+.state-message {
+  margin: 0;
+}
+
+.brand-mark {
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.environment-note {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.search-workspace {
+  display: grid;
+  gap: 24px;
+}
+
+.search-copy {
+  display: grid;
+  gap: 10px;
+}
+
+.eyebrow {
+  color: var(--accent);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.search-panel,
+.results-panel {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 8px;
+  box-shadow: var(--shadow);
+}
+
+.search-panel {
   display: grid;
   gap: 16px;
   padding: 24px;
 }
 
-.status-grid {
+.filter-grid {
   display: grid;
-  gap: 12px;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
-.status-item {
+.field {
+  color: var(--muted);
+  display: grid;
+  font-size: 0.85rem;
+  font-weight: 700;
+  gap: 8px;
+}
+
+.field input {
+  background: #fbfcfd;
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 16px;
+  color: var(--foreground);
+  font: inherit;
+  min-height: 46px;
+  padding: 0 14px;
+  width: 100%;
 }
 
-.status-label {
-  color: var(--muted);
-  font-size: 0.85rem;
-  margin: 0 0 8px;
+.field input:focus {
+  border-color: var(--accent);
+  outline: 3px solid var(--accent-soft);
 }
 
-.status-value {
+.search-field input {
   font-size: 1.1rem;
-  font-weight: 700;
-  margin: 0;
+  min-height: 56px;
 }
 
-.pill {
+.filter-row {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.toggle {
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--foreground);
+  display: inline-flex;
+  font-size: 0.92rem;
+  font-weight: 700;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 12px;
+}
+
+.toggle input {
+  accent-color: var(--accent);
+}
+
+button {
+  background: var(--accent);
+  border: 0;
+  border-radius: 8px;
+  color: #ffffff;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+  min-height: 44px;
+  padding: 0 18px;
+}
+
+button:disabled {
+  cursor: progress;
+  opacity: 0.68;
+}
+
+.results-panel {
+  min-height: 220px;
+  padding: 18px;
+}
+
+.state-message {
+  color: var(--muted);
+  padding: 28px 6px;
+}
+
+.result-list {
+  display: grid;
+  gap: 12px;
+}
+
+.result-card {
+  align-items: start;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 18px;
+}
+
+.merchant-name {
   color: var(--accent);
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.result-meta,
+.compare-price {
+  color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.price-block {
+  text-align: right;
+}
+
+.price {
+  font-size: 1.2rem;
+  font-weight: 900;
+}
+
+.badge-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  grid-column: 1 / -1;
+}
+
+.badge-row span {
+  background: var(--accent-soft);
+  border-radius: 999px;
+  color: var(--accent-strong);
+  font-size: 0.78rem;
+  font-weight: 800;
+  padding: 6px 10px;
 }
 
 h1,
-p {
+h2 {
   margin: 0;
 }
 
@@ -90,9 +255,32 @@ h1 {
   line-height: 1.05;
 }
 
-.lede {
-  color: var(--muted);
-  font-size: 1.08rem;
-  line-height: 1.6;
-  max-width: 720px;
+h2 {
+  font-size: 1.1rem;
+  line-height: 1.35;
+}
+
+@media (max-width: 760px) {
+  .app-shell {
+    padding: 24px 16px 40px;
+  }
+
+  .topbar,
+  .filter-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .filter-grid,
+  .result-card {
+    grid-template-columns: 1fr;
+  }
+
+  .price-block {
+    text-align: left;
+  }
+
+  button {
+    width: 100%;
+  }
 }

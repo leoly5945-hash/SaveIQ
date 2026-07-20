@@ -7,7 +7,8 @@ attribution, explainable ranking, and transparent affiliate relationships.
 ## Current Scope
 
 This repository contains the modular monolith foundation plus the affiliate domain model, mock
-Canadian affiliate provider, ingestion pipeline, and protected admin visibility endpoints.
+Canadian affiliate provider, ingestion pipeline, protected admin visibility endpoints, and a first
+public product/offer search slice.
 
 ## Out of Scope
 
@@ -22,3 +23,10 @@ Canadian affiliate provider, ingestion pipeline, and protected admin visibility 
 - Compare normalized offers from approved affiliate sources.
 - Understand merchant and source attribution.
 - Review price history, coupons, and cashback opportunities.
+
+## Phase 2 Search Slice
+
+The first search experience is intentionally small and source-backed. It searches stored normalized
+mock offers and supports filters for merchant, brand, category, coupon availability, cashback
+availability, and freshness. It does not perform web scraping, call real affiliate networks, or use
+an AI agent.

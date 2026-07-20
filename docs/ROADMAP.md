@@ -22,6 +22,7 @@
 - Product and offer search endpoint
 - Basic frontend search UI
 - Filters by merchant, brand, category, coupon, cashback, and freshness
+- Keep search grounded in stored normalized data only
 
 ## Phase 3: Approved Affiliate Integrations
 
