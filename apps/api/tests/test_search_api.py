@@ -151,3 +151,38 @@ def test_search_rejects_unknown_sort() -> None:
     finally:
         app.dependency_overrides.clear()
         session.close()
+
+
+def test_offer_detail_returns_source_attribution_and_commercial_context() -> None:
+    client, session = make_client()
+    headers = {"X-Admin-Token": "dev-admin-token"}
+    try:
+        client.post("/admin/affiliate/sync/mock", headers=headers)
+        search_response = client.get("/search?q=buds")
+        offer_id = search_response.json()["results"][0]["offer_id"]
+
+        response = client.get(f"/search/offers/{offer_id}")
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["offer_id"] == offer_id
+        assert payload["affiliate_url"].startswith("https://affiliate.example.test/")
+        assert payload["source_attribution"]["provider_source"] == "mock_ca"
+        assert payload["source_attribution"]["source_record_id"]
+        assert payload["price_history"]
+        assert payload["coupons"] or payload["cashback_offers"]
+    finally:
+        app.dependency_overrides.clear()
+        session.close()
+
+
+def test_offer_detail_returns_404_for_unknown_offer() -> None:
+    client, session = make_client()
+    try:
+        response = client.get("/search/offers/999")
+
+        assert response.status_code == 404
+        assert response.json()["detail"] == "Offer not found"
+    finally:
+        app.dependency_overrides.clear()
+        session.close()

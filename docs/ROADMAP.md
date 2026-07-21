@@ -23,6 +23,7 @@
 - Basic frontend search UI
 - Filters by merchant, brand, category, coupon, cashback, and freshness
 - Sort controls and basic match explanations
+- Offer detail view with source attribution and mock commercial context
 - Keep search grounded in stored normalized data only
 
 ## Phase 3: Approved Affiliate Integrations

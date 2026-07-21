@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TypedDict
+from datetime import datetime
+from typing import TypedDict, cast
 
 from sqlalchemy import ColumnElement, Select, exists, func, or_, select
 from sqlalchemy.orm import Session
@@ -16,6 +17,7 @@ from app.models import (
     Merchant,
     MerchantListing,
     Offer,
+    PriceHistory,
     RecordStatus,
 )
 
@@ -52,6 +54,43 @@ class SearchResultRow(TypedDict):
     has_coupon: bool
     has_cashback: bool
     match_reasons: list[str]
+
+
+class CouponSummary(TypedDict):
+    code: str
+    description: str
+    discount_type: str
+    discount_value: int
+    expires_at: datetime | None
+
+
+class CashbackSummary(TypedDict):
+    rate_type: str
+    rate_value_bps: int
+    expires_at: datetime | None
+
+
+class PricePoint(TypedDict):
+    observed_at: datetime
+    price_cents: int
+    sale_price_cents: int | None
+
+
+class SourceAttribution(TypedDict):
+    provider_source: str
+    source_record_id: str
+    source_timestamp: datetime
+    last_successful_update: datetime | None
+    record_status: str
+
+
+class OfferDetailRow(SearchResultRow):
+    merchant_url: str | None
+    affiliate_url: str | None
+    source_attribution: SourceAttribution
+    coupons: list[CouponSummary]
+    cashback_offers: list[CashbackSummary]
+    price_history: list[PricePoint]
 
 
 def _normalized(value: str | None) -> str | None:
@@ -104,6 +143,29 @@ def _merchant_has_cashback() -> ColumnElement[bool]:
     )
 
 
+def _active_coupon_statement(merchant_id: int) -> Select[tuple[Coupon]]:
+    return (
+        select(Coupon)
+        .where(
+            Coupon.merchant_id == merchant_id,
+            Coupon.record_status == RecordStatus.active.value,
+            Coupon.is_expired.is_(False),
+        )
+        .order_by(Coupon.expires_at.asc().nullslast(), Coupon.id.asc())
+    )
+
+
+def _active_cashback_statement(merchant_id: int) -> Select[tuple[CashbackOffer]]:
+    return (
+        select(CashbackOffer)
+        .where(
+            CashbackOffer.merchant_id == merchant_id,
+            CashbackOffer.record_status == RecordStatus.active.value,
+        )
+        .order_by(CashbackOffer.rate_value_bps.desc(), CashbackOffer.id.asc())
+    )
+
+
 def _base_query() -> Select[tuple[Offer, MerchantListing, Merchant, CanonicalProduct]]:
     return (
         select(Offer, MerchantListing, Merchant, CanonicalProduct)
@@ -114,6 +176,35 @@ def _base_query() -> Select[tuple[Offer, MerchantListing, Merchant, CanonicalPro
             Offer.record_status == RecordStatus.active.value,
             MerchantListing.record_status == RecordStatus.active.value,
         )
+    )
+
+
+def _has_coupon(db: Session, merchant_id: int) -> bool:
+    return (
+        db.scalar(
+            select(
+                exists().where(
+                    Coupon.merchant_id == merchant_id,
+                    Coupon.record_status == RecordStatus.active.value,
+                    Coupon.is_expired.is_(False),
+                )
+            )
+        )
+        is True
+    )
+
+
+def _has_cashback(db: Session, merchant_id: int) -> bool:
+    return (
+        db.scalar(
+            select(
+                exists().where(
+                    CashbackOffer.merchant_id == merchant_id,
+                    CashbackOffer.record_status == RecordStatus.active.value,
+                )
+            )
+        )
+        is True
     )
 
 
@@ -139,6 +230,42 @@ def _match_reasons(
     if product.category and _matches(product.category.name, query_terms):
         reasons.append("category")
     return reasons or ["filters"]
+
+
+def _search_result_row(
+    db: Session,
+    offer: Offer,
+    listing: MerchantListing,
+    merchant: Merchant,
+    product: CanonicalProduct,
+    query_terms: list[str],
+) -> SearchResultRow:
+    return {
+        "offer_id": offer.id,
+        "product_id": product.id,
+        "title": product.title,
+        "offer_title": offer.title,
+        "merchant": merchant.name,
+        "brand": product.brand.name if product.brand else None,
+        "category": product.category.name if product.category else None,
+        "price_cents": offer.price_cents,
+        "sale_price_cents": offer.sale_price_cents,
+        "currency": offer.currency,
+        "market": offer.market,
+        "availability": offer.availability,
+        "freshness_status": offer.freshness_status,
+        "provider_source": offer.provider_source,
+        "product_url": listing.product_url,
+        "has_coupon": _has_coupon(db, merchant.id),
+        "has_cashback": _has_cashback(db, merchant.id),
+        "match_reasons": _match_reasons(
+            query_terms,
+            offer,
+            listing,
+            merchant,
+            product,
+        ),
+    }
 
 
 def search_offers(
@@ -182,58 +309,66 @@ def search_offers(
 
     results: list[SearchResultRow] = []
     for offer, listing, merchant_row, product in db.execute(statement).all():
-        has_coupon = (
-            db.scalar(
-                select(
-                    exists().where(
-                        Coupon.merchant_id == merchant_row.id,
-                        Coupon.record_status == RecordStatus.active.value,
-                        Coupon.is_expired.is_(False),
-                    )
-                )
-            )
-            is True
-        )
-        has_cashback = (
-            db.scalar(
-                select(
-                    exists().where(
-                        CashbackOffer.merchant_id == merchant_row.id,
-                        CashbackOffer.record_status == RecordStatus.active.value,
-                    )
-                )
-            )
-            is True
-        )
-        results.append(
-            {
-                "offer_id": offer.id,
-                "product_id": product.id,
-                "title": product.title,
-                "offer_title": offer.title,
-                "merchant": merchant_row.name,
-                "brand": product.brand.name if product.brand else None,
-                "category": product.category.name if product.category else None,
-                "price_cents": offer.price_cents,
-                "sale_price_cents": offer.sale_price_cents,
-                "currency": offer.currency,
-                "market": offer.market,
-                "availability": offer.availability,
-                "freshness_status": offer.freshness_status,
-                "provider_source": offer.provider_source,
-                "product_url": listing.product_url,
-                "has_coupon": has_coupon,
-                "has_cashback": has_cashback,
-                "match_reasons": _match_reasons(
-                    query_terms,
-                    offer,
-                    listing,
-                    merchant_row,
-                    product,
-                ),
-            }
-        )
+        results.append(_search_result_row(db, offer, listing, merchant_row, product, query_terms))
     return results
+
+
+def get_offer_detail(db: Session, offer_id: int) -> OfferDetailRow | None:
+    row = db.execute(_base_query().where(Offer.id == offer_id)).one_or_none()
+    if row is None:
+        return None
+
+    offer, listing, merchant, product = row
+    base = _search_result_row(db, offer, listing, merchant, product, [])
+    coupons = [
+        {
+            "code": coupon.code,
+            "description": coupon.description,
+            "discount_type": coupon.discount_type,
+            "discount_value": coupon.discount_value,
+            "expires_at": coupon.expires_at,
+        }
+        for coupon in db.scalars(_active_coupon_statement(merchant.id)).all()
+    ]
+    cashback_offers = [
+        {
+            "rate_type": cashback.rate_type,
+            "rate_value_bps": cashback.rate_value_bps,
+            "expires_at": cashback.expires_at,
+        }
+        for cashback in db.scalars(_active_cashback_statement(merchant.id)).all()
+    ]
+    price_history = [
+        {
+            "observed_at": price_point.observed_at,
+            "price_cents": price_point.price_cents,
+            "sale_price_cents": price_point.sale_price_cents,
+        }
+        for price_point in db.scalars(
+            select(PriceHistory)
+            .where(PriceHistory.merchant_listing_id == listing.id)
+            .order_by(PriceHistory.observed_at.desc(), PriceHistory.id.desc())
+            .limit(6)
+        ).all()
+    ]
+    return cast(
+        OfferDetailRow,
+        {
+            **base,
+            "merchant_url": merchant.website_url,
+            "affiliate_url": offer.affiliate_link.url if offer.affiliate_link else None,
+            "source_attribution": {
+                "provider_source": offer.provider_source,
+                "source_record_id": offer.source_record_id,
+                "source_timestamp": offer.source_timestamp,
+                "last_successful_update": offer.last_successful_update,
+                "record_status": offer.record_status,
+            },
+            "coupons": coupons,
+            "cashback_offers": cashback_offers,
+            "price_history": price_history,
+        },
+    )
 
 
 def valid_freshness(value: str | None) -> str | None:

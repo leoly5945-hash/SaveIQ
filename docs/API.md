@@ -1,7 +1,8 @@
 # API
 
-The public API currently exposes health only. Development/admin affiliate endpoints are protected by
-the `X-Admin-Token` header and are intended for local or staging visibility.
+The public API currently exposes health plus read-only mock search and offer detail endpoints.
+Development/admin affiliate endpoints are protected by the `X-Admin-Token` header and are intended
+for local or staging visibility.
 
 ## Public
 
@@ -12,6 +13,31 @@ the `X-Admin-Token` header and are intended for local or staging visibility.
   "status": "ok",
   "service": "DealHunter API",
   "version": "0.1.0"
+}
+```
+
+`GET /search/offers/{offer_id}`
+
+Fetch a single normalized mock offer with commercial context, source attribution, and recent price
+history.
+
+```json
+{
+  "offer_id": 1,
+  "product_id": 1,
+  "title": "Aurora WaveBuds",
+  "merchant": "Maple Tech",
+  "affiliate_url": "https://affiliate.example.test/mt-wavebuds",
+  "source_attribution": {
+    "provider_source": "mock_ca",
+    "source_record_id": "mt-wavebuds-offer",
+    "source_timestamp": "2026-07-09T10:00:00Z",
+    "last_successful_update": "2026-07-21T04:00:00Z",
+    "record_status": "active"
+  },
+  "coupons": [],
+  "cashback_offers": [],
+  "price_history": []
 }
 ```
 

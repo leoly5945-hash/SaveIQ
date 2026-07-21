@@ -30,5 +30,6 @@ The first search experience is intentionally small and source-backed. It searche
 mock offers and supports filters for merchant, brand, category, coupon availability, cashback
 availability, and freshness. Results can be sorted by current price or merchant and include simple
 match reasons so the staging UI can explain why an offer appeared. Quick searches are limited to
-terms represented in the seeded mock feed. It does not perform web scraping, call real affiliate
-networks, or use an AI agent.
+terms represented in the seeded mock feed. Offer detail shows mock commercial context, source
+attribution, price history, and coupon/cashback availability. It does not perform web scraping, call
+real affiliate networks, or use an AI agent.
