@@ -65,7 +65,10 @@ def _query_terms(value: str | None) -> list[str]:
     normalized = _normalized(value)
     if normalized is None:
         return []
-    return [term for term in normalized.split() if len(term) >= 3]
+    terms = [term for term in normalized.split() if len(term) >= 3]
+    if "backpack" in {term.casefold() for term in terms}:
+        terms.append("pack")
+    return terms
 
 
 def _matches(value: str | None, terms: list[str]) -> bool:

@@ -2,11 +2,17 @@
 
 import { type FormEvent, useMemo, useState } from "react";
 
-const QUICK_SEARCHES = ["buds", "coffee", "backpack"];
+const QUICK_SEARCHES = ["buds", "kettle", "pack"];
 const SORT_OPTIONS = [
   { label: "Lowest price", value: "price_asc" },
   { label: "Highest price", value: "price_desc" },
   { label: "Merchant A-Z", value: "merchant" },
+] as const;
+const FRESHNESS_OPTIONS = [
+  { label: "All freshness", value: "" },
+  { label: "Fresh only", value: "fresh" },
+  { label: "Stale only", value: "stale" },
+  { label: "Unknown only", value: "unknown" },
 ] as const;
 
 type SearchResult = {
@@ -56,6 +62,8 @@ export function SearchExperience({ searchEndpoint }: SearchExperienceProps) {
   const [hasCashback, setHasCashback] = useState(false);
   const [sort, setSort] =
     useState<(typeof SORT_OPTIONS)[number]["value"]>("price_asc");
+  const [freshness, setFreshness] =
+    useState<(typeof FRESHNESS_OPTIONS)[number]["value"]>("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [status, setStatus] = useState<
     "idle" | "loading" | "ready" | "empty" | "error"
@@ -82,7 +90,9 @@ export function SearchExperience({ searchEndpoint }: SearchExperienceProps) {
       params.set("has_cashback", "true");
     }
     params.set("sort", sort);
-    params.set("freshness", "fresh");
+    if (freshness) {
+      params.set("freshness", freshness);
+    }
     params.set("limit", "12");
     return `${searchEndpoint}?${params.toString()}`;
   }, [
@@ -90,6 +100,7 @@ export function SearchExperience({ searchEndpoint }: SearchExperienceProps) {
     category,
     hasCashback,
     hasCoupon,
+    freshness,
     merchant,
     query,
     searchEndpoint,
@@ -124,6 +135,7 @@ export function SearchExperience({ searchEndpoint }: SearchExperienceProps) {
     setHasCoupon(false);
     setHasCashback(false);
     setSort("price_asc");
+    setFreshness("");
     setResults([]);
     setStatus("idle");
   }
@@ -136,6 +148,7 @@ export function SearchExperience({ searchEndpoint }: SearchExperienceProps) {
     setHasCoupon(false);
     setHasCashback(false);
     setSort("price_asc");
+    setFreshness("");
     setResults([]);
     setStatus("idle");
   }
@@ -230,6 +243,21 @@ export function SearchExperience({ searchEndpoint }: SearchExperienceProps) {
               ))}
             </select>
           </label>
+          <label className="field compact-field">
+            <span>Freshness</span>
+            <select
+              value={freshness}
+              onChange={(event) =>
+                setFreshness(event.target.value as typeof freshness)
+              }
+            >
+              {FRESHNESS_OPTIONS.map((option) => (
+                <option key={option.label} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
           <button type="submit" disabled={status === "loading"}>
             {status === "loading" ? "Searching" : "Search"}
           </button>
@@ -253,8 +281,7 @@ export function SearchExperience({ searchEndpoint }: SearchExperienceProps) {
           <div className="state-block">
             <h2>No matching offers found</h2>
             <p className="state-message">
-              Clear filters or try a broader term like buds, coffee, or
-              backpack.
+              Clear filters or try a broader term like buds, kettle, or pack.
             </p>
           </div>
         ) : null}

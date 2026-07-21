@@ -124,6 +124,23 @@ def test_search_sorts_by_highest_current_price() -> None:
         session.close()
 
 
+def test_search_expands_backpack_to_pack() -> None:
+    client, session = make_client()
+    headers = {"X-Admin-Token": "dev-admin-token"}
+    try:
+        client.post("/admin/affiliate/sync/mock", headers=headers)
+
+        response = client.get("/search?q=backpack")
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["count"] >= 1
+        assert any("Trail Pack" in result["title"] for result in payload["results"])
+    finally:
+        app.dependency_overrides.clear()
+        session.close()
+
+
 def test_search_rejects_unknown_sort() -> None:
     client, session = make_client()
     try:
