@@ -29,6 +29,7 @@ Query parameters:
 - `has_coupon`: `true` or `false`.
 - `has_cashback`: `true` or `false`.
 - `freshness`: `fresh`, `stale`, or `unknown`.
+- `sort`: `price_asc`, `price_desc`, or `merchant`; default `price_asc`.
 - `limit`: 1-50 results, default 20.
 
 ```json
@@ -53,7 +54,8 @@ Query parameters:
       "provider_source": "mock_ca",
       "product_url": "https://example.test/products/aurora-wavebuds",
       "has_coupon": true,
-      "has_cashback": true
+      "has_cashback": true,
+      "match_reasons": ["product title", "offer title"]
     }
   ]
 }

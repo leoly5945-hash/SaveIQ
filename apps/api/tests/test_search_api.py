@@ -64,6 +64,7 @@ def test_search_matches_terms_instead_of_requiring_exact_phrase() -> None:
         payload = response.json()
         assert payload["count"] == 2
         assert all("Earbuds" in result["offer_title"] for result in payload["results"])
+        assert all("product title" in result["match_reasons"] for result in payload["results"])
     finally:
         app.dependency_overrides.clear()
         session.close()
@@ -99,6 +100,37 @@ def test_search_rejects_unknown_freshness() -> None:
 
         assert response.status_code == 422
         assert "freshness must be one of" in response.json()["detail"]
+    finally:
+        app.dependency_overrides.clear()
+        session.close()
+
+
+def test_search_sorts_by_highest_current_price() -> None:
+    client, session = make_client()
+    headers = {"X-Admin-Token": "dev-admin-token"}
+    try:
+        client.post("/admin/affiliate/sync/mock", headers=headers)
+
+        response = client.get("/search?q=buds&sort=price_desc")
+
+        assert response.status_code == 200
+        payload = response.json()
+        prices = [
+            result["sale_price_cents"] or result["price_cents"] for result in payload["results"]
+        ]
+        assert prices == sorted(prices, reverse=True)
+    finally:
+        app.dependency_overrides.clear()
+        session.close()
+
+
+def test_search_rejects_unknown_sort() -> None:
+    client, session = make_client()
+    try:
+        response = client.get("/search?sort=random")
+
+        assert response.status_code == 422
+        assert "sort must be one of" in response.json()["detail"]
     finally:
         app.dependency_overrides.clear()
         session.close()

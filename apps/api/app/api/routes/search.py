@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
-from app.services.search import SearchFilters, search_offers, valid_freshness
+from app.services.search import SearchFilters, search_offers, valid_freshness, valid_sort
 
 DbSession = Annotated[Session, Depends(get_db)]
 
@@ -32,6 +32,7 @@ class SearchResult(BaseModel):
     product_url: str | None
     has_coupon: bool
     has_cashback: bool
+    match_reasons: list[str]
 
 
 class SearchResponse(BaseModel):
@@ -50,10 +51,12 @@ def search_products(
     has_coupon: bool | None = None,
     has_cashback: bool | None = None,
     freshness: Annotated[str | None, Query(max_length=40)] = None,
+    sort: Annotated[str | None, Query(max_length=40)] = "price_asc",
     limit: Annotated[int, Query(ge=1, le=50)] = 20,
 ) -> SearchResponse:
     try:
         freshness_filter = valid_freshness(freshness)
+        sort_order = valid_sort(sort)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
@@ -67,6 +70,7 @@ def search_products(
             has_coupon=has_coupon,
             has_cashback=has_cashback,
             freshness=freshness_filter,
+            sort=sort_order,
             limit=limit,
         ),
     )

@@ -3,6 +3,11 @@
 import { type FormEvent, useMemo, useState } from "react";
 
 const QUICK_SEARCHES = ["buds", "coffee", "backpack"];
+const SORT_OPTIONS = [
+  { label: "Lowest price", value: "price_asc" },
+  { label: "Highest price", value: "price_desc" },
+  { label: "Merchant A-Z", value: "merchant" },
+] as const;
 
 type SearchResult = {
   offer_id: number;
@@ -22,6 +27,7 @@ type SearchResult = {
   product_url: string | null;
   has_coupon: boolean;
   has_cashback: boolean;
+  match_reasons: string[];
 };
 
 type SearchResponse = {
@@ -48,6 +54,8 @@ export function SearchExperience({ searchEndpoint }: SearchExperienceProps) {
   const [category, setCategory] = useState("");
   const [hasCoupon, setHasCoupon] = useState(false);
   const [hasCashback, setHasCashback] = useState(false);
+  const [sort, setSort] =
+    useState<(typeof SORT_OPTIONS)[number]["value"]>("price_asc");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [status, setStatus] = useState<
     "idle" | "loading" | "ready" | "empty" | "error"
@@ -73,6 +81,7 @@ export function SearchExperience({ searchEndpoint }: SearchExperienceProps) {
     if (hasCashback) {
       params.set("has_cashback", "true");
     }
+    params.set("sort", sort);
     params.set("freshness", "fresh");
     params.set("limit", "12");
     return `${searchEndpoint}?${params.toString()}`;
@@ -84,6 +93,7 @@ export function SearchExperience({ searchEndpoint }: SearchExperienceProps) {
     merchant,
     query,
     searchEndpoint,
+    sort,
   ]);
 
   async function runSearch(event: FormEvent<HTMLFormElement>) {
@@ -113,6 +123,7 @@ export function SearchExperience({ searchEndpoint }: SearchExperienceProps) {
     setCategory("");
     setHasCoupon(false);
     setHasCashback(false);
+    setSort("price_asc");
     setResults([]);
     setStatus("idle");
   }
@@ -124,6 +135,7 @@ export function SearchExperience({ searchEndpoint }: SearchExperienceProps) {
     setCategory("");
     setHasCoupon(false);
     setHasCashback(false);
+    setSort("price_asc");
     setResults([]);
     setStatus("idle");
   }
@@ -205,6 +217,19 @@ export function SearchExperience({ searchEndpoint }: SearchExperienceProps) {
             />
             Cashback available
           </label>
+          <label className="field compact-field">
+            <span>Sort</span>
+            <select
+              value={sort}
+              onChange={(event) => setSort(event.target.value as typeof sort)}
+            >
+              {SORT_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
           <button type="submit" disabled={status === "loading"}>
             {status === "loading" ? "Searching" : "Search"}
           </button>
@@ -245,7 +270,10 @@ export function SearchExperience({ searchEndpoint }: SearchExperienceProps) {
           <>
             <div className="results-toolbar">
               <h2>{results.length} matching offers</h2>
-              <p>Sorted by lowest current price</p>
+              <p>
+                Sorted by{" "}
+                {SORT_OPTIONS.find((option) => option.value === sort)?.label}
+              </p>
             </div>
             <div className="result-list">
               {results.map((result) => {
@@ -278,6 +306,9 @@ export function SearchExperience({ searchEndpoint }: SearchExperienceProps) {
                       {result.has_cashback ? <span>Cashback</span> : null}
                       <span>{result.provider_source}</span>
                     </div>
+                    <p className="match-reason">
+                      Matched on {result.match_reasons.join(", ")}
+                    </p>
                     {result.product_url ? (
                       <a
                         className="source-link"

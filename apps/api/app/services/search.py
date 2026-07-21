@@ -29,6 +29,7 @@ class SearchFilters:
     has_coupon: bool | None = None
     has_cashback: bool | None = None
     freshness: str | None = None
+    sort: str = "price_asc"
     limit: int = 20
 
 
@@ -50,6 +51,7 @@ class SearchResultRow(TypedDict):
     product_url: str | None
     has_coupon: bool
     has_cashback: bool
+    match_reasons: list[str]
 
 
 def _normalized(value: str | None) -> str | None:
@@ -64,6 +66,13 @@ def _query_terms(value: str | None) -> list[str]:
     if normalized is None:
         return []
     return [term for term in normalized.split() if len(term) >= 3]
+
+
+def _matches(value: str | None, terms: list[str]) -> bool:
+    if value is None:
+        return False
+    normalized = value.casefold()
+    return any(term.casefold() in normalized for term in terms)
 
 
 def _text_match(pattern: str) -> ColumnElement[bool]:
@@ -105,6 +114,30 @@ def _base_query() -> Select[tuple[Offer, MerchantListing, Merchant, CanonicalPro
     )
 
 
+def _match_reasons(
+    query_terms: list[str],
+    offer: Offer,
+    listing: MerchantListing,
+    merchant: Merchant,
+    product: CanonicalProduct,
+) -> list[str]:
+    if not query_terms:
+        return ["active mock offer"]
+
+    reasons: list[str] = []
+    if _matches(product.title, query_terms) or _matches(listing.title, query_terms):
+        reasons.append("product title")
+    if _matches(offer.title, query_terms):
+        reasons.append("offer title")
+    if _matches(merchant.name, query_terms):
+        reasons.append("merchant")
+    if product.brand and _matches(product.brand.name, query_terms):
+        reasons.append("brand")
+    if product.category and _matches(product.category.name, query_terms):
+        reasons.append("category")
+    return reasons or ["filters"]
+
+
 def search_offers(
     db: Session,
     filters: SearchFilters,
@@ -136,7 +169,13 @@ def search_offers(
         statement = statement.where(Offer.freshness_status == filters.freshness)
 
     effective_price = func.coalesce(Offer.sale_price_cents, Offer.price_cents)
-    statement = statement.order_by(effective_price.asc(), Offer.id.asc()).limit(filters.limit)
+    if filters.sort == "price_desc":
+        statement = statement.order_by(effective_price.desc(), Offer.id.asc())
+    elif filters.sort == "merchant":
+        statement = statement.order_by(Merchant.name.asc(), effective_price.asc(), Offer.id.asc())
+    else:
+        statement = statement.order_by(effective_price.asc(), Offer.id.asc())
+    statement = statement.limit(filters.limit)
 
     results: list[SearchResultRow] = []
     for offer, listing, merchant_row, product in db.execute(statement).all():
@@ -182,6 +221,13 @@ def search_offers(
                 "product_url": listing.product_url,
                 "has_coupon": has_coupon,
                 "has_cashback": has_cashback,
+                "match_reasons": _match_reasons(
+                    query_terms,
+                    offer,
+                    listing,
+                    merchant_row,
+                    product,
+                ),
             }
         )
     return results
@@ -194,5 +240,16 @@ def valid_freshness(value: str | None) -> str | None:
     allowed = {status.value for status in FreshnessStatus}
     if normalized not in allowed:
         msg = f"freshness must be one of: {', '.join(sorted(allowed))}"
+        raise ValueError(msg)
+    return normalized
+
+
+def valid_sort(value: str | None) -> str:
+    normalized = _normalized(value)
+    if normalized is None:
+        return "price_asc"
+    allowed = {"price_asc", "price_desc", "merchant"}
+    if normalized not in allowed:
+        msg = f"sort must be one of: {', '.join(sorted(allowed))}"
         raise ValueError(msg)
     return normalized
