@@ -182,7 +182,7 @@ export function SearchExperience({ searchEndpoint }: SearchExperienceProps) {
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="wireless earbuds, coffee, backpack"
+            placeholder="wireless earbuds, kettle, pack"
           />
         </label>
 
