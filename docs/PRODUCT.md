@@ -39,3 +39,5 @@ real affiliate networks, or use an AI agent.
 The staging UI records best-effort clicks for mock product URLs and mock affiliate URLs. This helps
 validate the product flow and attribution model before any real affiliate partner is connected. It
 does not track conversions, scrape merchant pages, or send data to external affiliate networks.
+An admin-only staging panel summarizes total clicks, product vs affiliate clicks, top offers, top
+merchants, and recent mock click events.

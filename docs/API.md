@@ -119,9 +119,18 @@ Supported `target_type` values:
 - `GET /admin/affiliate/coupons`
 - `GET /admin/affiliate/cashback`
 - `GET /admin/affiliate/clicks`
+- `GET /admin/affiliate/click-analytics`
 
 Admin responses expose normalized operational data and do not expose provider secrets or full raw
 payloads.
+
+`GET /admin/affiliate/click-analytics` returns staging-only click rollups:
+
+- total click count
+- product vs affiliate click counts
+- top offers
+- top merchants
+- recent click events
 
 ## OpenAPI
 

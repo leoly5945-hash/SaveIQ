@@ -25,6 +25,7 @@
 - Sort controls and basic match explanations
 - Offer detail view with source attribution and mock commercial context
 - Lightweight mock click tracking for product and affiliate link taps
+- Staging-only mock click analytics for top offers, merchants, and recent events
 - Keep search grounded in stored normalized data only
 
 ## Phase 3: Approved Affiliate Integrations

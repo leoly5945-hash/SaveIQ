@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import require_admin
@@ -52,6 +53,13 @@ class SyncResultResponse(BaseModel):
 
 def row(model: Any, *fields: str) -> dict[str, Any]:
     return {field: getattr(model, field) for field in fields}
+
+
+def _click_target_counts(events: Sequence[AffiliateClickEvent]) -> dict[str, int]:
+    counts = {"product": 0, "affiliate": 0}
+    for event in events:
+        counts[event.target_type] = counts.get(event.target_type, 0) + 1
+    return counts
 
 
 @router.post("/sync/mock", response_model=SyncResultResponse)
@@ -233,3 +241,80 @@ def list_click_events(db: DbSession) -> list[dict[str, Any]]:
         }
         for event in events
     ]
+
+
+@router.get("/click-analytics")
+def get_click_analytics(db: DbSession) -> dict[str, Any]:
+    total_clicks = db.scalar(select(func.count(AffiliateClickEvent.id))) or 0
+    recent_events = db.scalars(
+        select(AffiliateClickEvent).order_by(AffiliateClickEvent.id.desc()).limit(20)
+    ).all()
+    target_counts = _click_target_counts(db.scalars(select(AffiliateClickEvent)).all())
+    offer_rows = db.execute(
+        select(
+            AffiliateClickEvent.offer_id,
+            Offer.title,
+            AffiliateClickEvent.provider_source,
+            AffiliateClickEvent.market,
+            func.count(AffiliateClickEvent.id).label("click_count"),
+        )
+        .outerjoin(Offer, AffiliateClickEvent.offer_id == Offer.id)
+        .group_by(
+            AffiliateClickEvent.offer_id,
+            Offer.title,
+            AffiliateClickEvent.provider_source,
+            AffiliateClickEvent.market,
+        )
+        .order_by(func.count(AffiliateClickEvent.id).desc(), AffiliateClickEvent.offer_id)
+        .limit(10)
+    ).all()
+    merchant_rows = db.execute(
+        select(
+            AffiliateClickEvent.merchant_id,
+            AffiliateClickEvent.provider_source,
+            func.count(AffiliateClickEvent.id).label("click_count"),
+        )
+        .group_by(AffiliateClickEvent.merchant_id, AffiliateClickEvent.provider_source)
+        .order_by(func.count(AffiliateClickEvent.id).desc(), AffiliateClickEvent.merchant_id)
+        .limit(10)
+    ).all()
+    merchants_by_id = {
+        listing.merchant_id: listing.merchant.name
+        for listing in db.scalars(select(MerchantListing)).all()
+    }
+
+    return {
+        "total_clicks": total_clicks,
+        "target_counts": target_counts,
+        "top_offers": [
+            {
+                "offer_id": offer_id,
+                "offer_title": title,
+                "provider_source": provider_source,
+                "market": market,
+                "click_count": click_count,
+            }
+            for offer_id, title, provider_source, market, click_count in offer_rows
+        ],
+        "top_merchants": [
+            {
+                "merchant_id": merchant_id,
+                "merchant": merchants_by_id.get(merchant_id),
+                "provider_source": provider_source,
+                "click_count": click_count,
+            }
+            for merchant_id, provider_source, click_count in merchant_rows
+        ],
+        "recent_clicks": [
+            {
+                "id": event.id,
+                "offer_id": event.offer_id,
+                "merchant": event.merchant.name if event.merchant else None,
+                "target_type": event.target_type,
+                "provider_source": event.provider_source,
+                "market": event.market,
+                "created_at": event.created_at,
+            }
+            for event in recent_events
+        ],
+    }

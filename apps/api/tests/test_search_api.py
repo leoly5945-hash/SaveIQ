@@ -222,6 +222,31 @@ def test_click_tracking_records_product_clicks_for_active_offers() -> None:
         session.close()
 
 
+def test_click_analytics_summarizes_mock_clicks() -> None:
+    client, session = make_client()
+    headers = {"X-Admin-Token": "dev-admin-token"}
+    try:
+        client.post("/admin/affiliate/sync/mock", headers=headers)
+        search_response = client.get("/search?q=buds")
+        offer_id = search_response.json()["results"][0]["offer_id"]
+        client.post("/clicks", json={"offer_id": offer_id, "target_type": "product"})
+        client.post("/clicks", json={"offer_id": offer_id, "target_type": "affiliate"})
+
+        response = client.get("/admin/affiliate/click-analytics", headers=headers)
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["total_clicks"] == 2
+        assert payload["target_counts"] == {"product": 1, "affiliate": 1}
+        assert payload["top_offers"][0]["offer_id"] == offer_id
+        assert payload["top_offers"][0]["click_count"] == 2
+        assert payload["top_merchants"][0]["merchant"]
+        assert len(payload["recent_clicks"]) == 2
+    finally:
+        app.dependency_overrides.clear()
+        session.close()
+
+
 def test_click_tracking_rejects_unknown_target_type() -> None:
     client, session = make_client()
     try:

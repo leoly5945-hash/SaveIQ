@@ -79,6 +79,33 @@ type OfferDetail = SearchResult & {
   price_history: PricePoint[];
 };
 
+type ClickAnalytics = {
+  total_clicks: number;
+  target_counts: Record<ClickTargetType, number>;
+  top_offers: {
+    offer_id: number | null;
+    offer_title: string | null;
+    provider_source: string;
+    market: string;
+    click_count: number;
+  }[];
+  top_merchants: {
+    merchant_id: number | null;
+    merchant: string | null;
+    provider_source: string;
+    click_count: number;
+  }[];
+  recent_clicks: {
+    id: number;
+    offer_id: number | null;
+    merchant: string | null;
+    target_type: ClickTargetType;
+    provider_source: string;
+    market: string;
+    created_at: string;
+  }[];
+};
+
 type SearchExperienceProps = {
   searchEndpoint: string;
 };
@@ -109,7 +136,12 @@ export function SearchExperience({ searchEndpoint }: SearchExperienceProps) {
     useState<(typeof FRESHNESS_OPTIONS)[number]["value"]>("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [selectedOffer, setSelectedOffer] = useState<OfferDetail | null>(null);
+  const [adminToken, setAdminToken] = useState("");
+  const [analytics, setAnalytics] = useState<ClickAnalytics | null>(null);
   const [detailStatus, setDetailStatus] = useState<
+    "idle" | "loading" | "ready" | "error"
+  >("idle");
+  const [analyticsStatus, setAnalyticsStatus] = useState<
     "idle" | "loading" | "ready" | "error"
   >("idle");
   const [status, setStatus] = useState<
@@ -244,6 +276,31 @@ export function SearchExperience({ searchEndpoint }: SearchExperienceProps) {
       });
     } catch {
       // Best-effort mock tracking should never block opening a deal URL.
+    }
+  }
+
+  async function loadClickAnalytics(event?: FormEvent<HTMLFormElement>) {
+    event?.preventDefault();
+    setAnalyticsStatus("loading");
+
+    try {
+      const response = await fetch("/api/admin/click-analytics", {
+        body: JSON.stringify({ adminToken }),
+        headers: {
+          Accept: "application/json",
+          "content-type": "application/json",
+        },
+        method: "POST",
+      });
+      if (!response.ok) {
+        throw new Error(`Click analytics failed with ${response.status}`);
+      }
+      const payload = (await response.json()) as ClickAnalytics;
+      setAnalytics(payload);
+      setAnalyticsStatus("ready");
+    } catch {
+      setAnalytics(null);
+      setAnalyticsStatus("error");
     }
   }
 
@@ -470,7 +527,146 @@ export function SearchExperience({ searchEndpoint }: SearchExperienceProps) {
           </>
         ) : null}
       </div>
+
+      <section className="analytics-panel" aria-labelledby="analytics-heading">
+        <div className="analytics-heading">
+          <div>
+            <p className="eyebrow">Mock click analytics</p>
+            <h2 id="analytics-heading">Staging click summary</h2>
+          </div>
+          <p className="state-message">Admin only</p>
+        </div>
+
+        <form className="analytics-controls" onSubmit={loadClickAnalytics}>
+          <label className="field">
+            <span>Admin token</span>
+            <input
+              autoComplete="off"
+              onChange={(event) => setAdminToken(event.target.value)}
+              placeholder="Paste staging token"
+              type="password"
+              value={adminToken}
+            />
+          </label>
+          <button type="submit" disabled={analyticsStatus === "loading"}>
+            {analyticsStatus === "loading" ? "Refreshing" : "Refresh"}
+          </button>
+        </form>
+
+        {analyticsStatus === "idle" ? (
+          <p className="state-message">Refresh to load click totals.</p>
+        ) : null}
+        {analyticsStatus === "error" ? (
+          <p className="state-message">
+            Analytics unavailable. Check the admin token and API health.
+          </p>
+        ) : null}
+        {analytics ? <ClickAnalyticsView analytics={analytics} /> : null}
+      </section>
     </section>
+  );
+}
+
+function ClickAnalyticsView({ analytics }: { analytics: ClickAnalytics }) {
+  return (
+    <div className="analytics-grid">
+      <div className="metric-card">
+        <span>Total clicks</span>
+        <strong>{analytics.total_clicks}</strong>
+      </div>
+      <div className="metric-card">
+        <span>Product clicks</span>
+        <strong>{analytics.target_counts.product ?? 0}</strong>
+      </div>
+      <div className="metric-card">
+        <span>Affiliate clicks</span>
+        <strong>{analytics.target_counts.affiliate ?? 0}</strong>
+      </div>
+
+      <section className="analytics-table">
+        <h3>Top offers</h3>
+        {analytics.top_offers.length > 0 ? (
+          <table>
+            <thead>
+              <tr>
+                <th>Offer</th>
+                <th>Source</th>
+                <th>Clicks</th>
+              </tr>
+            </thead>
+            <tbody>
+              {analytics.top_offers.map((offer) => (
+                <tr key={`${offer.offer_id}-${offer.provider_source}`}>
+                  <td>{offer.offer_title ?? `Offer ${offer.offer_id}`}</td>
+                  <td>
+                    {offer.provider_source} · {offer.market}
+                  </td>
+                  <td>{offer.click_count}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <p className="state-message">No tracked clicks yet.</p>
+        )}
+      </section>
+
+      <section className="analytics-table">
+        <h3>Top merchants</h3>
+        {analytics.top_merchants.length > 0 ? (
+          <table>
+            <thead>
+              <tr>
+                <th>Merchant</th>
+                <th>Source</th>
+                <th>Clicks</th>
+              </tr>
+            </thead>
+            <tbody>
+              {analytics.top_merchants.map((merchant) => (
+                <tr key={`${merchant.merchant_id}-${merchant.provider_source}`}>
+                  <td>
+                    {merchant.merchant ?? `Merchant ${merchant.merchant_id}`}
+                  </td>
+                  <td>{merchant.provider_source}</td>
+                  <td>{merchant.click_count}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <p className="state-message">No merchant clicks yet.</p>
+        )}
+      </section>
+
+      <section className="analytics-table recent-clicks">
+        <h3>Recent clicks</h3>
+        {analytics.recent_clicks.length > 0 ? (
+          <table>
+            <thead>
+              <tr>
+                <th>Target</th>
+                <th>Merchant</th>
+                <th>Source</th>
+              </tr>
+            </thead>
+            <tbody>
+              {analytics.recent_clicks.map((click) => (
+                <tr key={click.id}>
+                  <td>{click.target_type}</td>
+                  <td>{click.merchant ?? `Offer ${click.offer_id}`}</td>
+                  <td>
+                    {click.provider_source} · {click.market}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <p className="state-message">No recent clicks yet.</p>
+        )}
+      </section>
+    </div>
   );
 }
 

@@ -96,7 +96,8 @@ a {
 }
 
 .search-panel,
-.results-panel {
+.results-panel,
+.analytics-panel {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -445,6 +446,87 @@ h3 {
   text-underline-offset: 4px;
 }
 
+.analytics-panel {
+  display: grid;
+  gap: 18px;
+  padding: 20px;
+}
+
+.analytics-heading,
+.analytics-controls {
+  align-items: end;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.analytics-controls .field {
+  max-width: 460px;
+}
+
+.analytics-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.metric-card,
+.analytics-table {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.metric-card {
+  display: grid;
+  gap: 6px;
+}
+
+.metric-card span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.metric-card strong {
+  font-size: 1.85rem;
+}
+
+.analytics-table {
+  display: grid;
+  gap: 12px;
+}
+
+.analytics-table table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.analytics-table th,
+.analytics-table td {
+  border-top: 1px solid var(--border);
+  font-size: 0.9rem;
+  padding: 10px 8px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.analytics-table th {
+  color: var(--muted);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+}
+
+.analytics-table td:last-child,
+.analytics-table th:last-child {
+  text-align: right;
+}
+
+.recent-clicks {
+  grid-column: 1 / -1;
+}
+
 @media (max-width: 760px) {
   .app-shell {
     padding: 24px 16px 40px;
@@ -464,7 +546,10 @@ h3 {
   .filter-grid,
   .result-card,
   .detail-heading,
-  .detail-grid {
+  .detail-grid,
+  .analytics-heading,
+  .analytics-controls,
+  .analytics-grid {
     grid-template-columns: 1fr;
   }
 
