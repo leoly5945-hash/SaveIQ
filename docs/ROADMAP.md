@@ -28,6 +28,7 @@
 - Staging-only mock click analytics for top offers, merchants, and recent events
 - Search ranking option that sorts stored mock offers by click count
 - Rule-based ranking reasons for staging explainability
+- Admin-only staging data summary and mock seed controls
 - Keep search grounded in stored normalized data only
 
 ## Phase 3: Approved Affiliate Integrations

@@ -109,6 +109,57 @@ type ClickAnalytics = {
   }[];
 };
 
+type StagingSummary = {
+  counts: {
+    products: number;
+    listings: number;
+    offers: number;
+    coupons: number;
+    cashback_offers: number;
+    click_events: number;
+    sync_jobs: number;
+    sync_errors: number;
+  };
+  latest_sync_job: {
+    id: number;
+    provider_source: string | null;
+    status: string;
+    started_at: string;
+    completed_at: string | null;
+    received_count: number;
+    inserted_count: number;
+    updated_count: number;
+    skipped_count: number;
+    rejected_count: number;
+    duplicate_count: number;
+    stale_count: number;
+    error_count: number;
+  } | null;
+  recent_errors: {
+    id: number;
+    sync_job_id: number;
+    source_record_id: string | null;
+    error_code: string;
+    message: string;
+  }[];
+};
+
+type SyncResult = {
+  job_id: number;
+  provider_source: string;
+  status: string;
+  stats: {
+    received: number;
+    inserted: number;
+    updated: number;
+    skipped: number;
+    rejected: number;
+    duplicate: number;
+    stale: number;
+    errors: number;
+  };
+};
+
 type SearchExperienceProps = {
   searchEndpoint: string;
 };
@@ -126,6 +177,16 @@ function formatPercent(basisPoints: number) {
   return `${(basisPoints / 100).toFixed(2).replace(/\.00$/, "")}%`;
 }
 
+function formatDateTime(value: string | null) {
+  if (!value) {
+    return "Not completed";
+  }
+  return new Intl.DateTimeFormat("en-CA", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
+}
+
 export function SearchExperience({ searchEndpoint }: SearchExperienceProps) {
   const [query, setQuery] = useState("wireless earbuds");
   const [merchant, setMerchant] = useState("");
@@ -141,10 +202,20 @@ export function SearchExperience({ searchEndpoint }: SearchExperienceProps) {
   const [selectedOffer, setSelectedOffer] = useState<OfferDetail | null>(null);
   const [adminToken, setAdminToken] = useState("");
   const [analytics, setAnalytics] = useState<ClickAnalytics | null>(null);
+  const [stagingSummary, setStagingSummary] = useState<StagingSummary | null>(
+    null
+  );
+  const [syncResult, setSyncResult] = useState<SyncResult | null>(null);
   const [detailStatus, setDetailStatus] = useState<
     "idle" | "loading" | "ready" | "error"
   >("idle");
   const [analyticsStatus, setAnalyticsStatus] = useState<
+    "idle" | "loading" | "ready" | "error"
+  >("idle");
+  const [stagingStatus, setStagingStatus] = useState<
+    "idle" | "loading" | "ready" | "error"
+  >("idle");
+  const [syncStatus, setSyncStatus] = useState<
     "idle" | "loading" | "ready" | "error"
   >("idle");
   const [status, setStatus] = useState<
@@ -304,6 +375,56 @@ export function SearchExperience({ searchEndpoint }: SearchExperienceProps) {
     } catch {
       setAnalytics(null);
       setAnalyticsStatus("error");
+    }
+  }
+
+  async function loadStagingSummary(event?: FormEvent<HTMLFormElement>) {
+    event?.preventDefault();
+    setStagingStatus("loading");
+
+    try {
+      const response = await fetch("/api/admin/staging-summary", {
+        body: JSON.stringify({ adminToken }),
+        headers: {
+          Accept: "application/json",
+          "content-type": "application/json",
+        },
+        method: "POST",
+      });
+      if (!response.ok) {
+        throw new Error(`Staging summary failed with ${response.status}`);
+      }
+      const payload = (await response.json()) as StagingSummary;
+      setStagingSummary(payload);
+      setStagingStatus("ready");
+    } catch {
+      setStagingSummary(null);
+      setStagingStatus("error");
+    }
+  }
+
+  async function runMockSync() {
+    setSyncStatus("loading");
+
+    try {
+      const response = await fetch("/api/admin/sync-mock", {
+        body: JSON.stringify({ adminToken }),
+        headers: {
+          Accept: "application/json",
+          "content-type": "application/json",
+        },
+        method: "POST",
+      });
+      if (!response.ok) {
+        throw new Error(`Mock sync failed with ${response.status}`);
+      }
+      const payload = (await response.json()) as SyncResult;
+      setSyncResult(payload);
+      setSyncStatus("ready");
+      await loadStagingSummary();
+    } catch {
+      setSyncResult(null);
+      setSyncStatus("error");
     }
   }
 
@@ -535,16 +656,16 @@ export function SearchExperience({ searchEndpoint }: SearchExperienceProps) {
         ) : null}
       </div>
 
-      <section className="analytics-panel" aria-labelledby="analytics-heading">
-        <div className="analytics-heading">
+      <section className="admin-panel" aria-labelledby="staging-heading">
+        <div className="admin-heading">
           <div>
-            <p className="eyebrow">Mock click analytics</p>
-            <h2 id="analytics-heading">Staging click summary</h2>
+            <p className="eyebrow">Staging data controls</p>
+            <h2 id="staging-heading">Mock feed status</h2>
           </div>
           <p className="state-message">Admin only</p>
         </div>
 
-        <form className="analytics-controls" onSubmit={loadClickAnalytics}>
+        <form className="admin-controls" onSubmit={loadStagingSummary}>
           <label className="field">
             <span>Admin token</span>
             <input
@@ -555,6 +676,58 @@ export function SearchExperience({ searchEndpoint }: SearchExperienceProps) {
               value={adminToken}
             />
           </label>
+          <button type="submit" disabled={stagingStatus === "loading"}>
+            {stagingStatus === "loading" ? "Refreshing" : "Refresh status"}
+          </button>
+          <button
+            className="secondary-button"
+            type="button"
+            disabled={syncStatus === "loading"}
+            onClick={runMockSync}
+          >
+            {syncStatus === "loading" ? "Seeding" : "Seed mock feed"}
+          </button>
+        </form>
+
+        {stagingStatus === "idle" ? (
+          <p className="state-message">
+            Refresh to inspect seeded data, latest sync, and recent mock errors.
+          </p>
+        ) : null}
+        {stagingStatus === "error" ? (
+          <p className="state-message">
+            Staging status unavailable. Check the admin token and API health.
+          </p>
+        ) : null}
+        {syncStatus === "error" ? (
+          <p className="state-message">
+            Mock seed failed. Check the admin token and API health.
+          </p>
+        ) : null}
+        {syncResult ? (
+          <p className="state-message">
+            Last seed job {syncResult.job_id}: {syncResult.status}; received{" "}
+            {syncResult.stats.received}, errors {syncResult.stats.errors}.
+          </p>
+        ) : null}
+        {stagingSummary ? (
+          <StagingSummaryView summary={stagingSummary} />
+        ) : null}
+      </section>
+
+      <section className="admin-panel" aria-labelledby="analytics-heading">
+        <div className="admin-heading">
+          <div>
+            <p className="eyebrow">Mock click analytics</p>
+            <h2 id="analytics-heading">Staging click summary</h2>
+          </div>
+          <p className="state-message">Admin only</p>
+        </div>
+
+        <form
+          className="admin-controls compact-controls"
+          onSubmit={loadClickAnalytics}
+        >
           <button type="submit" disabled={analyticsStatus === "loading"}>
             {analyticsStatus === "loading" ? "Refreshing" : "Refresh"}
           </button>
@@ -574,9 +747,104 @@ export function SearchExperience({ searchEndpoint }: SearchExperienceProps) {
   );
 }
 
+function StagingSummaryView({ summary }: { summary: StagingSummary }) {
+  const latest = summary.latest_sync_job;
+
+  return (
+    <div className="admin-grid">
+      <div className="metric-card">
+        <span>Products</span>
+        <strong>{summary.counts.products}</strong>
+      </div>
+      <div className="metric-card">
+        <span>Listings</span>
+        <strong>{summary.counts.listings}</strong>
+      </div>
+      <div className="metric-card">
+        <span>Offers</span>
+        <strong>{summary.counts.offers}</strong>
+      </div>
+      <div className="metric-card">
+        <span>Clicks</span>
+        <strong>{summary.counts.click_events}</strong>
+      </div>
+
+      <section className="admin-table latest-sync">
+        <h3>Latest sync</h3>
+        {latest ? (
+          <dl className="sync-list">
+            <div>
+              <dt>Status</dt>
+              <dd>{latest.status}</dd>
+            </div>
+            <div>
+              <dt>Provider</dt>
+              <dd>{latest.provider_source ?? "unknown"}</dd>
+            </div>
+            <div>
+              <dt>Completed</dt>
+              <dd>{formatDateTime(latest.completed_at)}</dd>
+            </div>
+            <div>
+              <dt>Received</dt>
+              <dd>{latest.received_count}</dd>
+            </div>
+            <div>
+              <dt>Inserted</dt>
+              <dd>{latest.inserted_count}</dd>
+            </div>
+            <div>
+              <dt>Updated</dt>
+              <dd>{latest.updated_count}</dd>
+            </div>
+            <div>
+              <dt>Rejected</dt>
+              <dd>{latest.rejected_count}</dd>
+            </div>
+            <div>
+              <dt>Errors</dt>
+              <dd>{latest.error_count}</dd>
+            </div>
+          </dl>
+        ) : (
+          <p className="state-message">No sync job has run yet.</p>
+        )}
+      </section>
+
+      <section className="admin-table">
+        <h3>Recent sync errors</h3>
+        {summary.recent_errors.length > 0 ? (
+          <table>
+            <thead>
+              <tr>
+                <th>Code</th>
+                <th>Record</th>
+                <th>Message</th>
+              </tr>
+            </thead>
+            <tbody>
+              {summary.recent_errors.map((error) => (
+                <tr key={error.id}>
+                  <td>{error.error_code}</td>
+                  <td>
+                    {error.source_record_id ?? `Job ${error.sync_job_id}`}
+                  </td>
+                  <td>{error.message}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <p className="state-message">No recent sync errors.</p>
+        )}
+      </section>
+    </div>
+  );
+}
+
 function ClickAnalyticsView({ analytics }: { analytics: ClickAnalytics }) {
   return (
-    <div className="analytics-grid">
+    <div className="admin-grid">
       <div className="metric-card">
         <span>Total clicks</span>
         <strong>{analytics.total_clicks}</strong>
@@ -590,7 +858,7 @@ function ClickAnalyticsView({ analytics }: { analytics: ClickAnalytics }) {
         <strong>{analytics.target_counts.affiliate ?? 0}</strong>
       </div>
 
-      <section className="analytics-table">
+      <section className="admin-table">
         <h3>Top offers</h3>
         {analytics.top_offers.length > 0 ? (
           <table>
@@ -618,7 +886,7 @@ function ClickAnalyticsView({ analytics }: { analytics: ClickAnalytics }) {
         )}
       </section>
 
-      <section className="analytics-table">
+      <section className="admin-table">
         <h3>Top merchants</h3>
         {analytics.top_merchants.length > 0 ? (
           <table>
@@ -646,7 +914,7 @@ function ClickAnalyticsView({ analytics }: { analytics: ClickAnalytics }) {
         )}
       </section>
 
-      <section className="analytics-table recent-clicks">
+      <section className="admin-table recent-clicks">
         <h3>Recent clicks</h3>
         {analytics.recent_clicks.length > 0 ? (
           <table>

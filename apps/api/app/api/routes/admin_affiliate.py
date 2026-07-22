@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from datetime import datetime
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends
@@ -49,6 +50,47 @@ class SyncResultResponse(BaseModel):
     provider_source: str
     status: str
     stats: SyncStatsResponse
+
+
+class StagingCountsResponse(BaseModel):
+    products: int
+    listings: int
+    offers: int
+    coupons: int
+    cashback_offers: int
+    click_events: int
+    sync_jobs: int
+    sync_errors: int
+
+
+class StagingSyncJobResponse(BaseModel):
+    id: int
+    provider_source: str | None
+    status: str
+    started_at: datetime
+    completed_at: datetime | None
+    received_count: int
+    inserted_count: int
+    updated_count: int
+    skipped_count: int
+    rejected_count: int
+    duplicate_count: int
+    stale_count: int
+    error_count: int
+
+
+class StagingSyncErrorResponse(BaseModel):
+    id: int
+    sync_job_id: int
+    source_record_id: str | None
+    error_code: str
+    message: str
+
+
+class StagingSummaryResponse(BaseModel):
+    counts: StagingCountsResponse
+    latest_sync_job: StagingSyncJobResponse | None
+    recent_errors: list[StagingSyncErrorResponse]
 
 
 def row(model: Any, *fields: str) -> dict[str, Any]:
@@ -104,6 +146,58 @@ def list_sync_errors(db: DbSession) -> list[dict[str, Any]]:
         row(error, "id", "sync_job_id", "source_record_id", "error_code", "message")
         for error in errors
     ]
+
+
+@router.get("/staging-summary", response_model=StagingSummaryResponse)
+def get_staging_summary(db: DbSession) -> StagingSummaryResponse:
+    latest_job = db.scalars(
+        select(AffiliateSyncJob).order_by(AffiliateSyncJob.id.desc()).limit(1)
+    ).first()
+    recent_errors = db.scalars(
+        select(AffiliateSyncError).order_by(AffiliateSyncError.id.desc()).limit(5)
+    ).all()
+
+    return StagingSummaryResponse(
+        counts=StagingCountsResponse(
+            products=db.scalar(select(func.count(CanonicalProduct.id))) or 0,
+            listings=db.scalar(select(func.count(MerchantListing.id))) or 0,
+            offers=db.scalar(select(func.count(Offer.id))) or 0,
+            coupons=db.scalar(select(func.count(Coupon.id))) or 0,
+            cashback_offers=db.scalar(select(func.count(CashbackOffer.id))) or 0,
+            click_events=db.scalar(select(func.count(AffiliateClickEvent.id))) or 0,
+            sync_jobs=db.scalar(select(func.count(AffiliateSyncJob.id))) or 0,
+            sync_errors=db.scalar(select(func.count(AffiliateSyncError.id))) or 0,
+        ),
+        latest_sync_job=(
+            StagingSyncJobResponse(
+                id=latest_job.id,
+                provider_source=latest_job.provider.source if latest_job.provider else None,
+                status=latest_job.status,
+                started_at=latest_job.started_at,
+                completed_at=latest_job.completed_at,
+                received_count=latest_job.received_count,
+                inserted_count=latest_job.inserted_count,
+                updated_count=latest_job.updated_count,
+                skipped_count=latest_job.skipped_count,
+                rejected_count=latest_job.rejected_count,
+                duplicate_count=latest_job.duplicate_count,
+                stale_count=latest_job.stale_count,
+                error_count=latest_job.error_count,
+            )
+            if latest_job
+            else None
+        ),
+        recent_errors=[
+            StagingSyncErrorResponse(
+                id=error.id,
+                sync_job_id=error.sync_job_id,
+                source_record_id=error.source_record_id,
+                error_code=error.error_code,
+                message=error.message,
+            )
+            for error in recent_errors
+        ],
+    )
 
 
 @router.get("/products")

@@ -127,6 +127,7 @@ Supported `target_type` values:
 - `GET /admin/affiliate/cashback`
 - `GET /admin/affiliate/clicks`
 - `GET /admin/affiliate/click-analytics`
+- `GET /admin/affiliate/staging-summary`
 
 Admin responses expose normalized operational data and do not expose provider secrets or full raw
 payloads.
@@ -138,6 +139,12 @@ payloads.
 - top offers
 - top merchants
 - recent click events
+
+`GET /admin/affiliate/staging-summary` returns staging operations state:
+
+- normalized product, listing, offer, coupon, cashback, click, sync job, and sync error counts
+- latest mock sync job status and ingest counters
+- recent sync errors for quick debugging
 
 ## OpenAPI
 

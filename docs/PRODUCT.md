@@ -44,3 +44,10 @@ An admin-only staging panel summarizes total clicks, product vs affiliate clicks
 merchants, and recent mock click events.
 Search results also expose mock click counts and can be sorted by most-clicked offers so staging can
 test a basic feedback loop without introducing personalized tracking or real conversion data.
+
+## Staging Operations
+
+The staging UI includes admin-only controls to refresh mock feed status and trigger the mock sync.
+The status view summarizes seeded products, listings, offers, coupons, cashback offers, click
+events, latest sync counters, and recent malformed mock records. These controls are for staging
+validation only and do not connect to real affiliate providers.

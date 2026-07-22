@@ -97,7 +97,7 @@ a {
 
 .search-panel,
 .results-panel,
-.analytics-panel {
+.admin-panel {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -319,7 +319,7 @@ button:disabled {
   background: #f8fafc;
   border: 1px solid var(--border);
   border-radius: 8px;
-  color: var(--ink);
+  color: var(--foreground);
   font-size: 0.86rem;
   font-weight: 800;
   grid-column: 1 / -1;
@@ -459,32 +459,41 @@ h3 {
   text-underline-offset: 4px;
 }
 
-.analytics-panel {
+.admin-panel {
   display: grid;
   gap: 18px;
   padding: 20px;
 }
 
-.analytics-heading,
-.analytics-controls {
+.admin-heading,
+.admin-controls {
   align-items: end;
   display: grid;
   gap: 14px;
   grid-template-columns: minmax(0, 1fr) auto;
 }
 
-.analytics-controls .field {
+.admin-controls {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+
+.compact-controls {
+  grid-template-columns: auto;
+  justify-content: start;
+}
+
+.admin-controls .field {
   max-width: 460px;
 }
 
-.analytics-grid {
+.admin-grid {
   display: grid;
   gap: 14px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .metric-card,
-.analytics-table {
+.admin-table {
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 14px;
@@ -506,18 +515,18 @@ h3 {
   font-size: 1.85rem;
 }
 
-.analytics-table {
+.admin-table {
   display: grid;
   gap: 12px;
 }
 
-.analytics-table table {
+.admin-table table {
   border-collapse: collapse;
   width: 100%;
 }
 
-.analytics-table th,
-.analytics-table td {
+.admin-table th,
+.admin-table td {
   border-top: 1px solid var(--border);
   font-size: 0.9rem;
   padding: 10px 8px;
@@ -525,15 +534,46 @@ h3 {
   vertical-align: top;
 }
 
-.analytics-table th {
+.admin-table th {
   color: var(--muted);
   font-size: 0.75rem;
   text-transform: uppercase;
 }
 
-.analytics-table td:last-child,
-.analytics-table th:last-child {
+.admin-table td:last-child,
+.admin-table th:last-child {
   text-align: right;
+}
+
+.latest-sync {
+  grid-column: span 2;
+}
+
+.sync-list {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+}
+
+.sync-list div {
+  border-top: 1px solid var(--border);
+  display: grid;
+  gap: 2px;
+  padding-top: 10px;
+}
+
+.sync-list dt {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.sync-list dd {
+  font-weight: 800;
+  margin: 0;
+  overflow-wrap: anywhere;
 }
 
 .recent-clicks {
@@ -560,10 +600,15 @@ h3 {
   .result-card,
   .detail-heading,
   .detail-grid,
-  .analytics-heading,
-  .analytics-controls,
-  .analytics-grid {
+  .admin-heading,
+  .admin-controls,
+  .admin-grid,
+  .sync-list {
     grid-template-columns: 1fr;
+  }
+
+  .latest-sync {
+    grid-column: auto;
   }
 
   .price-block {

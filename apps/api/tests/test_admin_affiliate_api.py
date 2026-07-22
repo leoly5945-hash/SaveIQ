@@ -46,6 +46,7 @@ def test_run_mock_sync_and_view_admin_resources() -> None:
         products_response = client.get("/admin/affiliate/products", headers=headers)
         offers_response = client.get("/admin/affiliate/offers", headers=headers)
         errors_response = client.get("/admin/affiliate/sync/errors", headers=headers)
+        summary_response = client.get("/admin/affiliate/staging-summary", headers=headers)
 
         assert sync_response.status_code == 200
         assert sync_response.json()["stats"]["received"] == 12
@@ -55,6 +56,14 @@ def test_run_mock_sync_and_view_admin_resources() -> None:
         assert len(offers_response.json()) == 6
         assert errors_response.status_code == 200
         assert errors_response.json()[0]["error_code"] == "malformed_record"
+        assert summary_response.status_code == 200
+        summary = summary_response.json()
+        assert summary["counts"]["products"] == 5
+        assert summary["counts"]["offers"] == 6
+        assert summary["counts"]["sync_errors"] == 1
+        assert summary["latest_sync_job"]["provider_source"] == "mock_ca"
+        assert summary["latest_sync_job"]["received_count"] == 12
+        assert summary["recent_errors"][0]["error_code"] == "malformed_record"
     finally:
         app.dependency_overrides.clear()
         session.close()
