@@ -68,7 +68,11 @@ def request_json(request: Request, *, expected_status: int = 200) -> dict[str, A
 
 
 def post_json(
-    url: str, payload: dict[str, Any], token: str | None = None
+    url: str,
+    payload: dict[str, Any],
+    token: str | None = None,
+    *,
+    expected_status: int = 200,
 ) -> dict[str, Any]:
     body = json.dumps(payload).encode("utf-8")
     headers = {
@@ -79,7 +83,10 @@ def post_json(
     }
     if token:
         headers["X-Admin-Token"] = token
-    return request_json(Request(url, data=body, headers=headers, method="POST"))
+    return request_json(
+        Request(url, data=body, headers=headers, method="POST"),
+        expected_status=expected_status,
+    )
 
 
 def post_empty(url: str, token: str) -> dict[str, Any]:
@@ -189,6 +196,7 @@ def main() -> None:
     click = post_json(
         f"{api_url}/clicks",
         {"offer_id": offer_id, "target_type": "product", "referrer": "staging-smoke"},
+        expected_status=201,
     )
     if click.get("offer_id") != offer_id:
         fail("click tracking response did not echo the tracked offer")
@@ -197,6 +205,7 @@ def main() -> None:
     web_click = post_json(
         f"{web_url}/api/clicks",
         {"offer_id": offer_id, "target_type": "affiliate", "referrer": "staging-smoke"},
+        expected_status=201,
     )
     if web_click.get("offer_id") != offer_id:
         fail("web click proxy response did not echo the tracked offer")
