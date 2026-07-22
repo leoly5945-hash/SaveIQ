@@ -7,8 +7,8 @@ attribution, explainable ranking, and transparent affiliate relationships.
 ## Current Scope
 
 This repository contains the modular monolith foundation plus the affiliate domain model, mock
-Canadian affiliate provider, ingestion pipeline, protected admin visibility endpoints, and a first
-public product/offer search slice.
+Canadian affiliate provider, ingestion pipeline, protected admin visibility endpoints, a first
+public product/offer search slice, and lightweight mock click tracking.
 
 ## Out of Scope
 
@@ -33,3 +33,9 @@ match reasons so the staging UI can explain why an offer appeared. Quick searche
 terms represented in the seeded mock feed. Offer detail shows mock commercial context, source
 attribution, price history, and coupon/cashback availability. It does not perform web scraping, call
 real affiliate networks, or use an AI agent.
+
+## Mock Click Tracking
+
+The staging UI records best-effort clicks for mock product URLs and mock affiliate URLs. This helps
+validate the product flow and attribution model before any real affiliate partner is connected. It
+does not track conversions, scrape merchant pages, or send data to external affiliate networks.

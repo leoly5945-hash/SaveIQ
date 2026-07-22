@@ -8,6 +8,8 @@ DealHunter handles commerce data, affiliate links, and future user preferences. 
 - Secrets are excluded from source control.
 - CORS defaults to local frontend development.
 - Affiliate provider code is isolated behind interfaces.
+- Mock click tracking stores no user accounts, IP addresses, payment identifiers, or real affiliate
+  conversion data.
 
 ## Future Requirements
 
@@ -16,7 +18,7 @@ DealHunter handles commerce data, affiliate links, and future user preferences. 
 - Add authentication before user-specific features.
 - Rate-limit public endpoints.
 - Log security-relevant events without sensitive payloads.
-- Review data retention for recommendation traces and click events.
+- Review data retention for recommendation traces and click events before production.
 
 ## Dependency Management
 

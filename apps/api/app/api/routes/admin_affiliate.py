@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from app.api.dependencies import require_admin
 from app.db.session import get_db
 from app.models import (
+    AffiliateClickEvent,
     AffiliateSyncError,
     AffiliateSyncJob,
     CanonicalProduct,
@@ -206,4 +207,29 @@ def list_cashback(db: DbSession) -> list[dict[str, Any]]:
             "record_status",
         )
         for offer in offers
+    ]
+
+
+@router.get("/clicks")
+def list_click_events(db: DbSession) -> list[dict[str, Any]]:
+    events = db.scalars(
+        select(AffiliateClickEvent).order_by(AffiliateClickEvent.id.desc()).limit(50)
+    ).all()
+    return [
+        {
+            "id": event.id,
+            "offer_id": event.offer_id,
+            "merchant_id": event.merchant_id,
+            "merchant_listing_id": event.merchant_listing_id,
+            "merchant": event.merchant.name if event.merchant else None,
+            "offer_title": event.offer.title if event.offer else None,
+            "target_type": event.target_type,
+            "target_url": event.target_url,
+            "provider_source": event.provider_source,
+            "source_record_id": event.source_record_id,
+            "market": event.market,
+            "referrer": event.referrer,
+            "created_at": event.created_at,
+        }
+        for event in events
     ]

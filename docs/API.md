@@ -1,6 +1,7 @@
 # API
 
-The public API currently exposes health plus read-only mock search and offer detail endpoints.
+The public API currently exposes health, mock search, offer detail, and mock click tracking
+endpoints.
 Development/admin affiliate endpoints are protected by the `X-Admin-Token` header and are intended
 for local or staging visibility.
 
@@ -87,6 +88,25 @@ Query parameters:
 }
 ```
 
+`POST /clicks`
+
+Record a best-effort click against a stored mock offer target. This endpoint is public so the
+staging frontend can track product and mock affiliate link clicks without exposing admin credentials.
+It returns the URL that was tracked; the browser still opens the visible link target directly.
+
+```json
+{
+  "offer_id": 1,
+  "target_type": "product",
+  "referrer": "https://dealhunter-staging-web.onrender.com/"
+}
+```
+
+Supported `target_type` values:
+
+- `product`
+- `affiliate`
+
 ## Admin Affiliate
 
 - `POST /admin/affiliate/sync/mock`
@@ -98,6 +118,7 @@ Query parameters:
 - `GET /admin/affiliate/price-history`
 - `GET /admin/affiliate/coupons`
 - `GET /admin/affiliate/cashback`
+- `GET /admin/affiliate/clicks`
 
 Admin responses expose normalized operational data and do not expose provider secrets or full raw
 payloads.

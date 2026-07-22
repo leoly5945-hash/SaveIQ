@@ -1,6 +1,7 @@
 """SQLAlchemy model modules."""
 
 from app.models.affiliate import (
+    AffiliateClickEvent,
     AffiliateLink,
     AffiliateProvider,
     AffiliateSyncError,
@@ -9,6 +10,7 @@ from app.models.affiliate import (
     CanonicalProduct,
     CashbackOffer,
     Category,
+    ClickTargetType,
     Coupon,
     FreshnessStatus,
     Merchant,
@@ -21,6 +23,7 @@ from app.models.affiliate import (
 )
 
 __all__ = [
+    "AffiliateClickEvent",
     "AffiliateLink",
     "AffiliateProvider",
     "AffiliateSyncError",
@@ -29,6 +32,7 @@ __all__ = [
     "CashbackOffer",
     "CanonicalProduct",
     "Category",
+    "ClickTargetType",
     "Coupon",
     "FreshnessStatus",
     "Merchant",

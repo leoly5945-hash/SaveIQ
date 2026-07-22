@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes.admin_affiliate import router as admin_affiliate_router
+from app.api.routes.clicks import router as clicks_router
 from app.api.routes.health import router as health_router
 from app.api.routes.search import router as search_router
 from app.core.settings import get_settings
@@ -18,6 +19,7 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
     app.include_router(health_router)
+    app.include_router(clicks_router)
     app.include_router(search_router)
     app.include_router(admin_affiliate_router)
     return app

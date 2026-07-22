@@ -6,6 +6,7 @@ DealHunter separates product identity from merchant commerce data.
 - `merchant_listings` represent merchant-specific catalog pages for a product.
 - `offers` represent a purchasable commercial offer for a listing.
 - `price_history` is append-only by observation and never overwrites historical prices.
+- `affiliate_click_events` records lightweight mock click events for staging observability.
 
 Provider-specific raw payloads are stored only in `raw_provider_records`. Core product, merchant,
 offer, coupon, cashback, and attribution fields are structured columns.
@@ -29,6 +30,9 @@ erDiagram
   affiliate_links ||--o{ offers : monetizes
   merchants ||--o{ coupons : offers
   merchants ||--o{ cashback_offers : offers
+  offers ||--o{ affiliate_click_events : clicked
+  merchant_listings ||--o{ affiliate_click_events : clicked
+  merchants ||--o{ affiliate_click_events : attributed_to
 ```
 
 ## Product Resolution
@@ -53,6 +57,13 @@ The mock ingestion pipeline marks records older than 30 days as `stale` and skip
 upserts for them. Freshness policy is centralized in the ingestion service so future providers can
 use provider-specific windows without changing the core schema.
 
+## Click Events
+
+`affiliate_click_events` stores staging click telemetry for mock product and mock affiliate URLs.
+Each event keeps the offer/listing/merchant relationship, provider attribution, target type, target
+URL, market, optional referrer, optional user agent, and creation timestamp. It does not store user
+accounts, IP addresses, payment identifiers, or real affiliate conversion data.
+
 ## Current Tables
 
 - `affiliate_providers`
@@ -67,6 +78,7 @@ use provider-specific windows without changing the core schema.
 - `price_history`
 - `coupons`
 - `cashback_offers`
+- `affiliate_click_events`
 - `affiliate_sync_jobs`
 - `affiliate_sync_errors`
 - `raw_provider_records`

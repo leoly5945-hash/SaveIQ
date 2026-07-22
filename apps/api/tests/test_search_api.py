@@ -186,3 +186,67 @@ def test_offer_detail_returns_404_for_unknown_offer() -> None:
     finally:
         app.dependency_overrides.clear()
         session.close()
+
+
+def test_click_tracking_records_product_clicks_for_active_offers() -> None:
+    client, session = make_client()
+    headers = {"X-Admin-Token": "dev-admin-token"}
+    try:
+        client.post("/admin/affiliate/sync/mock", headers=headers)
+        search_response = client.get("/search?q=buds")
+        offer_id = search_response.json()["results"][0]["offer_id"]
+
+        response = client.post(
+            "/clicks",
+            headers={"user-agent": "pytest"},
+            json={
+                "offer_id": offer_id,
+                "target_type": "product",
+                "referrer": "https://dealhunter-staging-web.onrender.com/",
+            },
+        )
+        clicks_response = client.get("/admin/affiliate/clicks", headers=headers)
+
+        assert response.status_code == 201
+        payload = response.json()
+        assert payload["offer_id"] == offer_id
+        assert payload["target_type"] == "product"
+        assert payload["target_url"].startswith("https://maple-tech.example.test/products/")
+        assert clicks_response.status_code == 200
+        clicks = clicks_response.json()
+        assert clicks[0]["offer_id"] == offer_id
+        assert clicks[0]["target_type"] == "product"
+        assert clicks[0]["referrer"] == "https://dealhunter-staging-web.onrender.com/"
+    finally:
+        app.dependency_overrides.clear()
+        session.close()
+
+
+def test_click_tracking_rejects_unknown_target_type() -> None:
+    client, session = make_client()
+    try:
+        response = client.post(
+            "/clicks",
+            json={"offer_id": 1, "target_type": "checkout"},
+        )
+
+        assert response.status_code == 422
+        assert "target_type must be one of" in response.json()["detail"]
+    finally:
+        app.dependency_overrides.clear()
+        session.close()
+
+
+def test_click_tracking_returns_404_for_unknown_offer() -> None:
+    client, session = make_client()
+    try:
+        response = client.post(
+            "/clicks",
+            json={"offer_id": 999, "target_type": "product"},
+        )
+
+        assert response.status_code == 404
+        assert response.json()["detail"] == "Trackable offer target not found"
+    finally:
+        app.dependency_overrides.clear()
+        session.close()

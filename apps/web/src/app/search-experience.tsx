@@ -83,6 +83,8 @@ type SearchExperienceProps = {
   searchEndpoint: string;
 };
 
+type ClickTargetType = "product" | "affiliate";
+
 function formatMoney(cents: number, currency: string) {
   return new Intl.NumberFormat("en-CA", {
     style: "currency",
@@ -222,6 +224,26 @@ export function SearchExperience({ searchEndpoint }: SearchExperienceProps) {
     } catch {
       setSelectedOffer(null);
       setDetailStatus("error");
+    }
+  }
+
+  async function trackClick(offerId: number, targetType: ClickTargetType) {
+    try {
+      await fetch("/api/clicks", {
+        body: JSON.stringify({
+          offer_id: offerId,
+          referrer: window.location.href,
+          target_type: targetType,
+        }),
+        headers: {
+          Accept: "application/json",
+          "content-type": "application/json",
+        },
+        keepalive: true,
+        method: "POST",
+      });
+    } catch {
+      // Best-effort mock tracking should never block opening a deal URL.
     }
   }
 
@@ -412,6 +434,9 @@ export function SearchExperience({ searchEndpoint }: SearchExperienceProps) {
                       <a
                         className="source-link"
                         href={result.product_url}
+                        onClick={() =>
+                          void trackClick(result.offer_id, "product")
+                        }
                         rel="noreferrer"
                         target="_blank"
                       >
@@ -439,7 +464,9 @@ export function SearchExperience({ searchEndpoint }: SearchExperienceProps) {
                 Offer detail is unavailable.
               </p>
             ) : null}
-            {selectedOffer ? <OfferDetailPanel offer={selectedOffer} /> : null}
+            {selectedOffer ? (
+              <OfferDetailPanel offer={selectedOffer} onTrack={trackClick} />
+            ) : null}
           </>
         ) : null}
       </div>
@@ -447,7 +474,13 @@ export function SearchExperience({ searchEndpoint }: SearchExperienceProps) {
   );
 }
 
-function OfferDetailPanel({ offer }: { offer: OfferDetail }) {
+function OfferDetailPanel({
+  offer,
+  onTrack,
+}: {
+  offer: OfferDetail;
+  onTrack: (offerId: number, targetType: ClickTargetType) => void;
+}) {
   const currentPrice = offer.sale_price_cents ?? offer.price_cents;
   const latestPrice = offer.price_history[0];
 
@@ -557,12 +590,22 @@ function OfferDetailPanel({ offer }: { offer: OfferDetail }) {
 
       <div className="detail-actions">
         {offer.product_url ? (
-          <a href={offer.product_url} rel="noreferrer" target="_blank">
+          <a
+            href={offer.product_url}
+            onClick={() => onTrack(offer.offer_id, "product")}
+            rel="noreferrer"
+            target="_blank"
+          >
             Open mock product URL
           </a>
         ) : null}
         {offer.affiliate_url ? (
-          <a href={offer.affiliate_url} rel="noreferrer" target="_blank">
+          <a
+            href={offer.affiliate_url}
+            onClick={() => onTrack(offer.offer_id, "affiliate")}
+            rel="noreferrer"
+            target="_blank"
+          >
             Open mock affiliate URL
           </a>
         ) : null}

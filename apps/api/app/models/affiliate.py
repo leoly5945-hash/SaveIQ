@@ -62,6 +62,11 @@ class SyncJobStatus(StrEnum):
     completed_with_errors = "completed_with_errors"
 
 
+class ClickTargetType(StrEnum):
+    product = "product"
+    affiliate = "affiliate"
+
+
 def enum_column(enum_type: type[StrEnum], *, default: StrEnum | None = None) -> Mapped[str]:
     return mapped_column(
         Enum(enum_type, native_enum=False, validate_strings=True),
@@ -332,6 +337,35 @@ class AffiliateLink(Base, TimestampMixin, SourceAttributionMixin):
     __table_args__ = (
         UniqueConstraint("provider_source", "source_record_id", name="uq_affiliate_links_source"),
     )
+
+
+class AffiliateClickEvent(Base):
+    __tablename__ = "affiliate_click_events"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    offer_id: Mapped[int | None] = mapped_column(ForeignKey("offers.id", ondelete="SET NULL"))
+    merchant_id: Mapped[int | None] = mapped_column(ForeignKey("merchants.id", ondelete="SET NULL"))
+    merchant_listing_id: Mapped[int | None] = mapped_column(
+        ForeignKey("merchant_listings.id", ondelete="SET NULL")
+    )
+    target_type: Mapped[str] = enum_column(ClickTargetType)
+    target_url: Mapped[str] = mapped_column(String(2048), nullable=False)
+    provider_source: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    source_record_id: Mapped[str] = mapped_column(String(160), nullable=False)
+    market: Mapped[str] = mapped_column(String(2), nullable=False)
+    user_agent: Mapped[str | None] = mapped_column(String(512))
+    referrer: Mapped[str | None] = mapped_column(String(2048))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )
+
+    offer: Mapped[Offer | None] = relationship()
+    merchant: Mapped[Merchant | None] = relationship()
+    listing: Mapped[MerchantListing | None] = relationship()
+
+    __table_args__ = (Index("ix_affiliate_click_events_offer_created", "offer_id", "created_at"),)
 
 
 class AffiliateSyncJob(Base, TimestampMixin):
