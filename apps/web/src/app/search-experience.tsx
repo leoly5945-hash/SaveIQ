@@ -36,6 +36,7 @@ type SearchResult = {
   has_cashback: boolean;
   click_count: number;
   match_reasons: string[];
+  ranking_reasons: string[];
 };
 
 type SearchResponse = {
@@ -490,6 +491,9 @@ export function SearchExperience({ searchEndpoint }: SearchExperienceProps) {
                     <p className="match-reason">
                       Matched on {result.match_reasons.join(", ")}
                     </p>
+                    <p className="ranking-reason">
+                      Ranked by {result.ranking_reasons.join(", ")}
+                    </p>
                     {result.product_url ? (
                       <a
                         className="source-link"
@@ -693,6 +697,9 @@ function OfferDetailPanel({
             {offer.merchant} · {offer.provider_source} · {offer.market}
           </p>
           <p className="result-meta">{offer.click_count} mock clicks</p>
+          <p className="ranking-reason">
+            Ranked by {offer.ranking_reasons.join(", ")}
+          </p>
         </div>
         <div className="price-block">
           <p className="price">{formatMoney(currentPrice, offer.currency)}</p>

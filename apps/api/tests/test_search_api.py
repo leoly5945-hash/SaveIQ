@@ -141,7 +141,27 @@ def test_search_sorts_by_most_clicked() -> None:
         payload = response.json()
         assert payload["results"][0]["offer_id"] == offer_ids[1]
         assert payload["results"][0]["click_count"] == 2
+        assert "2 mock clicks" in payload["results"][0]["ranking_reasons"]
         assert payload["results"][1]["click_count"] == 1
+    finally:
+        app.dependency_overrides.clear()
+        session.close()
+
+
+def test_search_returns_ranking_reasons_for_default_sort() -> None:
+    client, session = make_client()
+    headers = {"X-Admin-Token": "dev-admin-token"}
+    try:
+        client.post("/admin/affiliate/sync/mock", headers=headers)
+
+        response = client.get("/search?q=buds")
+
+        assert response.status_code == 200
+        payload = response.json()
+        reasons = payload["results"][0]["ranking_reasons"]
+        assert any(reason.startswith("lower current price:") for reason in reasons)
+        assert "sale price available" in reasons
+        assert "fresh mock data" in reasons
     finally:
         app.dependency_overrides.clear()
         session.close()

@@ -83,7 +83,13 @@ Query parameters:
       "has_coupon": true,
       "has_cashback": true,
       "click_count": 2,
-      "match_reasons": ["product title", "offer title"]
+      "match_reasons": ["product title", "offer title"],
+      "ranking_reasons": [
+        "lower current price: 99.99 CAD",
+        "sale price available",
+        "coupon available",
+        "fresh mock data"
+      ]
     }
   ]
 }

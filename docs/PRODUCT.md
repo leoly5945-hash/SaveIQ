@@ -28,11 +28,12 @@ public product/offer search slice, and lightweight mock click tracking.
 
 The first search experience is intentionally small and source-backed. It searches stored normalized
 mock offers and supports filters for merchant, brand, category, coupon availability, cashback
-availability, and freshness. Results can be sorted by current price or merchant and include simple
-match reasons so the staging UI can explain why an offer appeared. Quick searches are limited to
-terms represented in the seeded mock feed. Offer detail shows mock commercial context, source
-attribution, price history, and coupon/cashback availability. It does not perform web scraping, call
-real affiliate networks, or use an AI agent.
+availability, and freshness. Results can be sorted by current price, merchant, or mock click count.
+They include simple match reasons and rule-based ranking reasons so the staging UI can explain why
+an offer appeared and why it is ordered. Quick searches are limited to terms represented in the
+seeded mock feed. Offer detail shows mock commercial context, source attribution, price history, and
+coupon/cashback availability. It does not perform web scraping, call real affiliate networks, or use
+an AI agent.
 
 ## Mock Click Tracking
 

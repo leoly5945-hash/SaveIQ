@@ -56,6 +56,7 @@ class SearchResultRow(TypedDict):
     has_cashback: bool
     click_count: int
     match_reasons: list[str]
+    ranking_reasons: list[str]
 
 
 class CouponSummary(TypedDict):
@@ -254,6 +255,41 @@ def _match_reasons(
     return reasons or ["filters"]
 
 
+def _ranking_reasons(
+    sort: str | None,
+    offer: Offer,
+    has_coupon: bool,
+    has_cashback: bool,
+    click_count: int,
+) -> list[str]:
+    reasons: list[str] = []
+    current_price = offer.sale_price_cents or offer.price_cents
+
+    if sort == "clicks_desc":
+        if click_count > 0:
+            click_label = "click" if click_count == 1 else "clicks"
+            reasons.append(f"{click_count} mock {click_label}")
+        else:
+            reasons.append("no mock clicks yet")
+    elif sort == "price_desc":
+        reasons.append(f"higher current price: {current_price / 100:.2f} {offer.currency}")
+    elif sort == "merchant":
+        reasons.append("merchant name order")
+    else:
+        reasons.append(f"lower current price: {current_price / 100:.2f} {offer.currency}")
+
+    if offer.sale_price_cents is not None and offer.sale_price_cents < offer.price_cents:
+        reasons.append("sale price available")
+    if has_coupon:
+        reasons.append("coupon available")
+    if has_cashback:
+        reasons.append("cashback available")
+    if offer.freshness_status == FreshnessStatus.fresh.value:
+        reasons.append("fresh mock data")
+
+    return reasons[:4] or ["active mock offer"]
+
+
 def _search_result_row(
     db: Session,
     offer: Offer,
@@ -261,7 +297,11 @@ def _search_result_row(
     merchant: Merchant,
     product: CanonicalProduct,
     query_terms: list[str],
+    sort: str | None = None,
 ) -> SearchResultRow:
+    has_coupon = _has_coupon(db, merchant.id)
+    has_cashback = _has_cashback(db, merchant.id)
+    click_count = _offer_click_count(db, offer.id)
     return {
         "offer_id": offer.id,
         "product_id": product.id,
@@ -278,15 +318,22 @@ def _search_result_row(
         "freshness_status": offer.freshness_status,
         "provider_source": offer.provider_source,
         "product_url": listing.product_url,
-        "has_coupon": _has_coupon(db, merchant.id),
-        "has_cashback": _has_cashback(db, merchant.id),
-        "click_count": _offer_click_count(db, offer.id),
+        "has_coupon": has_coupon,
+        "has_cashback": has_cashback,
+        "click_count": click_count,
         "match_reasons": _match_reasons(
             query_terms,
             offer,
             listing,
             merchant,
             product,
+        ),
+        "ranking_reasons": _ranking_reasons(
+            sort,
+            offer,
+            has_coupon,
+            has_cashback,
+            click_count,
         ),
     }
 
@@ -335,7 +382,17 @@ def search_offers(
 
     results: list[SearchResultRow] = []
     for offer, listing, merchant_row, product in db.execute(statement).all():
-        results.append(_search_result_row(db, offer, listing, merchant_row, product, query_terms))
+        results.append(
+            _search_result_row(
+                db,
+                offer,
+                listing,
+                merchant_row,
+                product,
+                query_terms,
+                filters.sort,
+            )
+        )
     return results
 
 

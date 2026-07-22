@@ -1,6 +1,7 @@
 # AI System
 
 The AI system is not implemented in this foundation. The architecture reserves space for a future assistant that can interpret user intent, retrieve candidate offers, rank results, and explain recommendations.
+Current staging explanations are rule-based search metadata, not model-generated recommendations.
 
 ## Intended Responsibilities
 

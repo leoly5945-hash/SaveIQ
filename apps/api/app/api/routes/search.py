@@ -41,6 +41,7 @@ class SearchResult(BaseModel):
     has_cashback: bool
     click_count: int
     match_reasons: list[str]
+    ranking_reasons: list[str]
 
 
 class SearchResponse(BaseModel):

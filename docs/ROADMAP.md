@@ -27,6 +27,7 @@
 - Lightweight mock click tracking for product and affiliate link taps
 - Staging-only mock click analytics for top offers, merchants, and recent events
 - Search ranking option that sorts stored mock offers by click count
+- Rule-based ranking reasons for staging explainability
 - Keep search grounded in stored normalized data only
 
 ## Phase 3: Approved Affiliate Integrations
