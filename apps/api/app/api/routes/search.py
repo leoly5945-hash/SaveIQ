@@ -39,6 +39,7 @@ class SearchResult(BaseModel):
     product_url: str | None
     has_coupon: bool
     has_cashback: bool
+    click_count: int
     match_reasons: list[str]
 
 

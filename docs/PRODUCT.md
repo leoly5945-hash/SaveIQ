@@ -41,3 +41,5 @@ validate the product flow and attribution model before any real affiliate partne
 does not track conversions, scrape merchant pages, or send data to external affiliate networks.
 An admin-only staging panel summarizes total clicks, product vs affiliate clicks, top offers, top
 merchants, and recent mock click events.
+Search results also expose mock click counts and can be sorted by most-clicked offers so staging can
+test a basic feedback loop without introducing personalized tracking or real conversion data.

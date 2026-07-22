@@ -124,6 +124,29 @@ def test_search_sorts_by_highest_current_price() -> None:
         session.close()
 
 
+def test_search_sorts_by_most_clicked() -> None:
+    client, session = make_client()
+    headers = {"X-Admin-Token": "dev-admin-token"}
+    try:
+        client.post("/admin/affiliate/sync/mock", headers=headers)
+        search_response = client.get("/search?q=buds")
+        offer_ids = [result["offer_id"] for result in search_response.json()["results"]]
+        client.post("/clicks", json={"offer_id": offer_ids[1], "target_type": "product"})
+        client.post("/clicks", json={"offer_id": offer_ids[1], "target_type": "affiliate"})
+        client.post("/clicks", json={"offer_id": offer_ids[0], "target_type": "product"})
+
+        response = client.get("/search?q=buds&sort=clicks_desc")
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["results"][0]["offer_id"] == offer_ids[1]
+        assert payload["results"][0]["click_count"] == 2
+        assert payload["results"][1]["click_count"] == 1
+    finally:
+        app.dependency_overrides.clear()
+        session.close()
+
+
 def test_search_expands_backpack_to_pack() -> None:
     client, session = make_client()
     headers = {"X-Admin-Token": "dev-admin-token"}

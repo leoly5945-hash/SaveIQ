@@ -8,6 +8,7 @@ from sqlalchemy import ColumnElement, Select, exists, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.models import (
+    AffiliateClickEvent,
     Brand,
     CanonicalProduct,
     CashbackOffer,
@@ -53,6 +54,7 @@ class SearchResultRow(TypedDict):
     product_url: str | None
     has_coupon: bool
     has_cashback: bool
+    click_count: int
     match_reasons: list[str]
 
 
@@ -179,6 +181,15 @@ def _base_query() -> Select[tuple[Offer, MerchantListing, Merchant, CanonicalPro
     )
 
 
+def _click_count_expression() -> ColumnElement[int]:
+    return (
+        select(func.count(AffiliateClickEvent.id))
+        .where(AffiliateClickEvent.offer_id == Offer.id)
+        .correlate(Offer)
+        .scalar_subquery()
+    )
+
+
 def _has_coupon(db: Session, merchant_id: int) -> bool:
     return (
         db.scalar(
@@ -205,6 +216,17 @@ def _has_cashback(db: Session, merchant_id: int) -> bool:
             )
         )
         is True
+    )
+
+
+def _offer_click_count(db: Session, offer_id: int) -> int:
+    return (
+        db.scalar(
+            select(func.count(AffiliateClickEvent.id)).where(
+                AffiliateClickEvent.offer_id == offer_id
+            )
+        )
+        or 0
     )
 
 
@@ -258,6 +280,7 @@ def _search_result_row(
         "product_url": listing.product_url,
         "has_coupon": _has_coupon(db, merchant.id),
         "has_cashback": _has_cashback(db, merchant.id),
+        "click_count": _offer_click_count(db, offer.id),
         "match_reasons": _match_reasons(
             query_terms,
             offer,
@@ -299,8 +322,11 @@ def search_offers(
         statement = statement.where(Offer.freshness_status == filters.freshness)
 
     effective_price = func.coalesce(Offer.sale_price_cents, Offer.price_cents)
+    click_count = _click_count_expression()
     if filters.sort == "price_desc":
         statement = statement.order_by(effective_price.desc(), Offer.id.asc())
+    elif filters.sort == "clicks_desc":
+        statement = statement.order_by(click_count.desc(), effective_price.asc(), Offer.id.asc())
     elif filters.sort == "merchant":
         statement = statement.order_by(Merchant.name.asc(), effective_price.asc(), Offer.id.asc())
     else:
@@ -386,7 +412,7 @@ def valid_sort(value: str | None) -> str:
     normalized = _normalized(value)
     if normalized is None:
         return "price_asc"
-    allowed = {"price_asc", "price_desc", "merchant"}
+    allowed = {"clicks_desc", "merchant", "price_asc", "price_desc"}
     if normalized not in allowed:
         msg = f"sort must be one of: {', '.join(sorted(allowed))}"
         raise ValueError(msg)

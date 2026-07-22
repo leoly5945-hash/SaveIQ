@@ -6,6 +6,7 @@ const QUICK_SEARCHES = ["buds", "kettle", "pack"];
 const SORT_OPTIONS = [
   { label: "Lowest price", value: "price_asc" },
   { label: "Highest price", value: "price_desc" },
+  { label: "Most clicked", value: "clicks_desc" },
   { label: "Merchant A-Z", value: "merchant" },
 ] as const;
 const FRESHNESS_OPTIONS = [
@@ -33,6 +34,7 @@ type SearchResult = {
   product_url: string | null;
   has_coupon: boolean;
   has_cashback: boolean;
+  click_count: number;
   match_reasons: string[];
 };
 
@@ -482,6 +484,7 @@ export function SearchExperience({ searchEndpoint }: SearchExperienceProps) {
                       <span>{result.freshness_status}</span>
                       {result.has_coupon ? <span>Coupon</span> : null}
                       {result.has_cashback ? <span>Cashback</span> : null}
+                      <span>{result.click_count} mock clicks</span>
                       <span>{result.provider_source}</span>
                     </div>
                     <p className="match-reason">
@@ -689,6 +692,7 @@ function OfferDetailPanel({
           <p className="result-meta">
             {offer.merchant} · {offer.provider_source} · {offer.market}
           </p>
+          <p className="result-meta">{offer.click_count} mock clicks</p>
         </div>
         <div className="price-block">
           <p className="price">{formatMoney(currentPrice, offer.currency)}</p>
