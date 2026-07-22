@@ -29,6 +29,7 @@
 - Search ranking option that sorts stored mock offers by click count
 - Rule-based ranking reasons for staging explainability
 - Admin-only staging data summary and mock seed controls
+- End-to-end staging smoke test for health, seed, search, clicks, analytics, and web proxies
 - Keep search grounded in stored normalized data only
 
 ## Phase 3: Approved Affiliate Integrations

@@ -144,6 +144,13 @@ proxy:
 ADMIN_API_TOKEN=<render-admin-token> PYTHON=.venv/bin/python make staging-seed-mock
 ```
 
+Run the full staging smoke test after every deploy. It checks API/web health, mock sync, staging
+summary, public search, click tracking, click analytics, and web proxies:
+
+```bash
+ADMIN_API_TOKEN=<render-admin-token> PYTHON=.venv/bin/python make staging-smoke
+```
+
 The token must come from Render's `ADMIN_API_TOKEN` environment variable. Do not commit it or paste
 it into docs.
 

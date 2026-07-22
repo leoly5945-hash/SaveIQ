@@ -146,6 +146,9 @@ payloads.
 - latest mock sync job status and ingest counters
 - recent sync errors for quick debugging
 
+Use `make staging-smoke` with `ADMIN_API_TOKEN` set to run the live staging API and web proxy smoke
+suite after each deploy.
+
 ## OpenAPI
 
 FastAPI publishes the generated OpenAPI schema at `/openapi.json` and interactive docs at `/docs`.
