@@ -42,7 +42,10 @@
 
 ## Phase 4: AI Recommendations
 
-- Intent parser
-- Retrieval and ranking orchestration
-- Recommendation explanations
-- Evaluation traces and test fixtures
+- Gate 4A deterministic recommendation skeleton
+- Rule-based intent parser for mock staging queries
+- Retrieval through stored normalized offer search
+- Inline evaluation trace for parse, retrieval, and ranking steps
+- Recommendation explanations grounded in existing match and ranking reasons
+- Future: persisted traces and evaluation fixtures
+- Future: LLM intent parsing after evaluation criteria are defined

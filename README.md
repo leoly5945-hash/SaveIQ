@@ -72,6 +72,17 @@ curl http://localhost:8000/admin/affiliate/price-history -H "X-Admin-Token: dev-
 curl http://localhost:8000/admin/affiliate/sync/jobs -H "X-Admin-Token: dev-admin-token"
 ```
 
+## Mock Recommendations
+
+Gate 4A exposes a deterministic recommendation skeleton. It parses simple shopping intent, retrieves
+stored mock offers, and returns an inline evaluation trace without calling an LLM:
+
+```bash
+curl -X POST http://localhost:8000/recommendations \
+  -H "Content-Type: application/json" \
+  -d '{"intent":"Find fresh wireless earbuds with a coupon","limit":3}'
+```
+
 ## Docker Compose
 
 Run the full local stack:
@@ -145,7 +156,7 @@ ADMIN_API_TOKEN=<render-admin-token> PYTHON=.venv/bin/python make staging-seed-m
 ```
 
 Run the full staging smoke test after every deploy. It checks API/web health, mock sync, staging
-summary, public search, click tracking, click analytics, and web proxies:
+summary, public search, mock recommendations, click tracking, click analytics, and web proxies:
 
 ```bash
 ADMIN_API_TOKEN=<render-admin-token> PYTHON=.venv/bin/python make staging-smoke

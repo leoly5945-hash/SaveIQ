@@ -1,0 +1,101 @@
+from collections.abc import Generator
+
+from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.pool import StaticPool
+
+import app.models  # noqa: F401
+from app.db.base import Base
+from app.db.session import get_db
+from app.main import app
+
+
+def make_client() -> tuple[TestClient, Session]:
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(engine)
+    session_factory = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    session = session_factory()
+
+    def override_db() -> Generator[Session, None, None]:
+        yield session
+
+    app.dependency_overrides[get_db] = override_db
+    return TestClient(app), session
+
+
+def test_recommendations_return_mock_offers_with_evaluation_trace() -> None:
+    client, session = make_client()
+    headers = {"X-Admin-Token": "dev-admin-token"}
+    try:
+        client.post("/admin/affiliate/sync/mock", headers=headers)
+
+        response = client.post(
+            "/recommendations",
+            json={"intent": "Find fresh wireless earbuds with a coupon", "limit": 3},
+        )
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["strategy"] == "rule_based_mock_v0"
+        assert payload["intent"]["raw_intent"] == "Find fresh wireless earbuds with a coupon"
+        assert payload["intent"]["search_query"] == "wireless earbuds"
+        assert payload["intent"]["has_coupon"] is True
+        assert payload["intent"]["freshness"] == "fresh"
+        assert payload["count"] == 1
+        assert payload["recommendations"][0]["merchant"] == "Maple Tech"
+        assert payload["recommendations"][0]["has_coupon"] is True
+        assert [step["step"] for step in payload["evaluation_trace"]] == [
+            "parse_intent",
+            "retrieve_candidates",
+            "rank_candidates",
+        ]
+        assert "no model call" in payload["evaluation_trace"][0]["notes"]
+        assert "no web scraping" in payload["evaluation_trace"][1]["notes"]
+    finally:
+        app.dependency_overrides.clear()
+        session.close()
+
+
+def test_recommendations_parse_cashback_and_popularity_intent() -> None:
+    client, session = make_client()
+    headers = {"X-Admin-Token": "dev-admin-token"}
+    try:
+        client.post("/admin/affiliate/sync/mock", headers=headers)
+        search_response = client.get("/search?q=buds")
+        offer_ids = [result["offer_id"] for result in search_response.json()["results"]]
+        client.post("/clicks", json={"offer_id": offer_ids[1], "target_type": "affiliate"})
+        client.post("/clicks", json={"offer_id": offer_ids[1], "target_type": "product"})
+
+        response = client.post(
+            "/recommendations",
+            json={"intent": "popular earbuds with cashback", "limit": 2},
+        )
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["intent"]["search_query"] == "earbuds"
+        assert payload["intent"]["has_cashback"] is True
+        assert payload["intent"]["sort"] == "clicks_desc"
+        assert payload["count"] == 1
+        assert payload["recommendations"][0]["offer_id"] == offer_ids[1]
+        assert payload["recommendations"][0]["has_cashback"] is True
+        assert "2 mock clicks" in payload["recommendations"][0]["ranking_reasons"]
+    finally:
+        app.dependency_overrides.clear()
+        session.close()
+
+
+def test_recommendations_validate_short_intent() -> None:
+    client, session = make_client()
+    try:
+        response = client.post("/recommendations", json={"intent": "tv"})
+
+        assert response.status_code == 422
+    finally:
+        app.dependency_overrides.clear()
+        session.close()

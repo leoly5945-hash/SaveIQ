@@ -193,6 +193,34 @@ def main() -> None:
     require_count(web_search, "web search proxy")
     checks.append(Check("web_search_proxy", f"count={web_search['count']}"))
 
+    recommendation_payload = {
+        "intent": f"Find fresh {args.query} with a coupon",
+        "limit": 3,
+    }
+    api_recommendations = post_json(
+        f"{api_url}/recommendations", recommendation_payload
+    )
+    api_recommendation_count = api_recommendations.get("count")
+    if not isinstance(api_recommendation_count, int) or api_recommendation_count < 1:
+        fail("API recommendations returned malformed count")
+    if api_recommendations.get("strategy") != "rule_based_mock_v0":
+        fail("API recommendations returned unexpected strategy")
+    trace = api_recommendations.get("evaluation_trace")
+    if not isinstance(trace, list) or len(trace) < 3:
+        fail("API recommendations did not return an evaluation trace")
+    checks.append(Check("api_recommendations", f"count={api_recommendation_count}"))
+
+    web_recommendations = post_json(
+        f"{web_url}/api/recommendations",
+        recommendation_payload,
+    )
+    web_recommendation_count = web_recommendations.get("count")
+    if not isinstance(web_recommendation_count, int) or web_recommendation_count < 1:
+        fail("web recommendation proxy returned malformed count")
+    checks.append(
+        Check("web_recommendation_proxy", f"count={web_recommendation_count}")
+    )
+
     click = post_json(
         f"{api_url}/clicks",
         {"offer_id": offer_id, "target_type": "product", "referrer": "staging-smoke"},

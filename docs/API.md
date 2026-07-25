@@ -1,7 +1,7 @@
 # API
 
-The public API currently exposes health, mock search, offer detail, and mock click tracking
-endpoints.
+The public API currently exposes health, mock search, offer detail, rule-based mock
+recommendations, and mock click tracking endpoints.
 Development/admin affiliate endpoints are protected by the `X-Admin-Token` header and are intended
 for local or staging visibility.
 
@@ -113,6 +113,73 @@ Supported `target_type` values:
 
 - `product`
 - `affiliate`
+
+`POST /recommendations`
+
+Return deterministic mock recommendations from stored normalized offers. This is the Gate 4A AI
+skeleton: it parses a short shopping intent with rules, reuses the stored search index, and returns
+an evaluation trace. It does not call an LLM, scrape the web, or contact affiliate networks.
+The staging web app proxies the same request at `POST /api/recommendations`.
+
+```json
+{
+  "intent": "Find fresh wireless earbuds with a coupon",
+  "limit": 3
+}
+```
+
+Abridged example response:
+
+```json
+{
+  "strategy": "rule_based_mock_v0",
+  "count": 1,
+  "intent": {
+    "raw_intent": "Find fresh wireless earbuds with a coupon",
+    "search_query": "wireless earbuds",
+    "has_coupon": true,
+    "has_cashback": null,
+    "freshness": "fresh",
+    "sort": "price_asc"
+  },
+  "recommendations": [
+    {
+      "offer_id": 1,
+      "title": "Aurora WaveBuds Noise Cancelling Earbuds",
+      "merchant": "Maple Tech",
+      "sale_price_cents": 9999,
+      "has_coupon": true,
+      "ranking_reasons": [
+        "lower current price: 99.99 CAD",
+        "sale price available"
+      ]
+    }
+  ],
+  "evaluation_trace": [
+    {
+      "step": "parse_intent",
+      "input": "Find fresh wireless earbuds with a coupon",
+      "output": "query='wireless earbuds', has_coupon=True, has_cashback=None, freshness=fresh, sort=price_asc",
+      "notes": ["rule-based parser", "no model call"]
+    },
+    {
+      "step": "retrieve_candidates",
+      "input": "stored offers limit=3",
+      "output": "1 candidates",
+      "notes": ["uses normalized database records", "no web scraping"]
+    },
+    {
+      "step": "rank_candidates",
+      "input": "price_asc",
+      "output": "1 ranked recommendations",
+      "notes": [
+        "reuses transparent search ranking reasons",
+        "deterministic mock strategy"
+      ]
+    }
+  ]
+}
+```
 
 ## Admin Affiliate
 

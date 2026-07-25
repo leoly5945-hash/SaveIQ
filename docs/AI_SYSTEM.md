@@ -1,7 +1,12 @@
 # AI System
 
-The AI system is not implemented in this foundation. The architecture reserves space for a future assistant that can interpret user intent, retrieve candidate offers, rank results, and explain recommendations.
-Current staging explanations are rule-based search metadata, not model-generated recommendations.
+The full AI system is not implemented in this foundation. The architecture reserves space for a
+future assistant that can interpret user intent, retrieve candidate offers, rank results, and explain
+recommendations.
+
+Gate 4A adds a deterministic recommendation skeleton only. It exposes `POST /recommendations`,
+parses shopping intent with simple rules, reuses stored normalized search data, and returns an
+`evaluation_trace` describing parse, retrieval, and ranking steps. It does not call an LLM.
 
 ## Intended Responsibilities
 
@@ -18,6 +23,8 @@ Current staging explanations are rule-based search metadata, not model-generated
 - Do not claim live price or availability unless recently verified.
 - Avoid scraping as a data acquisition strategy.
 - Log recommendation inputs and outputs for evaluation.
+- Keep Gate 4A recommendation output labeled as `rule_based_mock_v0`.
+- Treat the Gate 4A trace as evaluation scaffolding, not production observability.
 
 ## Future Modules
 
@@ -26,3 +33,20 @@ Current staging explanations are rule-based search metadata, not model-generated
 - Ranking policies
 - Recommendation trace storage
 - Evaluation harness
+
+## Gate 4A Skeleton
+
+The current recommendation skeleton supports:
+
+- intent text between 3 and 240 characters
+- limit between 1 and 10 recommendations
+- coupon, cashback, freshness, popularity, and price-sort hints
+- retrieval through the existing normalized offer search service
+- deterministic trace steps with no secrets, user identifiers, or external calls
+
+Known limits:
+
+- numeric constraints such as "under $120" are not enforced yet
+- no personalization or user profile is used
+- no semantic/vector retrieval is used
+- traces are returned inline and are not persisted

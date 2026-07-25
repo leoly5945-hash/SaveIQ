@@ -41,3 +41,12 @@ Status: Accepted
 
 Product resolution uses exact identifiers and brand plus MPN matching. LLM-based matching is deferred
 until evaluation and review workflows exist.
+
+## 2026-07-24: Gate 4A Uses Rule-Based Recommendations
+
+Status: Accepted
+
+The first recommendation surface is a deterministic skeleton that reuses normalized stored search
+data and returns an inline evaluation trace. It intentionally avoids LLM calls, real affiliate
+integrations, web scraping, personalization, and persisted trace storage until evaluation criteria
+and production guardrails are defined.
