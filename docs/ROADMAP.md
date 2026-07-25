@@ -56,5 +56,6 @@
 - Gate 4F deterministic decision explanations for each recommended offer
 - Gate 4G staging Helpful/Not helpful feedback loop for recommendations
 - Gate 4H staging feedback dashboard with Helpful rate and trace feedback coverage
-- Future: trace retention policy and richer model-readiness dashboard
+- Gate 4L staging retention controls for recommendation traces and feedback
+- Future: richer model-readiness dashboard
 - Future: LLM intent parsing after evaluation criteria are defined

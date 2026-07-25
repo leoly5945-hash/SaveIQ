@@ -284,6 +284,21 @@ The staging web app exposes this through the admin-only evaluation panel and the
 The staging web app exposes this through the admin-only feedback dashboard, the quality-loop refresh
 control, and the proxy endpoint `POST /api/admin/recommendation-feedback`.
 
+`POST /admin/affiliate/recommendation-quality/retention` previews or prunes staging-only
+recommendation traces and feedback. It defaults to dry-run mode and keeps the latest 50 traces unless
+`keep_latest_traces` is supplied. Destructive pruning requires:
+
+```json
+{
+  "dry_run": false,
+  "keep_latest_traces": 50,
+  "confirm": "DELETE_STAGING_QUALITY_EVENTS"
+}
+```
+
+The staging web app exposes this through the feedback dashboard retention controls and the proxy
+endpoint `POST /api/admin/recommendation-quality-retention`.
+
 `GET /admin/affiliate/staging-summary` returns staging operations state:
 
 - normalized product, listing, offer, coupon, cashback, click, recommendation trace, sync job, and

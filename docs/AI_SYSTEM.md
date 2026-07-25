@@ -132,3 +132,11 @@ Gate 4H adds a staging-only quality dashboard for recommendation feedback. It sh
 Helpful rate, trace feedback coverage, recent feedback records, and a single refresh control for
 evaluation, traces, feedback, and staging summary. It remains a deterministic review surface and does
 not train a model or call a live AI service.
+
+## Gate 4L Retention Controls
+
+Gate 4L adds staging-only retention controls for recommendation trace and feedback events. Admins can
+preview how many old events would be removed, then prune only after sending the confirmation phrase
+`DELETE_STAGING_QUALITY_EVENTS`. The retention flow protects staging from unbounded quality-event
+growth without touching normalized offers, clicks, sync jobs, real user identity, or external
+services.

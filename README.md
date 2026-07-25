@@ -113,6 +113,9 @@ Gate 4H upgrades the staging feedback dashboard with Helpful rate, trace feedbac
 feedback timing, and one quality-loop refresh control for evaluation, traces, feedback, and staging
 summary.
 
+Gate 4L adds staging retention controls for recommendation traces and feedback. Admins can preview
+old quality events, then prune them only after entering the confirmation phrase.
+
 ## Docker Compose
 
 Run the full local stack:

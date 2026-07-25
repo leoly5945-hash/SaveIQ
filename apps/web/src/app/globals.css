@@ -695,6 +695,70 @@ h3 {
   padding: 14px;
 }
 
+.retention-panel {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: grid;
+  gap: 14px;
+  padding: 14px;
+}
+
+.retention-controls,
+.retention-danger {
+  align-items: end;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(160px, 220px) auto;
+  justify-content: start;
+}
+
+.retention-danger {
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  border-radius: 8px;
+  grid-template-columns: minmax(260px, 1fr) auto;
+  padding: 12px;
+}
+
+.retention-danger button {
+  background: #b91c1c;
+}
+
+.retention-danger button:disabled {
+  background: #fca5a5;
+}
+
+.retention-result {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.retention-result div {
+  background: #f8fafc;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+}
+
+.retention-result span {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.retention-result strong {
+  font-size: 1.45rem;
+}
+
+.retention-result p {
+  color: var(--muted);
+  margin: 0;
+}
+
 .evaluation-viewer {
   display: grid;
   gap: 18px;
@@ -869,6 +933,9 @@ h3 {
   .admin-grid,
   .evaluation-metrics,
   .feedback-split,
+  .retention-controls,
+  .retention-danger,
+  .retention-result,
   .sync-list,
   .trace-viewer,
   .trace-card-heading,

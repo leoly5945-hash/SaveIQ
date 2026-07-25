@@ -4,9 +4,9 @@ from collections.abc import Sequence
 from datetime import datetime
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends
-from pydantic import BaseModel
-from sqlalchemy import func, select
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, Field
+from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import require_admin
@@ -141,6 +141,24 @@ class RecommendationFeedbackSummaryResponse(BaseModel):
     total_recommendation_traces: int
     trace_feedback_coverage_rate: float
     recent_feedback: list[RecommendationFeedbackRecentResponse]
+
+
+class RecommendationQualityRetentionRequest(BaseModel):
+    keep_latest_traces: int = Field(default=50, ge=0, le=500)
+    dry_run: bool = True
+    confirm: str | None = None
+
+
+class RecommendationQualityRetentionResponse(BaseModel):
+    dry_run: bool
+    keep_latest_traces: int
+    total_traces_before: int
+    total_feedback_before: int
+    trace_events_to_delete: int
+    feedback_events_to_delete: int
+    trace_events_deleted: int
+    feedback_events_deleted: int
+    retained_trace_events: int
 
 
 def row(model: Any, *fields: str) -> dict[str, Any]:
@@ -565,4 +583,71 @@ def get_recommendation_feedback(db: DbSession) -> RecommendationFeedbackSummaryR
             )
             for event in recent_feedback
         ],
+    )
+
+
+@router.post(
+    "/recommendation-quality/retention",
+    response_model=RecommendationQualityRetentionResponse,
+)
+def prune_recommendation_quality_events(
+    payload: RecommendationQualityRetentionRequest,
+    db: DbSession,
+) -> RecommendationQualityRetentionResponse:
+    if not payload.dry_run and payload.confirm != "DELETE_STAGING_QUALITY_EVENTS":
+        raise HTTPException(
+            status_code=400,
+            detail="Set confirm to DELETE_STAGING_QUALITY_EVENTS to prune staging events.",
+        )
+
+    total_traces_before = db.scalar(select(func.count(RecommendationTraceEvent.id))) or 0
+    total_feedback_before = db.scalar(select(func.count(RecommendationFeedbackEvent.id))) or 0
+    trace_ids_to_delete = db.scalars(
+        select(RecommendationTraceEvent.id)
+        .order_by(RecommendationTraceEvent.id.desc())
+        .offset(payload.keep_latest_traces)
+    ).all()
+    feedback_events_to_delete = 0
+    if trace_ids_to_delete:
+        feedback_events_to_delete = (
+            db.scalar(
+                select(func.count(RecommendationFeedbackEvent.id)).where(
+                    RecommendationFeedbackEvent.trace_event_id.in_(trace_ids_to_delete)
+                )
+            )
+            or 0
+        )
+
+    trace_events_deleted = 0
+    feedback_events_deleted = 0
+    if not payload.dry_run and trace_ids_to_delete:
+        db.execute(
+            delete(RecommendationFeedbackEvent).where(
+                RecommendationFeedbackEvent.trace_event_id.in_(trace_ids_to_delete)
+            )
+        )
+        db.execute(
+            delete(RecommendationTraceEvent).where(
+                RecommendationTraceEvent.id.in_(trace_ids_to_delete)
+            )
+        )
+        db.commit()
+        feedback_events_deleted = feedback_events_to_delete
+        trace_events_deleted = len(trace_ids_to_delete)
+
+    retained_trace_events = (
+        total_traces_before - trace_events_deleted
+        if not payload.dry_run
+        else min(total_traces_before, payload.keep_latest_traces)
+    )
+    return RecommendationQualityRetentionResponse(
+        dry_run=payload.dry_run,
+        keep_latest_traces=payload.keep_latest_traces,
+        total_traces_before=total_traces_before,
+        total_feedback_before=total_feedback_before,
+        trace_events_to_delete=len(trace_ids_to_delete),
+        feedback_events_to_delete=feedback_events_to_delete,
+        trace_events_deleted=trace_events_deleted,
+        feedback_events_deleted=feedback_events_deleted,
+        retained_trace_events=retained_trace_events,
     )

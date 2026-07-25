@@ -107,3 +107,12 @@ Status: Accepted
 The feedback dashboard aggregates Helpful rate and trace feedback coverage from stored staging
 events. It helps reviewers inspect recommendation quality before any LLM layer exists. It does not
 train a model, store identity, or send feedback to external services.
+
+## 2026-07-25: Gate 4L Retention Requires Dry-Run And Confirm
+
+Status: Accepted
+
+Recommendation quality retention is limited to staging trace and feedback events. It defaults to
+dry-run previews and requires the explicit `DELETE_STAGING_QUALITY_EVENTS` confirmation phrase before
+deleting old events. This keeps staging data bounded while avoiding accidental deletion of normalized
+offers, click analytics, or sync history.

@@ -267,3 +267,98 @@ def test_admin_recommendation_feedback_returns_summary() -> None:
     finally:
         app.dependency_overrides.clear()
         session.close()
+
+
+def test_admin_recommendation_retention_dry_run_and_confirm_guard() -> None:
+    client, session = make_client()
+    headers = {"X-Admin-Token": "dev-admin-token"}
+    try:
+        client.post("/admin/affiliate/sync/mock", headers=headers)
+        for intent in [
+            "Find fresh wireless earbuds with a coupon",
+            "popular earbuds with cashback",
+            "premium electronics",
+        ]:
+            recommendation_response = client.post(
+                "/recommendations",
+                json={"intent": intent, "limit": 3},
+            )
+            recommendation_payload = recommendation_response.json()
+            if recommendation_payload["recommendations"]:
+                client.post(
+                    "/recommendations/feedback",
+                    json={
+                        "trace_event_id": recommendation_payload["trace_event_id"],
+                        "offer_id": recommendation_payload["recommendations"][0]["offer_id"],
+                        "rating": "helpful",
+                    },
+                )
+
+        dry_run_response = client.post(
+            "/admin/affiliate/recommendation-quality/retention",
+            headers=headers,
+            json={"dry_run": True, "keep_latest_traces": 2},
+        )
+        blocked_response = client.post(
+            "/admin/affiliate/recommendation-quality/retention",
+            headers=headers,
+            json={"dry_run": False, "keep_latest_traces": 2},
+        )
+
+        assert dry_run_response.status_code == 200
+        dry_run_payload = dry_run_response.json()
+        assert dry_run_payload["dry_run"] is True
+        assert dry_run_payload["total_traces_before"] == 3
+        assert dry_run_payload["trace_events_to_delete"] == 1
+        assert dry_run_payload["trace_events_deleted"] == 0
+        assert blocked_response.status_code == 400
+        assert session.query(RecommendationTraceEvent).count() == 3
+    finally:
+        app.dependency_overrides.clear()
+        session.close()
+
+
+def test_admin_recommendation_retention_prunes_old_events() -> None:
+    client, session = make_client()
+    headers = {"X-Admin-Token": "dev-admin-token"}
+    try:
+        client.post("/admin/affiliate/sync/mock", headers=headers)
+        for intent in [
+            "Find fresh wireless earbuds with a coupon",
+            "popular earbuds with cashback",
+            "premium electronics",
+        ]:
+            recommendation_response = client.post(
+                "/recommendations",
+                json={"intent": intent, "limit": 3},
+            )
+            recommendation_payload = recommendation_response.json()
+            if recommendation_payload["recommendations"]:
+                client.post(
+                    "/recommendations/feedback",
+                    json={
+                        "trace_event_id": recommendation_payload["trace_event_id"],
+                        "offer_id": recommendation_payload["recommendations"][0]["offer_id"],
+                        "rating": "helpful",
+                    },
+                )
+
+        response = client.post(
+            "/admin/affiliate/recommendation-quality/retention",
+            headers=headers,
+            json={
+                "confirm": "DELETE_STAGING_QUALITY_EVENTS",
+                "dry_run": False,
+                "keep_latest_traces": 2,
+            },
+        )
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["dry_run"] is False
+        assert payload["trace_events_deleted"] == 1
+        assert session.query(RecommendationTraceEvent).count() == 2
+        assert session.query(RecommendationFeedbackEvent).count() == 2
+    finally:
+        app.dependency_overrides.clear()
+        session.close()

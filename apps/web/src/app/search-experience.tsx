@@ -201,6 +201,18 @@ type RecommendationFeedbackSummary = {
   }[];
 };
 
+type RecommendationRetentionResult = {
+  dry_run: boolean;
+  keep_latest_traces: number;
+  total_traces_before: number;
+  total_feedback_before: number;
+  trace_events_to_delete: number;
+  feedback_events_to_delete: number;
+  trace_events_deleted: number;
+  feedback_events_deleted: number;
+  retained_trace_events: number;
+};
+
 type StagingSummary = {
   counts: {
     products: number;
@@ -314,9 +326,13 @@ export function SearchExperience({ searchEndpoint }: SearchExperienceProps) {
     useState<RecommendationEvaluationSummary | null>(null);
   const [recommendationFeedback, setRecommendationFeedback] =
     useState<RecommendationFeedbackSummary | null>(null);
+  const [recommendationRetention, setRecommendationRetention] =
+    useState<RecommendationRetentionResult | null>(null);
   const [feedbackStatusByOffer, setFeedbackStatusByOffer] = useState<
     Record<number, "idle" | "saving" | "helpful" | "not_helpful" | "error">
   >({});
+  const [retentionKeepLatest, setRetentionKeepLatest] = useState("50");
+  const [retentionConfirm, setRetentionConfirm] = useState("");
   const [stagingSummary, setStagingSummary] = useState<StagingSummary | null>(
     null
   );
@@ -334,6 +350,9 @@ export function SearchExperience({ searchEndpoint }: SearchExperienceProps) {
     "idle" | "loading" | "ready" | "error"
   >("idle");
   const [feedbackSummaryStatus, setFeedbackSummaryStatus] = useState<
+    "idle" | "loading" | "ready" | "error"
+  >("idle");
+  const [retentionStatus, setRetentionStatus] = useState<
     "idle" | "loading" | "ready" | "error"
   >("idle");
   const [stagingStatus, setStagingStatus] = useState<
@@ -694,6 +713,44 @@ export function SearchExperience({ searchEndpoint }: SearchExperienceProps) {
       loadRecommendationTraces(),
       loadStagingSummary(),
     ]);
+  }
+
+  async function runRecommendationRetention(dryRun: boolean) {
+    setRetentionStatus("loading");
+
+    try {
+      const response = await fetch(
+        "/api/admin/recommendation-quality-retention",
+        {
+          body: JSON.stringify({
+            adminToken,
+            confirm: dryRun ? undefined : retentionConfirm,
+            dryRun,
+            keepLatestTraces: Number(retentionKeepLatest),
+          }),
+          headers: {
+            Accept: "application/json",
+            "content-type": "application/json",
+          },
+          method: "POST",
+        }
+      );
+      if (!response.ok) {
+        throw new Error(
+          `Recommendation retention failed with ${response.status}`
+        );
+      }
+      const payload = (await response.json()) as RecommendationRetentionResult;
+      setRecommendationRetention(payload);
+      setRetentionStatus("ready");
+      if (!dryRun) {
+        setRetentionConfirm("");
+        await refreshQualityLoop();
+      }
+    } catch {
+      setRecommendationRetention(null);
+      setRetentionStatus("error");
+    }
   }
 
   async function runMockSync() {
@@ -1167,6 +1224,15 @@ export function SearchExperience({ searchEndpoint }: SearchExperienceProps) {
         {recommendationFeedback ? (
           <RecommendationFeedbackView feedback={recommendationFeedback} />
         ) : null}
+        <RecommendationRetentionPanel
+          confirm={retentionConfirm}
+          keepLatest={retentionKeepLatest}
+          result={recommendationRetention}
+          status={retentionStatus}
+          onConfirmChange={setRetentionConfirm}
+          onKeepLatestChange={setRetentionKeepLatest}
+          onRun={runRecommendationRetention}
+        />
       </section>
 
       <section className="admin-panel" aria-labelledby="trace-heading">
@@ -1567,6 +1633,105 @@ function RecommendationFeedbackView({
         )}
       </section>
     </div>
+  );
+}
+
+function RecommendationRetentionPanel({
+  confirm,
+  keepLatest,
+  result,
+  status,
+  onConfirmChange,
+  onKeepLatestChange,
+  onRun,
+}: {
+  confirm: string;
+  keepLatest: string;
+  result: RecommendationRetentionResult | null;
+  status: "idle" | "loading" | "ready" | "error";
+  onConfirmChange: (value: string) => void;
+  onKeepLatestChange: (value: string) => void;
+  onRun: (dryRun: boolean) => void;
+}) {
+  const canPrune = confirm === "DELETE_STAGING_QUALITY_EVENTS";
+
+  return (
+    <section className="retention-panel" aria-labelledby="retention-heading">
+      <div>
+        <p className="eyebrow">Retention controls</p>
+        <h3 id="retention-heading">Staging quality event cleanup</h3>
+        <p className="state-message">
+          Preview old recommendation traces and feedback before pruning. This
+          only affects staging review events.
+        </p>
+      </div>
+
+      <div className="retention-controls">
+        <label className="field compact-field">
+          <span>Keep latest traces</span>
+          <input
+            min="0"
+            max="500"
+            onChange={(event) => onKeepLatestChange(event.target.value)}
+            type="number"
+            value={keepLatest}
+          />
+        </label>
+        <button
+          className="secondary-button"
+          type="button"
+          disabled={status === "loading"}
+          onClick={() => onRun(true)}
+        >
+          {status === "loading" ? "Checking" : "Preview cleanup"}
+        </button>
+      </div>
+
+      <div className="retention-danger">
+        <label className="field">
+          <span>Confirm phrase</span>
+          <input
+            autoComplete="off"
+            onChange={(event) => onConfirmChange(event.target.value)}
+            placeholder="DELETE_STAGING_QUALITY_EVENTS"
+            value={confirm}
+          />
+        </label>
+        <button
+          type="button"
+          disabled={status === "loading" || !canPrune}
+          onClick={() => onRun(false)}
+        >
+          Prune old events
+        </button>
+      </div>
+
+      {status === "error" ? (
+        <p className="state-message">
+          Retention request failed. Check the admin token, confirm phrase, and
+          API health.
+        </p>
+      ) : null}
+      {result ? (
+        <div className="retention-result">
+          <div>
+            <span>{result.dry_run ? "Preview" : "Pruned"}</span>
+            <strong>{result.trace_events_to_delete}</strong>
+            <p>trace events selected</p>
+          </div>
+          <div>
+            <span>Feedback</span>
+            <strong>{result.feedback_events_to_delete}</strong>
+            <p>feedback events selected</p>
+          </div>
+          <div>
+            <span>Retained</span>
+            <strong>{result.retained_trace_events}</strong>
+            <p>trace events after policy</p>
+          </div>
+        </div>
+      ) : null}
+    </section>
   );
 }
 

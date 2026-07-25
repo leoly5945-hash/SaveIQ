@@ -450,6 +450,46 @@ def main() -> None:
         )
     )
 
+    retention_preview = post_json(
+        f"{api_url}/admin/affiliate/recommendation-quality/retention",
+        {"dry_run": True, "keep_latest_traces": 10},
+        token,
+    )
+    if (
+        retention_preview.get("dry_run") is not True
+        or not isinstance(retention_preview.get("trace_events_to_delete"), int)
+        or retention_preview.get("trace_events_deleted") != 0
+    ):
+        fail("recommendation retention preview returned malformed data")
+    checks.append(
+        Check(
+            "recommendation_retention_preview",
+            (
+                f"delete_traces={retention_preview['trace_events_to_delete']} "
+                f"retain={retention_preview['retained_trace_events']}"
+            ),
+        )
+    )
+
+    web_retention_preview = post_json(
+        f"{web_url}/api/admin/recommendation-quality-retention",
+        {
+            "adminToken": token,
+            "dryRun": True,
+            "keepLatestTraces": 10,
+        },
+    )
+    if web_retention_preview.get("dry_run") is not True or not isinstance(
+        web_retention_preview.get("trace_events_to_delete"), int
+    ):
+        fail("web recommendation retention preview proxy returned malformed data")
+    checks.append(
+        Check(
+            "web_recommendation_retention_preview_proxy",
+            f"delete_traces={web_retention_preview['trace_events_to_delete']}",
+        )
+    )
+
     web_analytics = post_json(
         f"{web_url}/api/admin/click-analytics", {"adminToken": token}
     )
