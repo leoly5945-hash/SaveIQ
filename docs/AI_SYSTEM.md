@@ -95,3 +95,10 @@ or model responses.
 Gate 4D adds a staging-only admin UI panel for recent recommendation traces. It displays total
 traces, raw intent, parsed intent fields, recommended offer IDs, result count, and each deterministic
 trace step. The panel reads through the existing web proxy and requires the staging admin token.
+
+## Gate 4E Evaluation Panel
+
+Gate 4E exposes the deterministic recommendation fixture suite through an admin-only staging panel.
+The API runs fixtures against an isolated in-memory database seeded from the mock provider, so the
+evaluation does not mutate staging data or call external systems. The panel shows status, pass/fail
+counts, fixture intents, first expected source records, merchants, and required trace steps.

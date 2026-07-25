@@ -199,6 +199,7 @@ Abridged example response:
 - `GET /admin/affiliate/clicks`
 - `GET /admin/affiliate/click-analytics`
 - `GET /admin/affiliate/recommendation-traces`
+- `GET /admin/affiliate/recommendation-evaluation`
 - `GET /admin/affiliate/staging-summary`
 
 Admin responses expose normalized operational data and do not expose provider secrets or full raw
@@ -222,6 +223,18 @@ payloads.
 
 The staging web app exposes this through the admin-only trace viewer and the proxy endpoint
 `POST /api/admin/recommendation-traces`.
+
+`GET /admin/affiliate/recommendation-evaluation` runs the deterministic recommendation fixture
+suite against an isolated in-memory database and returns:
+
+- overall status
+- pass/fail counts
+- case IDs and intents
+- first expected source record and merchant
+- required and observed trace steps
+
+The staging web app exposes this through the admin-only evaluation panel and the proxy endpoint
+`POST /api/admin/recommendation-evaluation`.
 
 `GET /admin/affiliate/staging-summary` returns staging operations state:
 

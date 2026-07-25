@@ -580,6 +580,58 @@ h3 {
   grid-column: 1 / -1;
 }
 
+.evaluation-viewer {
+  display: grid;
+  gap: 18px;
+}
+
+.evaluation-metrics {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.evaluation-table {
+  grid-column: 1 / -1;
+}
+
+.evaluation-table td {
+  vertical-align: top;
+}
+
+.evaluation-table td > span,
+.evaluation-table td > strong {
+  display: block;
+}
+
+.evaluation-table td > span {
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+.status-pill {
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 0.72rem;
+  font-weight: 900;
+  justify-content: center;
+  letter-spacing: 0.04em;
+  padding: 4px 9px;
+  text-transform: uppercase;
+}
+
+.evaluation-table .status-pill {
+  display: inline-flex;
+}
+
+.status-pill.pass {
+  background: #dff7ee;
+  color: #0f6b4f;
+}
+
+.status-pill.fail {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
 .trace-viewer,
 .trace-list,
 .trace-card,
@@ -698,6 +750,7 @@ h3 {
   .admin-heading,
   .admin-controls,
   .admin-grid,
+  .evaluation-metrics,
   .sync-list,
   .trace-viewer,
   .trace-card-heading,

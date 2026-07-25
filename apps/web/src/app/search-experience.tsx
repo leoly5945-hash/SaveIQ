@@ -138,6 +138,27 @@ type RecommendationTraceSummary = {
   recent_traces: RecommendationTraceEvent[];
 };
 
+type RecommendationEvaluationCase = {
+  id: string;
+  status: "pass" | "fail";
+  intent: string;
+  count: number;
+  first_source_record_id: string | null;
+  first_merchant: string | null;
+  trace_steps: string[];
+  required_trace_steps: string[];
+  failure: string | null;
+};
+
+type RecommendationEvaluationSummary = {
+  status: "ok" | "failed";
+  strategy: string;
+  case_count: number;
+  passed_count: number;
+  failed_count: number;
+  cases: RecommendationEvaluationCase[];
+};
+
 type StagingSummary = {
   counts: {
     products: number;
@@ -234,6 +255,8 @@ export function SearchExperience({ searchEndpoint }: SearchExperienceProps) {
   const [analytics, setAnalytics] = useState<ClickAnalytics | null>(null);
   const [recommendationTraces, setRecommendationTraces] =
     useState<RecommendationTraceSummary | null>(null);
+  const [recommendationEvaluation, setRecommendationEvaluation] =
+    useState<RecommendationEvaluationSummary | null>(null);
   const [stagingSummary, setStagingSummary] = useState<StagingSummary | null>(
     null
   );
@@ -245,6 +268,9 @@ export function SearchExperience({ searchEndpoint }: SearchExperienceProps) {
     "idle" | "loading" | "ready" | "error"
   >("idle");
   const [traceStatus, setTraceStatus] = useState<
+    "idle" | "loading" | "ready" | "error"
+  >("idle");
+  const [evaluationStatus, setEvaluationStatus] = useState<
     "idle" | "loading" | "ready" | "error"
   >("idle");
   const [stagingStatus, setStagingStatus] = useState<
@@ -460,6 +486,36 @@ export function SearchExperience({ searchEndpoint }: SearchExperienceProps) {
     } catch {
       setRecommendationTraces(null);
       setTraceStatus("error");
+    }
+  }
+
+  async function loadRecommendationEvaluation(
+    event?: FormEvent<HTMLFormElement>
+  ) {
+    event?.preventDefault();
+    setEvaluationStatus("loading");
+
+    try {
+      const response = await fetch("/api/admin/recommendation-evaluation", {
+        body: JSON.stringify({ adminToken }),
+        headers: {
+          Accept: "application/json",
+          "content-type": "application/json",
+        },
+        method: "POST",
+      });
+      if (!response.ok) {
+        throw new Error(
+          `Recommendation evaluation failed with ${response.status}`
+        );
+      }
+      const payload =
+        (await response.json()) as RecommendationEvaluationSummary;
+      setRecommendationEvaluation(payload);
+      setEvaluationStatus("ready");
+    } catch {
+      setRecommendationEvaluation(null);
+      setEvaluationStatus("error");
     }
   }
 
@@ -804,6 +860,40 @@ export function SearchExperience({ searchEndpoint }: SearchExperienceProps) {
         {analytics ? <ClickAnalyticsView analytics={analytics} /> : null}
       </section>
 
+      <section className="admin-panel" aria-labelledby="evaluation-heading">
+        <div className="admin-heading">
+          <div>
+            <p className="eyebrow">Recommendation evaluation</p>
+            <h2 id="evaluation-heading">Fixture quality checks</h2>
+          </div>
+          <p className="state-message">Admin only</p>
+        </div>
+
+        <form
+          className="admin-controls compact-controls"
+          onSubmit={loadRecommendationEvaluation}
+        >
+          <button type="submit" disabled={evaluationStatus === "loading"}>
+            {evaluationStatus === "loading" ? "Running" : "Run evaluation"}
+          </button>
+        </form>
+
+        {evaluationStatus === "idle" ? (
+          <p className="state-message">
+            Run the deterministic fixture suite to check recommendation quality.
+          </p>
+        ) : null}
+        {evaluationStatus === "error" ? (
+          <p className="state-message">
+            Recommendation evaluation unavailable. Check the admin token and API
+            health.
+          </p>
+        ) : null}
+        {recommendationEvaluation ? (
+          <RecommendationEvaluationView evaluation={recommendationEvaluation} />
+        ) : null}
+      </section>
+
       <section className="admin-panel" aria-labelledby="trace-heading">
         <div className="admin-heading">
           <div>
@@ -1038,6 +1128,84 @@ function ClickAnalyticsView({ analytics }: { analytics: ClickAnalytics }) {
         ) : (
           <p className="state-message">No recent clicks yet.</p>
         )}
+      </section>
+    </div>
+  );
+}
+
+function RecommendationEvaluationView({
+  evaluation,
+}: {
+  evaluation: RecommendationEvaluationSummary;
+}) {
+  return (
+    <div className="evaluation-viewer">
+      <div className="admin-grid evaluation-metrics">
+        <div className="metric-card">
+          <span>Status</span>
+          <strong>{evaluation.status}</strong>
+        </div>
+        <div className="metric-card">
+          <span>Cases</span>
+          <strong>{evaluation.case_count}</strong>
+        </div>
+        <div className="metric-card">
+          <span>Passed</span>
+          <strong>{evaluation.passed_count}</strong>
+        </div>
+        <div className="metric-card">
+          <span>Failed</span>
+          <strong>{evaluation.failed_count}</strong>
+        </div>
+      </div>
+
+      <section className="admin-table evaluation-table">
+        <h3>{evaluation.strategy}</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Case</th>
+              <th>Expected behavior</th>
+              <th>Result</th>
+            </tr>
+          </thead>
+          <tbody>
+            {evaluation.cases.map((testCase) => (
+              <tr key={testCase.id}>
+                <td>
+                  <strong>{testCase.id}</strong>
+                  <span>{testCase.intent}</span>
+                </td>
+                <td>
+                  <span>
+                    Trace: {testCase.required_trace_steps.join(" -> ")}
+                  </span>
+                  <span>
+                    First: {testCase.first_source_record_id ?? "none"}
+                  </span>
+                </td>
+                <td>
+                  <span
+                    className={
+                      testCase.status === "pass"
+                        ? "status-pill pass"
+                        : "status-pill fail"
+                    }
+                  >
+                    {testCase.status}
+                  </span>
+                  <span>
+                    {testCase.status === "pass"
+                      ? `${testCase.count} results · ${
+                          testCase.first_merchant ?? "unknown"
+                        }`
+                      : testCase.failure}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </section>
     </div>
   );

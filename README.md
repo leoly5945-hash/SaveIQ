@@ -99,6 +99,9 @@ proxy `POST /api/admin/recommendation-traces`.
 Gate 4D adds a staging UI trace viewer. Paste the admin token into the admin controls and refresh
 the recommendation trace panel to inspect parsed intents, ranked offer IDs, and trace steps.
 
+Gate 4E adds a staging UI evaluation panel. Paste the admin token and run the fixture quality checks
+to see pass/fail counts for the deterministic recommendation suite without using a terminal.
+
 ## Docker Compose
 
 Run the full local stack:
@@ -173,7 +176,7 @@ ADMIN_API_TOKEN=<render-admin-token> PYTHON=.venv/bin/python make staging-seed-m
 
 Run the full staging smoke test after every deploy. It checks API/web health, mock sync, staging
 summary, public search, mock recommendations, persisted recommendation traces, click tracking,
-click analytics, and web proxies:
+recommendation evaluation, click analytics, and web proxies:
 
 ```bash
 ADMIN_API_TOKEN=<render-admin-token> PYTHON=.venv/bin/python make staging-smoke

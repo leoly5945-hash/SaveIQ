@@ -136,3 +136,24 @@ def test_admin_recommendation_traces_list_recent_events() -> None:
     finally:
         app.dependency_overrides.clear()
         session.close()
+
+
+def test_admin_recommendation_evaluation_returns_fixture_summary() -> None:
+    client, session = make_client()
+    headers = {"X-Admin-Token": "dev-admin-token"}
+    try:
+        response = client.get(
+            "/admin/affiliate/recommendation-evaluation", headers=headers
+        )
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["status"] == "ok"
+        assert payload["strategy"] == "rule_based_mock_v0"
+        assert payload["case_count"] == 4
+        assert payload["passed_count"] == 4
+        assert payload["failed_count"] == 0
+        assert payload["cases"][0]["status"] == "pass"
+    finally:
+        app.dependency_overrides.clear()
+        session.close()

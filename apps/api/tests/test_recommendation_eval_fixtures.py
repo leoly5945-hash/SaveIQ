@@ -25,3 +25,14 @@ def test_recommendation_eval_fixtures_pass() -> None:
 
     assert len(results) == 4
     assert all("=pass " in result for result in results)
+
+
+def test_recommendation_eval_summary_passes() -> None:
+    evaluator = load_evaluator()
+
+    summary = evaluator.evaluate_recommendation_fixtures(evaluator.FIXTURE_PATH)
+
+    assert summary["status"] == "ok"
+    assert summary["case_count"] == 4
+    assert summary["passed_count"] == 4
+    assert summary["failed_count"] == 0

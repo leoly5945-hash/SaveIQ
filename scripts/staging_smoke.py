@@ -294,6 +294,32 @@ def main() -> None:
         Check("web_recommendation_trace_proxy", f"total={web_traces['total_traces']}")
     )
 
+    evaluation = get_json(f"{api_url}/admin/affiliate/recommendation-evaluation", token)
+    if (
+        evaluation.get("status") != "ok"
+        or evaluation.get("failed_count") != 0
+        or evaluation.get("passed_count", 0) < 1
+    ):
+        fail(f"recommendation evaluation failed: {evaluation}")
+    checks.append(
+        Check(
+            "recommendation_evaluation",
+            f"passed={evaluation['passed_count']} failed={evaluation['failed_count']}",
+        )
+    )
+
+    web_evaluation = post_json(
+        f"{web_url}/api/admin/recommendation-evaluation", {"adminToken": token}
+    )
+    if web_evaluation.get("status") != "ok":
+        fail("web recommendation evaluation proxy returned a failing summary")
+    checks.append(
+        Check(
+            "web_recommendation_evaluation_proxy",
+            f"passed={web_evaluation['passed_count']}",
+        )
+    )
+
     web_analytics = post_json(
         f"{web_url}/api/admin/click-analytics", {"adminToken": token}
     )

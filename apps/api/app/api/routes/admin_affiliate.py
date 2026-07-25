@@ -25,6 +25,7 @@ from app.models import (
 )
 from app.services.affiliate.ingestion import AffiliateIngestionService
 from app.services.affiliate.registry import registry
+from app.services.recommendation_evaluation import evaluate_recommendation_fixtures
 
 DbSession = Annotated[Session, Depends(get_db)]
 
@@ -93,6 +94,27 @@ class StagingSummaryResponse(BaseModel):
     counts: StagingCountsResponse
     latest_sync_job: StagingSyncJobResponse | None
     recent_errors: list[StagingSyncErrorResponse]
+
+
+class RecommendationEvaluationCaseResponse(BaseModel):
+    id: str
+    status: str
+    intent: str
+    count: int
+    first_source_record_id: str | None
+    first_merchant: str | None
+    trace_steps: list[str]
+    required_trace_steps: list[str]
+    failure: str | None
+
+
+class RecommendationEvaluationResponse(BaseModel):
+    status: str
+    strategy: str
+    case_count: int
+    passed_count: int
+    failed_count: int
+    cases: list[RecommendationEvaluationCaseResponse]
 
 
 def row(model: Any, *fields: str) -> dict[str, Any]:
@@ -442,3 +464,19 @@ def list_recommendation_traces(db: DbSession) -> dict[str, Any]:
             for event in events
         ],
     }
+
+
+@router.get("/recommendation-evaluation", response_model=RecommendationEvaluationResponse)
+def get_recommendation_evaluation() -> RecommendationEvaluationResponse:
+    summary = evaluate_recommendation_fixtures()
+    return RecommendationEvaluationResponse(
+        status=summary["status"],
+        strategy=summary["strategy"],
+        case_count=summary["case_count"],
+        passed_count=summary["passed_count"],
+        failed_count=summary["failed_count"],
+        cases=[
+            RecommendationEvaluationCaseResponse(**case)
+            for case in summary["cases"]
+        ],
+    )

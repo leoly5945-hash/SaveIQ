@@ -75,3 +75,11 @@ Status: Accepted
 The first trace viewer lives inside the staging UI admin area and reads from the existing
 admin-protected recommendation trace proxy. It is intentionally read-only and does not expose traces
 without the staging admin token.
+
+## 2026-07-25: Gate 4E Evaluation Runs Against Isolated Fixtures
+
+Status: Accepted
+
+The staging evaluation panel runs the deterministic recommendation fixtures against an isolated
+in-memory database seeded from the mock provider. This gives admins a low-cost pass/fail quality
+signal without mutating staging data, calling external affiliate systems, or invoking an LLM.
