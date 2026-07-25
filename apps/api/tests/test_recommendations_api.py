@@ -142,9 +142,7 @@ def test_admin_recommendation_evaluation_returns_fixture_summary() -> None:
     client, session = make_client()
     headers = {"X-Admin-Token": "dev-admin-token"}
     try:
-        response = client.get(
-            "/admin/affiliate/recommendation-evaluation", headers=headers
-        )
+        response = client.get("/admin/affiliate/recommendation-evaluation", headers=headers)
 
         assert response.status_code == 200
         payload = response.json()

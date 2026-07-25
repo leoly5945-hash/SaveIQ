@@ -19,10 +19,7 @@ from app.services.click_tracking import ClickTrackingInput, record_click
 from app.services.recommendations import recommend_offers
 
 DEFAULT_FIXTURE_PATH = (
-    Path(__file__).resolve().parents[2]
-    / "tests"
-    / "fixtures"
-    / "recommendation_eval_cases.json"
+    Path(__file__).resolve().parents[2] / "tests" / "fixtures" / "recommendation_eval_cases.json"
 )
 
 
@@ -91,13 +88,9 @@ async def seed_mock_data(db: Session) -> None:
 
 
 def source_record_to_offer_id(db: Session, source_record_id: str) -> int:
-    offer_id = db.scalar(
-        select(Offer.id).where(Offer.source_record_id == source_record_id)
-    )
+    offer_id = db.scalar(select(Offer.id).where(Offer.source_record_id == source_record_id))
     if offer_id is None:
-        raise EvaluationFailure(
-            f"fixture references unknown source_record_id {source_record_id!r}"
-        )
+        raise EvaluationFailure(f"fixture references unknown source_record_id {source_record_id!r}")
     return offer_id
 
 
@@ -113,8 +106,7 @@ def apply_pre_clicks(db: Session, case: dict[str, Any]) -> None:
         target_type = click.get("target_type")
         if not isinstance(source_record_id, str) or not isinstance(target_type, str):
             raise EvaluationFailure(
-                f"{case['id']} pre_click entry is missing source_record_id "
-                "or target_type"
+                f"{case['id']} pre_click entry is missing source_record_id or target_type"
             )
         offer_id = source_record_to_offer_id(db, source_record_id)
         result = record_click(
@@ -133,9 +125,7 @@ def apply_pre_clicks(db: Session, case: dict[str, Any]) -> None:
 
 def assert_equal(case_id: str, field: str, actual: object, expected: object) -> None:
     if actual != expected:
-        raise EvaluationFailure(
-            f"{case_id} expected {field}={expected!r}, got {actual!r}"
-        )
+        raise EvaluationFailure(f"{case_id} expected {field}={expected!r}, got {actual!r}")
 
 
 def assert_trace(case_id: str, trace: object, expected: dict[str, Any]) -> list[str]:
@@ -189,24 +179,18 @@ def evaluate_case(case: dict[str, Any]) -> _CaseRun:
             expected["search_query"],
         )
         assert_equal(case_id, "sort", parsed_intent.sort, expected["sort"])
-        assert_equal(
-            case_id, "has_coupon", parsed_intent.has_coupon, expected["has_coupon"]
-        )
+        assert_equal(case_id, "has_coupon", parsed_intent.has_coupon, expected["has_coupon"])
         assert_equal(
             case_id,
             "has_cashback",
             parsed_intent.has_cashback,
             expected["has_cashback"],
         )
-        assert_equal(
-            case_id, "freshness", parsed_intent.freshness, expected["freshness"]
-        )
+        assert_equal(case_id, "freshness", parsed_intent.freshness, expected["freshness"])
 
         min_count = expected.get("min_count")
         if not isinstance(min_count, int) or len(recommendations) < min_count:
-            raise EvaluationFailure(
-                f"{case_id} expected at least {min_count} recommendations"
-            )
+            raise EvaluationFailure(f"{case_id} expected at least {min_count} recommendations")
 
         first = recommendations[0]
         source_record_id = db.scalar(
@@ -218,15 +202,10 @@ def evaluate_case(case: dict[str, Any]) -> _CaseRun:
             source_record_id,
             expected["first_source_record_id"],
         )
-        assert_equal(
-            case_id, "first_merchant", first["merchant"], expected["first_merchant"]
-        )
+        assert_equal(case_id, "first_merchant", first["merchant"], expected["first_merchant"])
 
         first_min_click_count = expected.get("first_min_click_count")
-        if (
-            isinstance(first_min_click_count, int)
-            and first["click_count"] < first_min_click_count
-        ):
+        if isinstance(first_min_click_count, int) and first["click_count"] < first_min_click_count:
             raise EvaluationFailure(
                 f"{case_id} expected first click_count >= {first_min_click_count}, "
                 f"got {first['click_count']}"
@@ -265,9 +244,7 @@ def evaluate_recommendation_fixtures(
                     "first_source_record_id": run.first_source_record_id,
                     "first_merchant": run.first_merchant,
                     "trace_steps": run.trace_steps,
-                    "required_trace_steps": [
-                        str(step) for step in required_trace_steps
-                    ],
+                    "required_trace_steps": [str(step) for step in required_trace_steps],
                     "failure": None,
                 }
             )
@@ -281,9 +258,7 @@ def evaluate_recommendation_fixtures(
                     "first_source_record_id": None,
                     "first_merchant": None,
                     "trace_steps": [],
-                    "required_trace_steps": [
-                        str(step) for step in required_trace_steps
-                    ],
+                    "required_trace_steps": [str(step) for step in required_trace_steps],
                     "failure": str(exc),
                 }
             )

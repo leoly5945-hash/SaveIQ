@@ -34,8 +34,7 @@ def parse_args() -> argparse.Namespace:
 def run_case(case: dict[str, object]) -> str:
     result = evaluate_case(case)
     return (
-        f"{case['id']}=pass count={result.count} "
-        f"first={result.first_source_record_id}"
+        f"{case['id']}=pass count={result.count} first={result.first_source_record_id}"
     )
 
 
@@ -50,7 +49,11 @@ def main() -> None:
     except EvaluationFailure as exc:
         fail(str(exc))
 
-    print("recommendation_eval=ok" if summary["status"] == "ok" else "recommendation_eval=failed")
+    print(
+        "recommendation_eval=ok"
+        if summary["status"] == "ok"
+        else "recommendation_eval=failed"
+    )
     print(f"cases={summary['case_count']}")
     for result in summary["cases"]:
         if result["status"] == "pass":

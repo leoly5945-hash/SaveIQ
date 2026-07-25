@@ -475,8 +475,5 @@ def get_recommendation_evaluation() -> RecommendationEvaluationResponse:
         case_count=summary["case_count"],
         passed_count=summary["passed_count"],
         failed_count=summary["failed_count"],
-        cases=[
-            RecommendationEvaluationCaseResponse(**case)
-            for case in summary["cases"]
-        ],
+        cases=[RecommendationEvaluationCaseResponse(**case) for case in summary["cases"]],
     )
