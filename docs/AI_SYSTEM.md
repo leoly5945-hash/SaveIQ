@@ -116,3 +116,12 @@ contains:
 
 These explanations are generated from stored normalized mock offer fields and the parsed intent. They
 are not AI-generated text and should remain predictable until a future LLM layer has evaluation gates.
+
+## Gate 4G Feedback Loop
+
+Gate 4G records staging feedback on individual recommended offers. A recommendation can be marked
+`helpful` or `not_helpful` only when the offer belongs to the saved trace event. Feedback records
+store trace ID, offer ID, rating, source, provider source, market, and timestamp.
+
+This is a quality signal for future evaluation work. It deliberately avoids account identity, browser
+fingerprinting, real affiliate calls, and model training behavior.

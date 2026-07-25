@@ -177,6 +177,26 @@ type RecommendationEvaluationSummary = {
   cases: RecommendationEvaluationCase[];
 };
 
+type RecommendationFeedbackRating = "helpful" | "not_helpful";
+
+type RecommendationFeedbackSummary = {
+  total_feedback: number;
+  helpful_count: number;
+  not_helpful_count: number;
+  recent_feedback: {
+    id: number;
+    trace_event_id: number;
+    offer_id: number | null;
+    offer_title: string | null;
+    rating: RecommendationFeedbackRating;
+    reason: string | null;
+    source: string;
+    provider_source: string | null;
+    market: string | null;
+    created_at: string;
+  }[];
+};
+
 type StagingSummary = {
   counts: {
     products: number;
@@ -186,6 +206,7 @@ type StagingSummary = {
     cashback_offers: number;
     click_events: number;
     recommendation_trace_events: number;
+    recommendation_feedback_events: number;
     sync_jobs: number;
     sync_errors: number;
   };
@@ -283,6 +304,11 @@ export function SearchExperience({ searchEndpoint }: SearchExperienceProps) {
     useState<RecommendationTraceSummary | null>(null);
   const [recommendationEvaluation, setRecommendationEvaluation] =
     useState<RecommendationEvaluationSummary | null>(null);
+  const [recommendationFeedback, setRecommendationFeedback] =
+    useState<RecommendationFeedbackSummary | null>(null);
+  const [feedbackStatusByOffer, setFeedbackStatusByOffer] = useState<
+    Record<number, "idle" | "saving" | "helpful" | "not_helpful" | "error">
+  >({});
   const [stagingSummary, setStagingSummary] = useState<StagingSummary | null>(
     null
   );
@@ -297,6 +323,9 @@ export function SearchExperience({ searchEndpoint }: SearchExperienceProps) {
     "idle" | "loading" | "ready" | "error"
   >("idle");
   const [evaluationStatus, setEvaluationStatus] = useState<
+    "idle" | "loading" | "ready" | "error"
+  >("idle");
+  const [feedbackSummaryStatus, setFeedbackSummaryStatus] = useState<
     "idle" | "loading" | "ready" | "error"
   >("idle");
   const [stagingStatus, setStagingStatus] = useState<
@@ -473,6 +502,49 @@ export function SearchExperience({ searchEndpoint }: SearchExperienceProps) {
     }
   }
 
+  async function submitRecommendationFeedback(
+    offerId: number,
+    rating: RecommendationFeedbackRating
+  ) {
+    if (!recommendationMeta) {
+      return;
+    }
+    setFeedbackStatusByOffer((current) => ({
+      ...current,
+      [offerId]: "saving",
+    }));
+
+    try {
+      const response = await fetch("/api/recommendation-feedback", {
+        body: JSON.stringify({
+          offer_id: offerId,
+          rating,
+          source: "staging_ui",
+          trace_event_id: recommendationMeta.trace_event_id,
+        }),
+        headers: {
+          Accept: "application/json",
+          "content-type": "application/json",
+        },
+        method: "POST",
+      });
+      if (!response.ok) {
+        throw new Error(
+          `Recommendation feedback failed with ${response.status}`
+        );
+      }
+      setFeedbackStatusByOffer((current) => ({
+        ...current,
+        [offerId]: rating,
+      }));
+    } catch {
+      setFeedbackStatusByOffer((current) => ({
+        ...current,
+        [offerId]: "error",
+      }));
+    }
+  }
+
   async function loadClickAnalytics(event?: FormEvent<HTMLFormElement>) {
     event?.preventDefault();
     setAnalyticsStatus("loading");
@@ -578,6 +650,35 @@ export function SearchExperience({ searchEndpoint }: SearchExperienceProps) {
     }
   }
 
+  async function loadRecommendationFeedback(
+    event?: FormEvent<HTMLFormElement>
+  ) {
+    event?.preventDefault();
+    setFeedbackSummaryStatus("loading");
+
+    try {
+      const response = await fetch("/api/admin/recommendation-feedback", {
+        body: JSON.stringify({ adminToken }),
+        headers: {
+          Accept: "application/json",
+          "content-type": "application/json",
+        },
+        method: "POST",
+      });
+      if (!response.ok) {
+        throw new Error(
+          `Recommendation feedback failed with ${response.status}`
+        );
+      }
+      const payload = (await response.json()) as RecommendationFeedbackSummary;
+      setRecommendationFeedback(payload);
+      setFeedbackSummaryStatus("ready");
+    } catch {
+      setRecommendationFeedback(null);
+      setFeedbackSummaryStatus("error");
+    }
+  }
+
   async function runMockSync() {
     setSyncStatus("loading");
 
@@ -659,6 +760,8 @@ export function SearchExperience({ searchEndpoint }: SearchExperienceProps) {
           <RecommendationList
             meta={recommendationMeta}
             recommendations={recommendations}
+            feedbackStatusByOffer={feedbackStatusByOffer}
+            onFeedback={submitRecommendationFeedback}
             onTrack={trackClick}
           />
         ) : null}
@@ -1003,6 +1106,40 @@ export function SearchExperience({ searchEndpoint }: SearchExperienceProps) {
         ) : null}
       </section>
 
+      <section className="admin-panel" aria-labelledby="feedback-heading">
+        <div className="admin-heading">
+          <div>
+            <p className="eyebrow">Recommendation feedback</p>
+            <h2 id="feedback-heading">Staging quality loop</h2>
+          </div>
+          <p className="state-message">Admin only</p>
+        </div>
+
+        <form
+          className="admin-controls compact-controls"
+          onSubmit={loadRecommendationFeedback}
+        >
+          <button type="submit" disabled={feedbackSummaryStatus === "loading"}>
+            {feedbackSummaryStatus === "loading" ? "Refreshing" : "Refresh"}
+          </button>
+        </form>
+
+        {feedbackSummaryStatus === "idle" ? (
+          <p className="state-message">
+            Refresh to inspect Helpful and Not helpful recommendation feedback.
+          </p>
+        ) : null}
+        {feedbackSummaryStatus === "error" ? (
+          <p className="state-message">
+            Recommendation feedback unavailable. Check the admin token and API
+            health.
+          </p>
+        ) : null}
+        {recommendationFeedback ? (
+          <RecommendationFeedbackView feedback={recommendationFeedback} />
+        ) : null}
+      </section>
+
       <section className="admin-panel" aria-labelledby="trace-heading">
         <div className="admin-heading">
           <div>
@@ -1064,6 +1201,10 @@ function StagingSummaryView({ summary }: { summary: StagingSummary }) {
       <div className="metric-card">
         <span>Recommendation traces</span>
         <strong>{summary.counts.recommendation_trace_events ?? 0}</strong>
+      </div>
+      <div className="metric-card">
+        <span>Recommendation feedback</span>
+        <strong>{summary.counts.recommendation_feedback_events ?? 0}</strong>
       </div>
 
       <section className="admin-table latest-sync">
@@ -1140,12 +1281,19 @@ function StagingSummaryView({ summary }: { summary: StagingSummary }) {
 }
 
 function RecommendationList({
+  feedbackStatusByOffer,
   meta,
   recommendations,
+  onFeedback,
   onTrack,
 }: {
+  feedbackStatusByOffer: Record<
+    number,
+    "idle" | "saving" | "helpful" | "not_helpful" | "error"
+  >;
   meta: RecommendationResponse | null;
   recommendations: RecommendationResult[];
+  onFeedback: (offerId: number, rating: RecommendationFeedbackRating) => void;
   onTrack: (offerId: number, targetType: ClickTargetType) => void;
 }) {
   return (
@@ -1163,6 +1311,10 @@ function RecommendationList({
         {recommendations.map((recommendation) => {
           const currentPrice =
             recommendation.sale_price_cents ?? recommendation.price_cents;
+          const feedbackStatus =
+            feedbackStatusByOffer[recommendation.offer_id] ?? "idle";
+          const feedbackSaved =
+            feedbackStatus === "helpful" || feedbackStatus === "not_helpful";
           return (
             <article
               className="recommendation-card"
@@ -1236,6 +1388,37 @@ function RecommendationList({
                   Open mock product URL
                 </a>
               ) : null}
+              <div className="feedback-actions">
+                <span>
+                  {feedbackStatus === "saving"
+                    ? "Saving feedback"
+                    : feedbackSaved
+                      ? `Marked ${feedbackStatus.replace("_", " ")}`
+                      : feedbackStatus === "error"
+                        ? "Feedback failed"
+                        : "Was this useful?"}
+                </span>
+                <button
+                  className="secondary-button"
+                  type="button"
+                  disabled={feedbackStatus === "saving"}
+                  onClick={() =>
+                    void onFeedback(recommendation.offer_id, "helpful")
+                  }
+                >
+                  Helpful
+                </button>
+                <button
+                  className="secondary-button"
+                  type="button"
+                  disabled={feedbackStatus === "saving"}
+                  onClick={() =>
+                    void onFeedback(recommendation.offer_id, "not_helpful")
+                  }
+                >
+                  Not helpful
+                </button>
+              </div>
             </article>
           );
         })}
@@ -1259,6 +1442,68 @@ function ExplanationList({
           <li key={value}>{value}</li>
         ))}
       </ul>
+    </div>
+  );
+}
+
+function RecommendationFeedbackView({
+  feedback,
+}: {
+  feedback: RecommendationFeedbackSummary;
+}) {
+  return (
+    <div className="admin-grid evaluation-metrics">
+      <div className="metric-card">
+        <span>Total feedback</span>
+        <strong>{feedback.total_feedback}</strong>
+      </div>
+      <div className="metric-card">
+        <span>Helpful</span>
+        <strong>{feedback.helpful_count}</strong>
+      </div>
+      <div className="metric-card">
+        <span>Not helpful</span>
+        <strong>{feedback.not_helpful_count}</strong>
+      </div>
+
+      <section className="admin-table recent-clicks">
+        <h3>Recent feedback</h3>
+        {feedback.recent_feedback.length > 0 ? (
+          <table>
+            <thead>
+              <tr>
+                <th>Rating</th>
+                <th>Offer</th>
+                <th>Trace</th>
+              </tr>
+            </thead>
+            <tbody>
+              {feedback.recent_feedback.map((event) => (
+                <tr key={event.id}>
+                  <td>
+                    <span
+                      className={
+                        event.rating === "helpful"
+                          ? "status-pill pass"
+                          : "status-pill fail"
+                      }
+                    >
+                      {event.rating.replace("_", " ")}
+                    </span>
+                  </td>
+                  <td>{event.offer_title ?? `Offer ${event.offer_id}`}</td>
+                  <td>
+                    {event.trace_event_id} · {event.provider_source ?? "n/a"} ·{" "}
+                    {event.market ?? "n/a"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <p className="state-message">No recommendation feedback yet.</p>
+        )}
+      </section>
     </div>
   );
 }

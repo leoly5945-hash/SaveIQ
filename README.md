@@ -106,6 +106,9 @@ Gate 4F adds deterministic decision explanations to each recommended offer. The 
 now show matched intent signals, ranking signals, and guardrails that confirm the recommendation used
 stored mock data only.
 
+Gate 4G adds a staging recommendation feedback loop. Each explained recommendation can be marked
+Helpful or Not helpful, and admins can inspect aggregate feedback without storing user identity.
+
 ## Docker Compose
 
 Run the full local stack:

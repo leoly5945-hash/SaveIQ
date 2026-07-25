@@ -54,5 +54,6 @@
 - Gate 4D staging UI trace viewer for parsed intents and trace steps
 - Gate 4E staging evaluation panel for deterministic fixture pass/fail checks
 - Gate 4F deterministic decision explanations for each recommended offer
+- Gate 4G staging Helpful/Not helpful feedback loop for recommendations
 - Future: trace retention policy and richer evaluation dashboard
 - Future: LLM intent parsing after evaluation criteria are defined

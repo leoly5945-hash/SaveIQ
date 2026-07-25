@@ -91,3 +91,11 @@ Status: Accepted
 Recommendation explanations are composed from parsed intent fields, search match reasons, ranking
 reasons, and fixed guardrails. This keeps staging explainability inspectable without creating a new
 LLM dependency, scraping behavior, or live affiliate-network integration.
+
+## 2026-07-25: Gate 4G Feedback Stores Quality Signals Without Identity
+
+Status: Accepted
+
+Recommendation feedback stores trace ID, offer ID, rating, source, provider source, market, and
+timestamp. It does not store user identity or session fingerprints. This gives staging a lightweight
+quality loop while keeping privacy and production-readiness risks low.

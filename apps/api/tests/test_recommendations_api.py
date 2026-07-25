@@ -9,7 +9,7 @@ import app.models  # noqa: F401
 from app.db.base import Base
 from app.db.session import get_db
 from app.main import app
-from app.models import RecommendationTraceEvent
+from app.models import RecommendationFeedbackEvent, RecommendationTraceEvent
 
 
 def make_client() -> tuple[TestClient, Session]:
@@ -105,6 +105,72 @@ def test_recommendations_parse_cashback_and_popularity_intent() -> None:
         session.close()
 
 
+def test_recommendation_feedback_records_trace_offer_rating() -> None:
+    client, session = make_client()
+    headers = {"X-Admin-Token": "dev-admin-token"}
+    try:
+        client.post("/admin/affiliate/sync/mock", headers=headers)
+        recommendation_response = client.post(
+            "/recommendations",
+            json={"intent": "Find fresh wireless earbuds with a coupon", "limit": 3},
+        )
+        recommendation_payload = recommendation_response.json()
+        offer_id = recommendation_payload["recommendations"][0]["offer_id"]
+        trace_event_id = recommendation_payload["trace_event_id"]
+
+        response = client.post(
+            "/recommendations/feedback",
+            json={
+                "trace_event_id": trace_event_id,
+                "offer_id": offer_id,
+                "rating": "helpful",
+                "reason": "top price and coupon fit",
+            },
+        )
+
+        assert response.status_code == 201
+        payload = response.json()
+        assert payload["trace_event_id"] == trace_event_id
+        assert payload["offer_id"] == offer_id
+        assert payload["rating"] == "helpful"
+        assert payload["provider_source"] == "mock_ca"
+        feedback = session.get(RecommendationFeedbackEvent, payload["id"])
+        assert feedback is not None
+        assert feedback.reason == "top price and coupon fit"
+    finally:
+        app.dependency_overrides.clear()
+        session.close()
+
+
+def test_recommendation_feedback_rejects_offer_outside_trace() -> None:
+    client, session = make_client()
+    headers = {"X-Admin-Token": "dev-admin-token"}
+    try:
+        client.post("/admin/affiliate/sync/mock", headers=headers)
+        recommendation_response = client.post(
+            "/recommendations",
+            json={"intent": "Find fresh wireless earbuds with a coupon", "limit": 3},
+        )
+        trace_event_id = recommendation_response.json()["trace_event_id"]
+        offer_ids = [
+            result["offer_id"] for result in client.get("/search?q=kettle").json()["results"]
+        ]
+
+        response = client.post(
+            "/recommendations/feedback",
+            json={
+                "trace_event_id": trace_event_id,
+                "offer_id": offer_ids[0],
+                "rating": "not_helpful",
+            },
+        )
+
+        assert response.status_code == 404
+    finally:
+        app.dependency_overrides.clear()
+        session.close()
+
+
 def test_recommendations_validate_short_intent() -> None:
     client, session = make_client()
     try:
@@ -160,6 +226,40 @@ def test_admin_recommendation_evaluation_returns_fixture_summary() -> None:
         assert payload["passed_count"] == 4
         assert payload["failed_count"] == 0
         assert payload["cases"][0]["status"] == "pass"
+    finally:
+        app.dependency_overrides.clear()
+        session.close()
+
+
+def test_admin_recommendation_feedback_returns_summary() -> None:
+    client, session = make_client()
+    headers = {"X-Admin-Token": "dev-admin-token"}
+    try:
+        client.post("/admin/affiliate/sync/mock", headers=headers)
+        recommendation_response = client.post(
+            "/recommendations",
+            json={"intent": "Find fresh wireless earbuds with a coupon", "limit": 3},
+        )
+        recommendation_payload = recommendation_response.json()
+        offer_id = recommendation_payload["recommendations"][0]["offer_id"]
+        trace_event_id = recommendation_payload["trace_event_id"]
+        client.post(
+            "/recommendations/feedback",
+            json={
+                "trace_event_id": trace_event_id,
+                "offer_id": offer_id,
+                "rating": "helpful",
+            },
+        )
+
+        response = client.get("/admin/affiliate/recommendation-feedback", headers=headers)
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["total_feedback"] == 1
+        assert payload["helpful_count"] == 1
+        assert payload["not_helpful_count"] == 0
+        assert payload["recent_feedback"][0]["offer_id"] == offer_id
     finally:
         app.dependency_overrides.clear()
         session.close()

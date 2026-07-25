@@ -147,6 +147,23 @@ a {
   width: max-content;
 }
 
+.feedback-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.feedback-actions span {
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.feedback-actions button {
+  min-height: 38px;
+}
+
 .explanation-block {
   background: #f8fafc;
   border: 1px solid var(--border);

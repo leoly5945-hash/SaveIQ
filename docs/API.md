@@ -125,6 +125,7 @@ Gate 4B regression fixtures validate this response shape and trace behavior offl
 Gate 4C persists each recommendation trace for admin audit and returns `trace_event_id`.
 Gate 4F adds `decision_explanation` to each recommended offer so staging can show why a result was
 selected without calling an LLM.
+Gate 4G adds `POST /recommendations/feedback` for staging Helpful/Not helpful quality signals.
 
 ```json
 {
@@ -205,6 +206,22 @@ Abridged example response:
 }
 ```
 
+`POST /recommendations/feedback`
+
+Record staging feedback for a recommended offer. The `offer_id` must belong to the supplied
+`trace_event_id`. This endpoint stores no user identity.
+
+```json
+{
+  "trace_event_id": 1,
+  "offer_id": 1,
+  "rating": "helpful",
+  "source": "staging_ui"
+}
+```
+
+The staging web app proxies the same request at `POST /api/recommendation-feedback`.
+
 ## Admin Affiliate
 
 - `POST /admin/affiliate/sync/mock`
@@ -220,6 +237,7 @@ Abridged example response:
 - `GET /admin/affiliate/click-analytics`
 - `GET /admin/affiliate/recommendation-traces`
 - `GET /admin/affiliate/recommendation-evaluation`
+- `GET /admin/affiliate/recommendation-feedback`
 - `GET /admin/affiliate/staging-summary`
 
 Admin responses expose normalized operational data and do not expose provider secrets or full raw
@@ -255,6 +273,15 @@ suite against an isolated in-memory database and returns:
 
 The staging web app exposes this through the admin-only evaluation panel and the proxy endpoint
 `POST /api/admin/recommendation-evaluation`.
+
+`GET /admin/affiliate/recommendation-feedback` returns staging-only quality feedback:
+
+- total feedback count
+- Helpful and Not helpful counts
+- recent feedback records with trace ID, offer, source, provider, and market
+
+The staging web app exposes this through the admin-only feedback panel and the proxy endpoint
+`POST /api/admin/recommendation-feedback`.
 
 `GET /admin/affiliate/staging-summary` returns staging operations state:
 

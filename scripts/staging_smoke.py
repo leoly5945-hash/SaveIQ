@@ -286,6 +286,39 @@ def main() -> None:
             f"signals={len(web_explanation['matched_intent'])}",
         )
     )
+    first_recommendation = api_recommendation_items[0]
+    recommended_offer_id = first_recommendation.get("offer_id")
+    if not isinstance(recommended_offer_id, int):
+        fail("API recommendation is missing offer_id")
+    feedback = post_json(
+        f"{api_url}/recommendations/feedback",
+        {
+            "trace_event_id": trace_event_id,
+            "offer_id": recommended_offer_id,
+            "rating": "helpful",
+            "source": "staging_smoke",
+        },
+        expected_status=201,
+    )
+    if feedback.get("rating") != "helpful":
+        fail("recommendation feedback response did not echo helpful rating")
+    checks.append(Check("recommendation_feedback", f"offer_id={recommended_offer_id}"))
+
+    web_feedback = post_json(
+        f"{web_url}/api/recommendation-feedback",
+        {
+            "trace_event_id": web_trace_event_id,
+            "offer_id": recommended_offer_id,
+            "rating": "not_helpful",
+            "source": "staging_smoke",
+        },
+        expected_status=201,
+    )
+    if web_feedback.get("rating") != "not_helpful":
+        fail("web recommendation feedback proxy did not echo not_helpful rating")
+    checks.append(
+        Check("web_recommendation_feedback_proxy", f"offer_id={recommended_offer_id}")
+    )
 
     click = post_json(
         f"{api_url}/clicks",
@@ -369,6 +402,38 @@ def main() -> None:
         Check(
             "web_recommendation_evaluation_proxy",
             f"passed={web_evaluation['passed_count']}",
+        )
+    )
+
+    feedback_summary = get_json(
+        f"{api_url}/admin/affiliate/recommendation-feedback", token
+    )
+    if (
+        not isinstance(feedback_summary.get("total_feedback"), int)
+        or feedback_summary["total_feedback"] < 2
+        or not isinstance(feedback_summary.get("helpful_count"), int)
+        or not isinstance(feedback_summary.get("not_helpful_count"), int)
+    ):
+        fail("recommendation feedback admin endpoint returned malformed data")
+    checks.append(
+        Check(
+            "recommendation_feedback_summary",
+            (
+                f"helpful={feedback_summary['helpful_count']} "
+                f"not_helpful={feedback_summary['not_helpful_count']}"
+            ),
+        )
+    )
+
+    web_feedback_summary = post_json(
+        f"{web_url}/api/admin/recommendation-feedback", {"adminToken": token}
+    )
+    if not isinstance(web_feedback_summary.get("total_feedback"), int):
+        fail("web recommendation feedback proxy returned malformed data")
+    checks.append(
+        Check(
+            "web_recommendation_feedback_summary_proxy",
+            f"total={web_feedback_summary['total_feedback']}",
         )
     )
 

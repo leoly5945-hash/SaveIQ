@@ -2,11 +2,13 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
+from app.models import RecommendationFeedbackRating
+from app.services.recommendation_feedback import record_recommendation_feedback
 from app.services.recommendations import recommend_offers
 
 DbSession = Annotated[Session, Depends(get_db)]
@@ -17,6 +19,25 @@ router = APIRouter(prefix="/recommendations", tags=["recommendations"])
 class RecommendationRequest(BaseModel):
     intent: str = Field(min_length=3, max_length=240)
     limit: int = Field(default=5, ge=1, le=10)
+
+
+class RecommendationFeedbackRequest(BaseModel):
+    trace_event_id: int = Field(gt=0)
+    offer_id: int = Field(gt=0)
+    rating: RecommendationFeedbackRating
+    reason: str | None = Field(default=None, max_length=240)
+    source: str = Field(default="staging_ui", min_length=3, max_length=40)
+
+
+class RecommendationFeedbackResponse(BaseModel):
+    id: int
+    trace_event_id: int
+    offer_id: int
+    rating: str
+    reason: str | None
+    source: str
+    provider_source: str
+    market: str
 
 
 class RecommendationIntentResponse(BaseModel):
@@ -92,3 +113,24 @@ def recommend_products(
         ],
         evaluation_trace=[RecommendationTraceStepResponse(**step) for step in result["trace"]],
     )
+
+
+@router.post("/feedback", response_model=RecommendationFeedbackResponse, status_code=201)
+def submit_recommendation_feedback(
+    request: RecommendationFeedbackRequest,
+    db: DbSession,
+) -> RecommendationFeedbackResponse:
+    result = record_recommendation_feedback(
+        db,
+        trace_event_id=request.trace_event_id,
+        offer_id=request.offer_id,
+        rating=request.rating,
+        reason=request.reason,
+        source=request.source,
+    )
+    if result is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Recommendation trace or offer was not found for feedback.",
+        )
+    return RecommendationFeedbackResponse(**result)

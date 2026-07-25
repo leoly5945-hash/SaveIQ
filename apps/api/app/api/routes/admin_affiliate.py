@@ -21,6 +21,7 @@ from app.models import (
     MerchantListing,
     Offer,
     PriceHistory,
+    RecommendationFeedbackEvent,
     RecommendationTraceEvent,
 )
 from app.services.affiliate.ingestion import AffiliateIngestionService
@@ -62,6 +63,7 @@ class StagingCountsResponse(BaseModel):
     cashback_offers: int
     click_events: int
     recommendation_trace_events: int
+    recommendation_feedback_events: int
     sync_jobs: int
     sync_errors: int
 
@@ -115,6 +117,26 @@ class RecommendationEvaluationResponse(BaseModel):
     passed_count: int
     failed_count: int
     cases: list[RecommendationEvaluationCaseResponse]
+
+
+class RecommendationFeedbackRecentResponse(BaseModel):
+    id: int
+    trace_event_id: int
+    offer_id: int | None
+    offer_title: str | None
+    rating: str
+    reason: str | None
+    source: str
+    provider_source: str | None
+    market: str | None
+    created_at: datetime
+
+
+class RecommendationFeedbackSummaryResponse(BaseModel):
+    total_feedback: int
+    helpful_count: int
+    not_helpful_count: int
+    recent_feedback: list[RecommendationFeedbackRecentResponse]
 
 
 def row(model: Any, *fields: str) -> dict[str, Any]:
@@ -191,6 +213,9 @@ def get_staging_summary(db: DbSession) -> StagingSummaryResponse:
             click_events=db.scalar(select(func.count(AffiliateClickEvent.id))) or 0,
             recommendation_trace_events=(
                 db.scalar(select(func.count(RecommendationTraceEvent.id))) or 0
+            ),
+            recommendation_feedback_events=(
+                db.scalar(select(func.count(RecommendationFeedbackEvent.id))) or 0
             ),
             sync_jobs=db.scalar(select(func.count(AffiliateSyncJob.id))) or 0,
             sync_errors=db.scalar(select(func.count(AffiliateSyncError.id))) or 0,
@@ -476,4 +501,51 @@ def get_recommendation_evaluation() -> RecommendationEvaluationResponse:
         passed_count=summary["passed_count"],
         failed_count=summary["failed_count"],
         cases=[RecommendationEvaluationCaseResponse(**case) for case in summary["cases"]],
+    )
+
+
+@router.get("/recommendation-feedback", response_model=RecommendationFeedbackSummaryResponse)
+def get_recommendation_feedback(db: DbSession) -> RecommendationFeedbackSummaryResponse:
+    total_feedback = db.scalar(select(func.count(RecommendationFeedbackEvent.id))) or 0
+    helpful_count = (
+        db.scalar(
+            select(func.count(RecommendationFeedbackEvent.id)).where(
+                RecommendationFeedbackEvent.rating == "helpful"
+            )
+        )
+        or 0
+    )
+    not_helpful_count = (
+        db.scalar(
+            select(func.count(RecommendationFeedbackEvent.id)).where(
+                RecommendationFeedbackEvent.rating == "not_helpful"
+            )
+        )
+        or 0
+    )
+    recent_feedback = db.scalars(
+        select(RecommendationFeedbackEvent)
+        .order_by(RecommendationFeedbackEvent.id.desc())
+        .limit(20)
+    ).all()
+
+    return RecommendationFeedbackSummaryResponse(
+        total_feedback=total_feedback,
+        helpful_count=helpful_count,
+        not_helpful_count=not_helpful_count,
+        recent_feedback=[
+            RecommendationFeedbackRecentResponse(
+                id=event.id,
+                trace_event_id=event.trace_event_id,
+                offer_id=event.offer_id,
+                offer_title=event.offer.title if event.offer else None,
+                rating=event.rating,
+                reason=event.reason,
+                source=event.source,
+                provider_source=event.provider_source,
+                market=event.market,
+                created_at=event.created_at,
+            )
+            for event in recent_feedback
+        ],
     )

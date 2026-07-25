@@ -67,6 +67,11 @@ class ClickTargetType(StrEnum):
     affiliate = "affiliate"
 
 
+class RecommendationFeedbackRating(StrEnum):
+    helpful = "helpful"
+    not_helpful = "not_helpful"
+
+
 def enum_column(enum_type: type[StrEnum], *, default: StrEnum | None = None) -> Mapped[str]:
     return mapped_column(
         Enum(enum_type, native_enum=False, validate_strings=True),
@@ -387,6 +392,36 @@ class RecommendationTraceEvent(Base):
     __table_args__ = (
         Index("ix_recommendation_trace_events_created", "created_at"),
         Index("ix_recommendation_trace_events_strategy", "strategy"),
+    )
+
+
+class RecommendationFeedbackEvent(Base):
+    __tablename__ = "recommendation_feedback_events"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    trace_event_id: Mapped[int] = mapped_column(
+        ForeignKey("recommendation_trace_events.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    offer_id: Mapped[int | None] = mapped_column(ForeignKey("offers.id", ondelete="SET NULL"))
+    rating: Mapped[str] = enum_column(RecommendationFeedbackRating)
+    reason: Mapped[str | None] = mapped_column(String(240))
+    source: Mapped[str] = mapped_column(String(40), nullable=False, default="staging_ui")
+    provider_source: Mapped[str | None] = mapped_column(String(64), index=True)
+    market: Mapped[str | None] = mapped_column(String(2))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )
+
+    trace_event: Mapped[RecommendationTraceEvent] = relationship()
+    offer: Mapped[Offer | None] = relationship()
+
+    __table_args__ = (
+        Index("ix_recommendation_feedback_events_trace", "trace_event_id"),
+        Index("ix_recommendation_feedback_events_rating", "rating"),
+        Index("ix_recommendation_feedback_events_created", "created_at"),
     )
 
 
