@@ -278,10 +278,11 @@ The staging web app exposes this through the admin-only evaluation panel and the
 
 - total feedback count
 - Helpful and Not helpful counts
+- helpful rate and trace feedback coverage rate
 - recent feedback records with trace ID, offer, source, provider, and market
 
-The staging web app exposes this through the admin-only feedback panel and the proxy endpoint
-`POST /api/admin/recommendation-feedback`.
+The staging web app exposes this through the admin-only feedback dashboard, the quality-loop refresh
+control, and the proxy endpoint `POST /api/admin/recommendation-feedback`.
 
 `GET /admin/affiliate/staging-summary` returns staging operations state:
 

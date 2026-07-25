@@ -413,6 +413,10 @@ def main() -> None:
         or feedback_summary["total_feedback"] < 2
         or not isinstance(feedback_summary.get("helpful_count"), int)
         or not isinstance(feedback_summary.get("not_helpful_count"), int)
+        or not isinstance(feedback_summary.get("helpful_rate"), (int, float))
+        or not isinstance(
+            feedback_summary.get("trace_feedback_coverage_rate"), (int, float)
+        )
     ):
         fail("recommendation feedback admin endpoint returned malformed data")
     checks.append(
@@ -420,7 +424,9 @@ def main() -> None:
             "recommendation_feedback_summary",
             (
                 f"helpful={feedback_summary['helpful_count']} "
-                f"not_helpful={feedback_summary['not_helpful_count']}"
+                f"not_helpful={feedback_summary['not_helpful_count']} "
+                f"helpful_rate={feedback_summary['helpful_rate']:.2f} "
+                f"coverage={feedback_summary['trace_feedback_coverage_rate']:.2f}"
             ),
         )
     )
@@ -428,12 +434,19 @@ def main() -> None:
     web_feedback_summary = post_json(
         f"{web_url}/api/admin/recommendation-feedback", {"adminToken": token}
     )
-    if not isinstance(web_feedback_summary.get("total_feedback"), int):
+    if not isinstance(
+        web_feedback_summary.get("total_feedback"), int
+    ) or not isinstance(
+        web_feedback_summary.get("trace_feedback_coverage_rate"), (int, float)
+    ):
         fail("web recommendation feedback proxy returned malformed data")
     checks.append(
         Check(
             "web_recommendation_feedback_summary_proxy",
-            f"total={web_feedback_summary['total_feedback']}",
+            (
+                f"total={web_feedback_summary['total_feedback']} "
+                f"coverage={web_feedback_summary['trace_feedback_coverage_rate']:.2f}"
+            ),
         )
     )
 

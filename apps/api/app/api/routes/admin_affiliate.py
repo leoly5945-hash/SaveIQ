@@ -136,6 +136,10 @@ class RecommendationFeedbackSummaryResponse(BaseModel):
     total_feedback: int
     helpful_count: int
     not_helpful_count: int
+    helpful_rate: float
+    unique_feedback_traces: int
+    total_recommendation_traces: int
+    trace_feedback_coverage_rate: float
     recent_feedback: list[RecommendationFeedbackRecentResponse]
 
 
@@ -507,6 +511,11 @@ def get_recommendation_evaluation() -> RecommendationEvaluationResponse:
 @router.get("/recommendation-feedback", response_model=RecommendationFeedbackSummaryResponse)
 def get_recommendation_feedback(db: DbSession) -> RecommendationFeedbackSummaryResponse:
     total_feedback = db.scalar(select(func.count(RecommendationFeedbackEvent.id))) or 0
+    total_recommendation_traces = db.scalar(select(func.count(RecommendationTraceEvent.id))) or 0
+    unique_feedback_traces = (
+        db.scalar(select(func.count(func.distinct(RecommendationFeedbackEvent.trace_event_id))))
+        or 0
+    )
     helpful_count = (
         db.scalar(
             select(func.count(RecommendationFeedbackEvent.id)).where(
@@ -533,6 +542,14 @@ def get_recommendation_feedback(db: DbSession) -> RecommendationFeedbackSummaryR
         total_feedback=total_feedback,
         helpful_count=helpful_count,
         not_helpful_count=not_helpful_count,
+        helpful_rate=helpful_count / total_feedback if total_feedback else 0,
+        unique_feedback_traces=unique_feedback_traces,
+        total_recommendation_traces=total_recommendation_traces,
+        trace_feedback_coverage_rate=(
+            unique_feedback_traces / total_recommendation_traces
+            if total_recommendation_traces
+            else 0
+        ),
         recent_feedback=[
             RecommendationFeedbackRecentResponse(
                 id=event.id,

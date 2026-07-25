@@ -23,9 +23,13 @@ describe("POST /api/admin/recommendation-feedback", () => {
       new Response(
         JSON.stringify({
           helpful_count: 1,
+          helpful_rate: 1,
           not_helpful_count: 0,
           recent_feedback: [],
+          total_recommendation_traces: 1,
           total_feedback: 1,
+          trace_feedback_coverage_rate: 1,
+          unique_feedback_traces: 1,
         }),
         {
           headers: { "content-type": "application/json" },
@@ -45,6 +49,8 @@ describe("POST /api/admin/recommendation-feedback", () => {
 
     expect(response.status).toBe(200);
     expect(body.total_feedback).toBe(1);
+    expect(body.helpful_rate).toBe(1);
+    expect(body.trace_feedback_coverage_rate).toBe(1);
     expect(fetchMock).toHaveBeenCalledWith(
       new URL("http://localhost:8000/admin/affiliate/recommendation-feedback"),
       expect.objectContaining({

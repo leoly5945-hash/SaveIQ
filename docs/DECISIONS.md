@@ -99,3 +99,11 @@ Status: Accepted
 Recommendation feedback stores trace ID, offer ID, rating, source, provider source, market, and
 timestamp. It does not store user identity or session fingerprints. This gives staging a lightweight
 quality loop while keeping privacy and production-readiness risks low.
+
+## 2026-07-25: Gate 4H Feedback Dashboard Is Staging-Only
+
+Status: Accepted
+
+The feedback dashboard aggregates Helpful rate and trace feedback coverage from stored staging
+events. It helps reviewers inspect recommendation quality before any LLM layer exists. It does not
+train a model, store identity, or send feedback to external services.

@@ -259,6 +259,10 @@ def test_admin_recommendation_feedback_returns_summary() -> None:
         assert payload["total_feedback"] == 1
         assert payload["helpful_count"] == 1
         assert payload["not_helpful_count"] == 0
+        assert payload["helpful_rate"] == 1
+        assert payload["unique_feedback_traces"] == 1
+        assert payload["total_recommendation_traces"] == 1
+        assert payload["trace_feedback_coverage_rate"] == 1
         assert payload["recent_feedback"][0]["offer_id"] == offer_id
     finally:
         app.dependency_overrides.clear()

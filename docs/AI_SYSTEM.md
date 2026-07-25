@@ -125,3 +125,10 @@ store trace ID, offer ID, rating, source, provider source, market, and timestamp
 
 This is a quality signal for future evaluation work. It deliberately avoids account identity, browser
 fingerprinting, real affiliate calls, and model training behavior.
+
+## Gate 4H Feedback Dashboard
+
+Gate 4H adds a staging-only quality dashboard for recommendation feedback. It shows total feedback,
+Helpful rate, trace feedback coverage, recent feedback records, and a single refresh control for
+evaluation, traces, feedback, and staging summary. It remains a deterministic review surface and does
+not train a model or call a live AI service.

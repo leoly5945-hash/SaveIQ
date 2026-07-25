@@ -109,6 +109,10 @@ stored mock data only.
 Gate 4G adds a staging recommendation feedback loop. Each explained recommendation can be marked
 Helpful or Not helpful, and admins can inspect aggregate feedback without storing user identity.
 
+Gate 4H upgrades the staging feedback dashboard with Helpful rate, trace feedback coverage, recent
+feedback timing, and one quality-loop refresh control for evaluation, traces, feedback, and staging
+summary.
+
 ## Docker Compose
 
 Run the full local stack:

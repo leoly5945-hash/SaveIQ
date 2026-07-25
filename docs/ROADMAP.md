@@ -55,5 +55,6 @@
 - Gate 4E staging evaluation panel for deterministic fixture pass/fail checks
 - Gate 4F deterministic decision explanations for each recommended offer
 - Gate 4G staging Helpful/Not helpful feedback loop for recommendations
-- Future: trace retention policy and richer evaluation dashboard
+- Gate 4H staging feedback dashboard with Helpful rate and trace feedback coverage
+- Future: trace retention policy and richer model-readiness dashboard
 - Future: LLM intent parsing after evaluation criteria are defined

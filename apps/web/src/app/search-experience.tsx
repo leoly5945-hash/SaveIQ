@@ -183,6 +183,10 @@ type RecommendationFeedbackSummary = {
   total_feedback: number;
   helpful_count: number;
   not_helpful_count: number;
+  helpful_rate: number;
+  unique_feedback_traces: number;
+  total_recommendation_traces: number;
+  trace_feedback_coverage_rate: number;
   recent_feedback: {
     id: number;
     trace_event_id: number;
@@ -265,6 +269,10 @@ function formatMoney(cents: number, currency: string) {
 
 function formatPercent(basisPoints: number) {
   return `${(basisPoints / 100).toFixed(2).replace(/\.00$/, "")}%`;
+}
+
+function formatRate(value: number) {
+  return `${Math.round(value * 100)}%`;
 }
 
 function formatDateTime(value: string | null) {
@@ -679,6 +687,15 @@ export function SearchExperience({ searchEndpoint }: SearchExperienceProps) {
     }
   }
 
+  async function refreshQualityLoop() {
+    await Promise.all([
+      loadRecommendationEvaluation(),
+      loadRecommendationFeedback(),
+      loadRecommendationTraces(),
+      loadStagingSummary(),
+    ]);
+  }
+
   async function runMockSync() {
     setSyncStatus("loading");
 
@@ -1078,7 +1095,19 @@ export function SearchExperience({ searchEndpoint }: SearchExperienceProps) {
             <p className="eyebrow">Recommendation evaluation</p>
             <h2 id="evaluation-heading">Fixture quality checks</h2>
           </div>
-          <p className="state-message">Admin only</p>
+          <button
+            className="secondary-button"
+            type="button"
+            disabled={
+              evaluationStatus === "loading" ||
+              feedbackSummaryStatus === "loading" ||
+              traceStatus === "loading" ||
+              stagingStatus === "loading"
+            }
+            onClick={refreshQualityLoop}
+          >
+            Refresh quality loop
+          </button>
         </div>
 
         <form
@@ -1452,19 +1481,50 @@ function RecommendationFeedbackView({
   feedback: RecommendationFeedbackSummary;
 }) {
   return (
-    <div className="admin-grid evaluation-metrics">
-      <div className="metric-card">
-        <span>Total feedback</span>
-        <strong>{feedback.total_feedback}</strong>
+    <div className="feedback-dashboard">
+      <div className="admin-grid evaluation-metrics">
+        <div className="metric-card">
+          <span>Total feedback</span>
+          <strong>{feedback.total_feedback}</strong>
+        </div>
+        <div className="metric-card">
+          <span>Helpful rate</span>
+          <strong>{formatRate(feedback.helpful_rate)}</strong>
+        </div>
+        <div className="metric-card">
+          <span>Trace coverage</span>
+          <strong>{formatRate(feedback.trace_feedback_coverage_rate)}</strong>
+        </div>
+        <div className="metric-card">
+          <span>Feedback traces</span>
+          <strong>
+            {feedback.unique_feedback_traces}/
+            {feedback.total_recommendation_traces}
+          </strong>
+        </div>
       </div>
-      <div className="metric-card">
-        <span>Helpful</span>
-        <strong>{feedback.helpful_count}</strong>
+
+      <div className="feedback-split">
+        <div className="metric-card feedback-sentiment helpful">
+          <span>Helpful</span>
+          <strong>{feedback.helpful_count}</strong>
+          <p>Accepted recommendation picks from staging reviewers.</p>
+        </div>
+        <div className="metric-card feedback-sentiment not-helpful">
+          <span>Not helpful</span>
+          <strong>{feedback.not_helpful_count}</strong>
+          <p>Review signals to inspect before real AI scoring.</p>
+        </div>
       </div>
-      <div className="metric-card">
-        <span>Not helpful</span>
-        <strong>{feedback.not_helpful_count}</strong>
-      </div>
+
+      <section className="quality-note">
+        <h3>Feedback loop status</h3>
+        <p>
+          This panel connects recommendation traces, reviewer feedback, and
+          fixture evaluation. It is staging-only and does not train or call a
+          live AI model yet.
+        </p>
+      </section>
 
       <section className="admin-table recent-clicks">
         <h3>Recent feedback</h3>
@@ -1475,6 +1535,7 @@ function RecommendationFeedbackView({
                 <th>Rating</th>
                 <th>Offer</th>
                 <th>Trace</th>
+                <th>Recorded</th>
               </tr>
             </thead>
             <tbody>
@@ -1496,6 +1557,7 @@ function RecommendationFeedbackView({
                     {event.trace_event_id} · {event.provider_source ?? "n/a"} ·{" "}
                     {event.market ?? "n/a"}
                   </td>
+                  <td>{formatDateTime(event.created_at)}</td>
                 </tr>
               ))}
             </tbody>

@@ -660,6 +660,41 @@ h3 {
   grid-column: 1 / -1;
 }
 
+.feedback-dashboard {
+  display: grid;
+  gap: 14px;
+}
+
+.feedback-split {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.feedback-sentiment {
+  border-left: 4px solid var(--accent);
+}
+
+.feedback-sentiment.not-helpful {
+  border-left-color: #dc2626;
+}
+
+.feedback-sentiment p,
+.quality-note p {
+  color: var(--muted);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.quality-note {
+  background: #f8fafc;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+}
+
 .evaluation-viewer {
   display: grid;
   gap: 18px;
@@ -833,6 +868,7 @@ h3 {
   .admin-controls,
   .admin-grid,
   .evaluation-metrics,
+  .feedback-split,
   .sync-list,
   .trace-viewer,
   .trace-card-heading,
