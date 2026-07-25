@@ -120,6 +120,8 @@ Return deterministic mock recommendations from stored normalized offers. This is
 skeleton: it parses a short shopping intent with rules, reuses the stored search index, and returns
 an evaluation trace. It does not call an LLM, scrape the web, or contact affiliate networks.
 The staging web app proxies the same request at `POST /api/recommendations`.
+Gate 4B regression fixtures validate this response shape and trace behavior offline with
+`make recommendation-eval`.
 
 ```json
 {

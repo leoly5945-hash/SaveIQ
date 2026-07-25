@@ -1,0 +1,104 @@
+[
+  {
+    "id": "fresh_coupon_earbuds",
+    "intent": "Find fresh wireless earbuds with a coupon",
+    "limit": 3,
+    "pre_clicks": [],
+    "expected": {
+      "strategy": "rule_based_mock_v0",
+      "search_query": "wireless earbuds",
+      "sort": "price_asc",
+      "has_coupon": true,
+      "has_cashback": null,
+      "freshness": "fresh",
+      "min_count": 1,
+      "first_source_record_id": "mt-wavebuds-offer",
+      "first_merchant": "Maple Tech",
+      "required_trace_steps": [
+        "parse_intent",
+        "retrieve_candidates",
+        "rank_candidates"
+      ],
+      "required_trace_notes": ["no model call", "no web scraping"]
+    }
+  },
+  {
+    "id": "popular_cashback_earbuds",
+    "intent": "popular earbuds with cashback",
+    "limit": 2,
+    "pre_clicks": [
+      {
+        "source_record_id": "no-wavebuds-offer",
+        "target_type": "affiliate"
+      },
+      {
+        "source_record_id": "no-wavebuds-offer",
+        "target_type": "product"
+      }
+    ],
+    "expected": {
+      "strategy": "rule_based_mock_v0",
+      "search_query": "earbuds",
+      "sort": "clicks_desc",
+      "has_coupon": null,
+      "has_cashback": true,
+      "freshness": null,
+      "min_count": 1,
+      "first_source_record_id": "no-wavebuds-offer",
+      "first_merchant": "North Outfitters",
+      "first_min_click_count": 2,
+      "required_trace_steps": [
+        "parse_intent",
+        "retrieve_candidates",
+        "rank_candidates"
+      ],
+      "required_trace_notes": ["no model call", "no web scraping"]
+    }
+  },
+  {
+    "id": "premium_electronics",
+    "intent": "show premium electronics",
+    "limit": 3,
+    "pre_clicks": [],
+    "expected": {
+      "strategy": "rule_based_mock_v0",
+      "search_query": "electronics",
+      "sort": "price_desc",
+      "has_coupon": null,
+      "has_cashback": null,
+      "freshness": null,
+      "min_count": 3,
+      "first_source_record_id": "mt-monitor-offer",
+      "first_merchant": "Maple Tech",
+      "required_trace_steps": [
+        "parse_intent",
+        "retrieve_candidates",
+        "rank_candidates"
+      ],
+      "required_trace_notes": ["no model call", "no web scraping"]
+    }
+  },
+  {
+    "id": "backpack_term_expansion",
+    "intent": "best backpack deals",
+    "limit": 5,
+    "pre_clicks": [],
+    "expected": {
+      "strategy": "rule_based_mock_v0",
+      "search_query": "backpack",
+      "sort": "price_asc",
+      "has_coupon": null,
+      "has_cashback": null,
+      "freshness": null,
+      "min_count": 1,
+      "first_source_record_id": "no-pack-offer",
+      "first_merchant": "North Outfitters",
+      "required_trace_steps": [
+        "parse_intent",
+        "retrieve_candidates",
+        "rank_candidates"
+      ],
+      "required_trace_notes": ["no model call", "no web scraping"]
+    }
+  }
+]

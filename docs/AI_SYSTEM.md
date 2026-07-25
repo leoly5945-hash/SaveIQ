@@ -50,3 +50,29 @@ Known limits:
 - no personalization or user profile is used
 - no semantic/vector retrieval is used
 - traces are returned inline and are not persisted
+
+## Gate 4B Evaluation Fixtures
+
+Gate 4B adds offline fixtures at
+`apps/api/tests/fixtures/recommendation_eval_cases.json` and a runner at
+`scripts/evaluate_recommendations.py`.
+
+The evaluator:
+
+- seeds a temporary in-memory database with the deterministic mock provider
+- runs fixed shopping intents through the recommendation service
+- validates parsed filters, strategy, minimum result count, first source record, first merchant, and
+  trace notes
+- keeps all checks local, deterministic, and mock-only
+
+Run it with:
+
+```bash
+PYTHON=.venv/bin/python make recommendation-eval
+```
+
+Passing output starts with:
+
+```text
+recommendation_eval=ok
+```

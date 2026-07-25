@@ -47,5 +47,7 @@
 - Retrieval through stored normalized offer search
 - Inline evaluation trace for parse, retrieval, and ranking steps
 - Recommendation explanations grounded in existing match and ranking reasons
-- Future: persisted traces and evaluation fixtures
+- Gate 4B offline evaluation fixtures for recommendation regressions
+- Deterministic recommendation evaluator for local and CI checks
+- Future: persisted traces
 - Future: LLM intent parsing after evaluation criteria are defined

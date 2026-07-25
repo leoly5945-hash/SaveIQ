@@ -83,6 +83,15 @@ curl -X POST http://localhost:8000/recommendations \
   -d '{"intent":"Find fresh wireless earbuds with a coupon","limit":3}'
 ```
 
+Gate 4B adds offline evaluation fixtures for the recommendation skeleton:
+
+```bash
+PYTHON=.venv/bin/python make recommendation-eval
+```
+
+The evaluator seeds a temporary in-memory database with the deterministic mock provider and checks
+expected intent parsing, retrieval, ranking, first result, and trace guardrails.
+
 ## Docker Compose
 
 Run the full local stack:

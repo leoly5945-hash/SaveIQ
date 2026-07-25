@@ -50,3 +50,11 @@ The first recommendation surface is a deterministic skeleton that reuses normali
 data and returns an inline evaluation trace. It intentionally avoids LLM calls, real affiliate
 integrations, web scraping, personalization, and persisted trace storage until evaluation criteria
 and production guardrails are defined.
+
+## 2026-07-24: Gate 4B Recommendation Evaluation Is Offline
+
+Status: Accepted
+
+Recommendation evaluation fixtures run against a temporary in-memory database seeded from the mock
+provider. This keeps regression checks deterministic, cheap, and safe while the project has no real
+affiliate connectors, user personalization, or LLM orchestration.

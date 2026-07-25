@@ -1,4 +1,4 @@
-.PHONY: staging-provision-validate staging-provision-validate-template staging-seed-mock staging-smoke
+.PHONY: recommendation-eval staging-provision-validate staging-provision-validate-template staging-seed-mock staging-smoke
 
 PYTHON ?= python3
 
@@ -13,3 +13,6 @@ staging-seed-mock:
 
 staging-smoke:
 	$(PYTHON) scripts/staging_smoke.py
+
+recommendation-eval:
+	$(PYTHON) scripts/evaluate_recommendations.py
