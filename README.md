@@ -102,6 +102,10 @@ the recommendation trace panel to inspect parsed intents, ranked offer IDs, and 
 Gate 4E adds a staging UI evaluation panel. Paste the admin token and run the fixture quality checks
 to see pass/fail counts for the deterministic recommendation suite without using a terminal.
 
+Gate 4F adds deterministic decision explanations to each recommended offer. The API and staging UI
+now show matched intent signals, ranking signals, and guardrails that confirm the recommendation used
+stored mock data only.
+
 ## Docker Compose
 
 Run the full local stack:

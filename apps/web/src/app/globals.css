@@ -96,6 +96,7 @@ a {
 }
 
 .search-panel,
+.recommendation-panel,
 .results-panel,
 .admin-panel {
   background: var(--surface);
@@ -114,6 +115,68 @@ a {
   display: grid;
   gap: 16px;
   padding: 24px;
+}
+
+.recommendation-panel,
+.recommendation-results,
+.recommendation-list,
+.recommendation-card,
+.explanation-block {
+  display: grid;
+  gap: 16px;
+}
+
+.recommendation-panel {
+  padding: 24px;
+}
+
+.recommendation-form {
+  align-items: end;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.recommendation-card {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.recommendation-card .source-link {
+  width: max-content;
+}
+
+.explanation-block {
+  background: #f8fafc;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.explanation-block h4,
+.explanation-block p {
+  margin: 0;
+}
+
+.explanation-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.explanation-grid strong {
+  color: var(--foreground);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+}
+
+.explanation-grid ul {
+  color: var(--muted);
+  display: grid;
+  gap: 6px;
+  margin: 8px 0 0;
+  padding-left: 18px;
 }
 
 .quick-searches {
@@ -744,6 +807,8 @@ h3 {
   }
 
   .filter-grid,
+  .recommendation-form,
+  .explanation-grid,
   .result-card,
   .detail-heading,
   .detail-grid,

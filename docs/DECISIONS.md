@@ -83,3 +83,11 @@ Status: Accepted
 The staging evaluation panel runs the deterministic recommendation fixtures against an isolated
 in-memory database seeded from the mock provider. This gives admins a low-cost pass/fail quality
 signal without mutating staging data, calling external affiliate systems, or invoking an LLM.
+
+## 2026-07-25: Gate 4F Explanations Are Deterministic
+
+Status: Accepted
+
+Recommendation explanations are composed from parsed intent fields, search match reasons, ranking
+reasons, and fixed guardrails. This keeps staging explainability inspectable without creating a new
+LLM dependency, scraping behavior, or live affiliate-network integration.

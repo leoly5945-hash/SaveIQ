@@ -30,12 +30,23 @@ class RecommendationTraceStep(TypedDict):
     notes: list[str]
 
 
+class RecommendationDecisionExplanation(TypedDict):
+    summary: str
+    matched_intent: list[str]
+    ranking_signals: list[str]
+    guardrails: list[str]
+
+
+class RecommendationOfferResult(SearchResultRow):
+    decision_explanation: RecommendationDecisionExplanation
+
+
 class RecommendationResult(TypedDict):
     strategy: str
     intent: RecommendationIntent
     trace_event_id: int
     trace: list[RecommendationTraceStep]
-    results: list[SearchResultRow]
+    results: list[RecommendationOfferResult]
 
 
 _TOKEN_PATTERN = re.compile(r"[a-z0-9]+")
@@ -158,6 +169,44 @@ def _trace_ranking(intent: RecommendationIntent, result_count: int) -> Recommend
     }
 
 
+def _decision_explanation(
+    row: SearchResultRow,
+    intent: RecommendationIntent,
+) -> RecommendationDecisionExplanation:
+    matched_intent = list(row["match_reasons"])
+    if intent.has_coupon is True and row["has_coupon"]:
+        matched_intent.append("coupon requested and available")
+    if intent.has_cashback is True and row["has_cashback"]:
+        matched_intent.append("cashback requested and available")
+    if intent.freshness == row["freshness_status"]:
+        matched_intent.append(f"{intent.freshness} freshness requested")
+
+    ranking_signals = list(row["ranking_reasons"])
+    guardrails = [
+        "uses stored normalized mock offers",
+        "no model call",
+        "no web scraping",
+        "no real affiliate network request",
+    ]
+    current_price = row["sale_price_cents"] or row["price_cents"]
+    summary_parts = [
+        f"{row['merchant']} matched {intent.search_query or 'the broad intent'}",
+        f"ranked by {intent.sort}",
+        f"current price {current_price / 100:.2f} {row['currency']}",
+    ]
+    if row["has_coupon"]:
+        summary_parts.append("coupon available")
+    if row["has_cashback"]:
+        summary_parts.append("cashback available")
+
+    return {
+        "summary": "; ".join(summary_parts),
+        "matched_intent": matched_intent,
+        "ranking_signals": ranking_signals,
+        "guardrails": guardrails,
+    }
+
+
 def recommend_offers(
     db: Session,
     raw_intent: str,
@@ -173,12 +222,19 @@ def recommend_offers(
         sort=intent.sort,
         limit=bounded_limit,
     )
-    results = search_offers(db, filters)
+    search_results = search_offers(db, filters)
+    results: list[RecommendationOfferResult] = [
+        {
+            **row,
+            "decision_explanation": _decision_explanation(row, intent),
+        }
+        for row in search_results
+    ]
     strategy = "rule_based_mock_v0"
     trace = [
         _trace_intent(intent),
-        _trace_retrieval(filters, len(results)),
-        _trace_ranking(intent, len(results)),
+        _trace_retrieval(filters, len(search_results)),
+        _trace_ranking(intent, len(search_results)),
     ]
     trace_event = RecommendationTraceEvent(
         strategy=strategy,

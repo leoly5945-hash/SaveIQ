@@ -35,6 +35,13 @@ class RecommendationTraceStepResponse(BaseModel):
     notes: list[str] = Field(default_factory=list)
 
 
+class RecommendationDecisionExplanationResponse(BaseModel):
+    summary: str
+    matched_intent: list[str] = Field(default_factory=list)
+    ranking_signals: list[str] = Field(default_factory=list)
+    guardrails: list[str] = Field(default_factory=list)
+
+
 class RecommendationOfferResponse(BaseModel):
     offer_id: int
     product_id: int
@@ -56,6 +63,7 @@ class RecommendationOfferResponse(BaseModel):
     click_count: int
     match_reasons: list[str]
     ranking_reasons: list[str]
+    decision_explanation: RecommendationDecisionExplanationResponse
 
 
 class RecommendationResponse(BaseModel):
@@ -79,7 +87,8 @@ def recommend_products(
         trace_event_id=result["trace_event_id"],
         count=len(result["results"]),
         recommendations=[
-            RecommendationOfferResponse(**recommendation) for recommendation in result["results"]
+            RecommendationOfferResponse.model_validate(recommendation)
+            for recommendation in result["results"]
         ],
         evaluation_trace=[RecommendationTraceStepResponse(**step) for step in result["trace"]],
     )

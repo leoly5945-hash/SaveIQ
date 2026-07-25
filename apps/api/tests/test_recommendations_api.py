@@ -51,6 +51,11 @@ def test_recommendations_return_mock_offers_with_evaluation_trace() -> None:
         assert payload["count"] == 1
         assert payload["recommendations"][0]["merchant"] == "Maple Tech"
         assert payload["recommendations"][0]["has_coupon"] is True
+        explanation = payload["recommendations"][0]["decision_explanation"]
+        assert "Maple Tech matched wireless earbuds" in explanation["summary"]
+        assert "coupon requested and available" in explanation["matched_intent"]
+        assert "no model call" in explanation["guardrails"]
+        assert "no web scraping" in explanation["guardrails"]
         assert [step["step"] for step in payload["evaluation_trace"]] == [
             "parse_intent",
             "retrieve_candidates",
@@ -92,6 +97,9 @@ def test_recommendations_parse_cashback_and_popularity_intent() -> None:
         assert payload["recommendations"][0]["offer_id"] == offer_ids[1]
         assert payload["recommendations"][0]["has_cashback"] is True
         assert "2 mock clicks" in payload["recommendations"][0]["ranking_reasons"]
+        explanation = payload["recommendations"][0]["decision_explanation"]
+        assert "cashback requested and available" in explanation["matched_intent"]
+        assert "2 mock clicks" in explanation["ranking_signals"]
     finally:
         app.dependency_overrides.clear()
         session.close()

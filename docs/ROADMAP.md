@@ -53,5 +53,6 @@
 - Admin trace inspection endpoint and staging smoke coverage
 - Gate 4D staging UI trace viewer for parsed intents and trace steps
 - Gate 4E staging evaluation panel for deterministic fixture pass/fail checks
+- Gate 4F deterministic decision explanations for each recommended offer
 - Future: trace retention policy and richer evaluation dashboard
 - Future: LLM intent parsing after evaluation criteria are defined

@@ -45,6 +45,24 @@ type SearchResponse = {
   results: SearchResult[];
 };
 
+type RecommendationDecisionExplanation = {
+  summary: string;
+  matched_intent: string[];
+  ranking_signals: string[];
+  guardrails: string[];
+};
+
+type RecommendationResult = SearchResult & {
+  decision_explanation: RecommendationDecisionExplanation;
+};
+
+type RecommendationResponse = {
+  count: number;
+  recommendations: RecommendationResult[];
+  strategy: string;
+  trace_event_id: number;
+};
+
 type CouponSummary = {
   code: string;
   description: string;
@@ -249,7 +267,15 @@ export function SearchExperience({ searchEndpoint }: SearchExperienceProps) {
     useState<(typeof SORT_OPTIONS)[number]["value"]>("price_asc");
   const [freshness, setFreshness] =
     useState<(typeof FRESHNESS_OPTIONS)[number]["value"]>("");
+  const [recommendationIntent, setRecommendationIntent] = useState(
+    "Find fresh wireless earbuds with a coupon"
+  );
   const [results, setResults] = useState<SearchResult[]>([]);
+  const [recommendations, setRecommendations] = useState<
+    RecommendationResult[]
+  >([]);
+  const [recommendationMeta, setRecommendationMeta] =
+    useState<RecommendationResponse | null>(null);
   const [selectedOffer, setSelectedOffer] = useState<OfferDetail | null>(null);
   const [adminToken, setAdminToken] = useState("");
   const [analytics, setAnalytics] = useState<ClickAnalytics | null>(null);
@@ -280,6 +306,9 @@ export function SearchExperience({ searchEndpoint }: SearchExperienceProps) {
     "idle" | "loading" | "ready" | "error"
   >("idle");
   const [status, setStatus] = useState<
+    "idle" | "loading" | "ready" | "empty" | "error"
+  >("idle");
+  const [recommendationStatus, setRecommendationStatus] = useState<
     "idle" | "loading" | "ready" | "empty" | "error"
   >("idle");
 
@@ -391,6 +420,36 @@ export function SearchExperience({ searchEndpoint }: SearchExperienceProps) {
     } catch {
       setSelectedOffer(null);
       setDetailStatus("error");
+    }
+  }
+
+  async function runRecommendations(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setRecommendationStatus("loading");
+
+    try {
+      const response = await fetch("/api/recommendations", {
+        body: JSON.stringify({
+          intent: recommendationIntent,
+          limit: 5,
+        }),
+        headers: {
+          Accept: "application/json",
+          "content-type": "application/json",
+        },
+        method: "POST",
+      });
+      if (!response.ok) {
+        throw new Error(`Recommendations failed with ${response.status}`);
+      }
+      const payload = (await response.json()) as RecommendationResponse;
+      setRecommendations(payload.recommendations);
+      setRecommendationMeta(payload);
+      setRecommendationStatus(payload.count > 0 ? "ready" : "empty");
+    } catch {
+      setRecommendations([]);
+      setRecommendationMeta(null);
+      setRecommendationStatus("error");
     }
   }
 
@@ -554,6 +613,56 @@ export function SearchExperience({ searchEndpoint }: SearchExperienceProps) {
           coupon, cashback, and freshness.
         </p>
       </div>
+
+      <section
+        className="recommendation-panel"
+        aria-labelledby="recommendation-heading"
+      >
+        <div>
+          <p className="eyebrow">Mock recommendations</p>
+          <h2 id="recommendation-heading">Explainable offer picks</h2>
+          <p className="state-message">
+            Rule-based staging recommendations with visible decision signals.
+          </p>
+        </div>
+
+        <form className="recommendation-form" onSubmit={runRecommendations}>
+          <label className="field">
+            <span>Shopping intent</span>
+            <input
+              value={recommendationIntent}
+              onChange={(event) => setRecommendationIntent(event.target.value)}
+              placeholder="Find fresh wireless earbuds with a coupon"
+            />
+          </label>
+          <button type="submit" disabled={recommendationStatus === "loading"}>
+            {recommendationStatus === "loading" ? "Thinking" : "Recommend"}
+          </button>
+        </form>
+
+        {recommendationStatus === "idle" ? (
+          <p className="state-message">
+            Run a recommendation to see why each offer was selected.
+          </p>
+        ) : null}
+        {recommendationStatus === "empty" ? (
+          <p className="state-message">
+            No recommendations found for that intent.
+          </p>
+        ) : null}
+        {recommendationStatus === "error" ? (
+          <p className="state-message">
+            Recommendations are unavailable. Check API health and try again.
+          </p>
+        ) : null}
+        {recommendationStatus === "ready" ? (
+          <RecommendationList
+            meta={recommendationMeta}
+            recommendations={recommendations}
+            onTrack={trackClick}
+          />
+        ) : null}
+      </section>
 
       <form className="search-panel" onSubmit={runSearch}>
         <div className="quick-searches" aria-label="Quick searches">
@@ -1026,6 +1135,130 @@ function StagingSummaryView({ summary }: { summary: StagingSummary }) {
           <p className="state-message">No recent sync errors.</p>
         )}
       </section>
+    </div>
+  );
+}
+
+function RecommendationList({
+  meta,
+  recommendations,
+  onTrack,
+}: {
+  meta: RecommendationResponse | null;
+  recommendations: RecommendationResult[];
+  onTrack: (offerId: number, targetType: ClickTargetType) => void;
+}) {
+  return (
+    <div className="recommendation-results">
+      <div className="results-toolbar">
+        <h3>{recommendations.length} explained recommendations</h3>
+        {meta ? (
+          <p>
+            {meta.strategy} · trace {meta.trace_event_id}
+          </p>
+        ) : null}
+      </div>
+
+      <div className="recommendation-list">
+        {recommendations.map((recommendation) => {
+          const currentPrice =
+            recommendation.sale_price_cents ?? recommendation.price_cents;
+          return (
+            <article
+              className="recommendation-card"
+              key={recommendation.offer_id}
+            >
+              <div className="trace-card-heading">
+                <div>
+                  <p className="merchant-name">{recommendation.merchant}</p>
+                  <h3>{recommendation.title}</h3>
+                  <p className="result-meta">
+                    {[
+                      recommendation.brand,
+                      recommendation.category,
+                      recommendation.market,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </p>
+                </div>
+                <div className="price-block">
+                  <p className="price">
+                    {formatMoney(currentPrice, recommendation.currency)}
+                  </p>
+                  {recommendation.sale_price_cents ? (
+                    <p className="compare-price">
+                      was{" "}
+                      {formatMoney(
+                        recommendation.price_cents,
+                        recommendation.currency
+                      )}
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+
+              <div className="explanation-block">
+                <h4>Why this recommendation</h4>
+                <p>{recommendation.decision_explanation.summary}</p>
+                <div className="explanation-grid">
+                  <ExplanationList
+                    label="Matched intent"
+                    values={recommendation.decision_explanation.matched_intent}
+                  />
+                  <ExplanationList
+                    label="Ranking signals"
+                    values={recommendation.decision_explanation.ranking_signals}
+                  />
+                  <ExplanationList
+                    label="Guardrails"
+                    values={recommendation.decision_explanation.guardrails}
+                  />
+                </div>
+              </div>
+
+              <div className="badge-row">
+                <span>{recommendation.freshness_status}</span>
+                {recommendation.has_coupon ? <span>Coupon</span> : null}
+                {recommendation.has_cashback ? <span>Cashback</span> : null}
+                <span>{recommendation.provider_source}</span>
+              </div>
+              {recommendation.product_url ? (
+                <a
+                  className="source-link"
+                  href={recommendation.product_url}
+                  onClick={() =>
+                    void onTrack(recommendation.offer_id, "product")
+                  }
+                  rel="noreferrer"
+                  target="_blank"
+                >
+                  Open mock product URL
+                </a>
+              ) : null}
+            </article>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function ExplanationList({
+  label,
+  values,
+}: {
+  label: string;
+  values: string[];
+}) {
+  return (
+    <div>
+      <strong>{label}</strong>
+      <ul>
+        {values.map((value) => (
+          <li key={value}>{value}</li>
+        ))}
+      </ul>
     </div>
   );
 }

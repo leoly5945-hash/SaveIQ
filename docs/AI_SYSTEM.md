@@ -102,3 +102,17 @@ Gate 4E exposes the deterministic recommendation fixture suite through an admin-
 The API runs fixtures against an isolated in-memory database seeded from the mock provider, so the
 evaluation does not mutate staging data or call external systems. The panel shows status, pass/fail
 counts, fixture intents, first expected source records, merchants, and required trace steps.
+
+## Gate 4F Decision Explanations
+
+Gate 4F adds a deterministic `decision_explanation` object to each recommended offer. The explanation
+contains:
+
+- `summary`: short reader-facing reason for the selected offer
+- `matched_intent`: query, coupon, cashback, and freshness signals that matched the request
+- `ranking_signals`: reused transparent search ranking reasons such as price and mock clicks
+- `guardrails`: staging constraints, including no model call, no web scraping, and no real affiliate
+  network request
+
+These explanations are generated from stored normalized mock offer fields and the parsed intent. They
+are not AI-generated text and should remain predictable until a future LLM layer has evaluation gates.

@@ -123,6 +123,8 @@ The staging web app proxies the same request at `POST /api/recommendations`.
 Gate 4B regression fixtures validate this response shape and trace behavior offline with
 `make recommendation-eval`.
 Gate 4C persists each recommendation trace for admin audit and returns `trace_event_id`.
+Gate 4F adds `decision_explanation` to each recommended offer so staging can show why a result was
+selected without calling an LLM.
 
 ```json
 {
@@ -156,7 +158,25 @@ Abridged example response:
       "ranking_reasons": [
         "lower current price: 99.99 CAD",
         "sale price available"
-      ]
+      ],
+      "decision_explanation": {
+        "summary": "Maple Tech matched wireless earbuds; ranked by price_asc; current price 99.99 CAD; coupon available",
+        "matched_intent": [
+          "matched query text",
+          "coupon requested and available",
+          "fresh freshness requested"
+        ],
+        "ranking_signals": [
+          "lower current price: 99.99 CAD",
+          "sale price available"
+        ],
+        "guardrails": [
+          "uses stored normalized mock offers",
+          "no model call",
+          "no web scraping",
+          "no real affiliate network request"
+        ]
+      }
     }
   ],
   "evaluation_trace": [

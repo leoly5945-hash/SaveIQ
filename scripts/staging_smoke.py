@@ -126,6 +126,30 @@ def require_count(payload: dict[str, Any], label: str) -> list[dict[str, Any]]:
     return results
 
 
+def require_recommendation_explanation(
+    recommendation: dict[str, Any],
+    label: str,
+) -> dict[str, Any]:
+    explanation = recommendation.get("decision_explanation")
+    if not isinstance(explanation, dict):
+        fail(f"{label} is missing decision_explanation")
+    summary = explanation.get("summary")
+    matched_intent = explanation.get("matched_intent")
+    ranking_signals = explanation.get("ranking_signals")
+    guardrails = explanation.get("guardrails")
+    if not isinstance(summary, str) or not summary:
+        fail(f"{label} explanation is missing summary")
+    if not isinstance(matched_intent, list) or not matched_intent:
+        fail(f"{label} explanation is missing matched intent signals")
+    if not isinstance(ranking_signals, list) or not ranking_signals:
+        fail(f"{label} explanation is missing ranking signals")
+    if not isinstance(guardrails, list):
+        fail(f"{label} explanation is missing guardrails")
+    if "no model call" not in guardrails or "no web scraping" not in guardrails:
+        fail(f"{label} explanation is missing staging guardrails")
+    return explanation
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--api-url", default=DEFAULT_API_URL)
@@ -211,10 +235,24 @@ def main() -> None:
     trace = api_recommendations.get("evaluation_trace")
     if not isinstance(trace, list) or len(trace) < 3:
         fail("API recommendations did not return an evaluation trace")
+    api_recommendation_items = api_recommendations.get("recommendations")
+    if not isinstance(api_recommendation_items, list) or not isinstance(
+        api_recommendation_items[0], dict
+    ):
+        fail("API recommendations returned malformed recommendations")
+    api_explanation = require_recommendation_explanation(
+        api_recommendation_items[0], "API recommendation"
+    )
     checks.append(
         Check(
             "api_recommendations",
             f"count={api_recommendation_count} trace={trace_event_id}",
+        )
+    )
+    checks.append(
+        Check(
+            "recommendation_explanation",
+            f"signals={len(api_explanation['matched_intent'])}",
         )
     )
 
@@ -228,10 +266,24 @@ def main() -> None:
     web_trace_event_id = web_recommendations.get("trace_event_id")
     if not isinstance(web_trace_event_id, int):
         fail("web recommendation proxy did not return a trace_event_id")
+    web_recommendation_items = web_recommendations.get("recommendations")
+    if not isinstance(web_recommendation_items, list) or not isinstance(
+        web_recommendation_items[0], dict
+    ):
+        fail("web recommendation proxy returned malformed recommendations")
+    web_explanation = require_recommendation_explanation(
+        web_recommendation_items[0], "web recommendation proxy"
+    )
     checks.append(
         Check(
             "web_recommendation_proxy",
             f"count={web_recommendation_count} trace={web_trace_event_id}",
+        )
+    )
+    checks.append(
+        Check(
+            "web_recommendation_explanation_proxy",
+            f"signals={len(web_explanation['matched_intent'])}",
         )
     )
 
