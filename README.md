@@ -154,6 +154,8 @@ ADMIN_API_TOKEN=<render-admin-token> PYTHON=.venv/bin/python make staging-smoke
 The token must come from Render's `ADMIN_API_TOKEN` environment variable. Do not commit it or paste
 it into docs.
 
+Gate 3 staging closeout evidence is recorded in `docs/GATE_3_CLOSEOUT.md`.
+
 For template-only validation before placeholders are replaced:
 
 ```bash

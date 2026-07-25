@@ -31,6 +31,7 @@
 - Admin-only staging data summary and mock seed controls
 - End-to-end staging smoke test for health, seed, search, clicks, analytics, and web proxies
 - Keep search grounded in stored normalized data only
+- Gate 3 staging closeout completed with live smoke validation
 
 ## Phase 3: Approved Affiliate Integrations
 
