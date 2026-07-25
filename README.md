@@ -96,6 +96,9 @@ Gate 4C persists each recommendation trace for staging audit. The API returns `t
 admins can inspect recent traces through `GET /admin/affiliate/recommendation-traces` or the web
 proxy `POST /api/admin/recommendation-traces`.
 
+Gate 4D adds a staging UI trace viewer. Paste the admin token into the admin controls and refresh
+the recommendation trace panel to inspect parsed intents, ranked offer IDs, and trace steps.
+
 ## Docker Compose
 
 Run the full local stack:

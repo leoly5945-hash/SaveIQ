@@ -51,5 +51,6 @@
 - Deterministic recommendation evaluator for local and CI checks
 - Gate 4C persisted recommendation traces for staging audit
 - Admin trace inspection endpoint and staging smoke coverage
+- Gate 4D staging UI trace viewer for parsed intents and trace steps
 - Future: trace retention policy and evaluation dashboard
 - Future: LLM intent parsing after evaluation criteria are defined

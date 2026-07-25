@@ -220,6 +220,9 @@ payloads.
 - recommended offer IDs
 - deterministic evaluation trace steps
 
+The staging web app exposes this through the admin-only trace viewer and the proxy endpoint
+`POST /api/admin/recommendation-traces`.
+
 `GET /admin/affiliate/staging-summary` returns staging operations state:
 
 - normalized product, listing, offer, coupon, cashback, click, recommendation trace, sync job, and

@@ -67,3 +67,11 @@ Each recommendation request writes a `recommendation_trace_events` row containin
 strategy, raw intent, parsed intent, result count, recommended offer IDs, and trace steps. The trace
 store is admin-only staging audit scaffolding and intentionally excludes user identity, IP address,
 tokens, real affiliate payloads, and model prompts or responses.
+
+## 2026-07-25: Gate 4D Trace Viewer Is Staging Admin Only
+
+Status: Accepted
+
+The first trace viewer lives inside the staging UI admin area and reads from the existing
+admin-protected recommendation trace proxy. It is intentionally read-only and does not expose traces
+without the staging admin token.

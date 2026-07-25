@@ -89,3 +89,9 @@ contains:
 
 The trace event intentionally does not store user identity, IP address, admin token, model prompts,
 or model responses.
+
+## Gate 4D Trace Viewer
+
+Gate 4D adds a staging-only admin UI panel for recent recommendation traces. It displays total
+traces, raw intent, parsed intent fields, recommended offer IDs, result count, and each deterministic
+trace step. The panel reads through the existing web proxy and requires the staging admin token.

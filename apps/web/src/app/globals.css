@@ -580,6 +580,101 @@ h3 {
   grid-column: 1 / -1;
 }
 
+.trace-viewer,
+.trace-list,
+.trace-card,
+.trace-steps {
+  display: grid;
+  gap: 14px;
+}
+
+.trace-viewer {
+  grid-template-columns: minmax(180px, 240px) minmax(0, 1fr);
+}
+
+.trace-list {
+  min-width: 0;
+}
+
+.trace-card {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.trace-card-heading {
+  align-items: start;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.trace-intent {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0;
+}
+
+.trace-intent div {
+  background: #f8fafc;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: grid;
+  gap: 3px;
+  padding: 10px;
+}
+
+.trace-intent dt {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.trace-intent dd {
+  font-weight: 800;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.trace-steps {
+  counter-reset: trace-step;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.trace-steps li {
+  border-top: 1px solid var(--border);
+  counter-increment: trace-step;
+  display: grid;
+  gap: 6px;
+  padding-top: 12px;
+}
+
+.trace-steps li div {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.trace-steps li strong::before {
+  color: var(--accent);
+  content: counter(trace-step) ". ";
+}
+
+.trace-steps li span,
+.trace-steps li p {
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.trace-steps li p {
+  margin: 0;
+}
+
 @media (max-width: 760px) {
   .app-shell {
     padding: 24px 16px 40px;
@@ -603,7 +698,10 @@ h3 {
   .admin-heading,
   .admin-controls,
   .admin-grid,
-  .sync-list {
+  .sync-list,
+  .trace-viewer,
+  .trace-card-heading,
+  .trace-intent {
     grid-template-columns: 1fr;
   }
 
