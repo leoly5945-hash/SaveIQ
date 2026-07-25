@@ -19,6 +19,7 @@ from app.models.affiliate import (
     PriceHistory,
     ProductIdentifier,
     RawProviderRecord,
+    RecommendationTraceEvent,
     RecordStatus,
 )
 
@@ -42,4 +43,5 @@ __all__ = [
     "ProductIdentifier",
     "RawProviderRecord",
     "RecordStatus",
+    "RecommendationTraceEvent",
 ]

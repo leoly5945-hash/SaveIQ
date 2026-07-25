@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from typing import TypedDict
 
 from sqlalchemy.orm import Session
 
+from app.models import RecommendationTraceEvent
 from app.services.search import SearchFilters, SearchResultRow, search_offers
 
 MAX_RECOMMENDATION_LIMIT = 10
@@ -32,6 +33,7 @@ class RecommendationTraceStep(TypedDict):
 class RecommendationResult(TypedDict):
     strategy: str
     intent: RecommendationIntent
+    trace_event_id: int
     trace: list[RecommendationTraceStep]
     results: list[SearchResultRow]
 
@@ -172,13 +174,27 @@ def recommend_offers(
         limit=bounded_limit,
     )
     results = search_offers(db, filters)
+    strategy = "rule_based_mock_v0"
+    trace = [
+        _trace_intent(intent),
+        _trace_retrieval(filters, len(results)),
+        _trace_ranking(intent, len(results)),
+    ]
+    trace_event = RecommendationTraceEvent(
+        strategy=strategy,
+        raw_intent=raw_intent,
+        parsed_intent=asdict(intent),
+        result_count=len(results),
+        recommended_offer_ids=[result["offer_id"] for result in results],
+        trace=trace,
+    )
+    db.add(trace_event)
+    db.commit()
+    db.refresh(trace_event)
     return {
-        "strategy": "rule_based_mock_v0",
+        "strategy": strategy,
         "intent": intent,
-        "trace": [
-            _trace_intent(intent),
-            _trace_retrieval(filters, len(results)),
-            _trace_ranking(intent, len(results)),
-        ],
+        "trace_event_id": trace_event.id,
+        "trace": trace,
         "results": results,
     }

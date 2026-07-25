@@ -60,6 +60,7 @@ def test_run_mock_sync_and_view_admin_resources() -> None:
         summary = summary_response.json()
         assert summary["counts"]["products"] == 5
         assert summary["counts"]["offers"] == 6
+        assert summary["counts"]["recommendation_trace_events"] == 0
         assert summary["counts"]["sync_errors"] == 1
         assert summary["latest_sync_job"]["provider_source"] == "mock_ca"
         assert summary["latest_sync_job"]["received_count"] == 12

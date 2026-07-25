@@ -205,10 +205,18 @@ def main() -> None:
         fail("API recommendations returned malformed count")
     if api_recommendations.get("strategy") != "rule_based_mock_v0":
         fail("API recommendations returned unexpected strategy")
+    trace_event_id = api_recommendations.get("trace_event_id")
+    if not isinstance(trace_event_id, int):
+        fail("API recommendations did not return a trace_event_id")
     trace = api_recommendations.get("evaluation_trace")
     if not isinstance(trace, list) or len(trace) < 3:
         fail("API recommendations did not return an evaluation trace")
-    checks.append(Check("api_recommendations", f"count={api_recommendation_count}"))
+    checks.append(
+        Check(
+            "api_recommendations",
+            f"count={api_recommendation_count} trace={trace_event_id}",
+        )
+    )
 
     web_recommendations = post_json(
         f"{web_url}/api/recommendations",
@@ -217,8 +225,14 @@ def main() -> None:
     web_recommendation_count = web_recommendations.get("count")
     if not isinstance(web_recommendation_count, int) or web_recommendation_count < 1:
         fail("web recommendation proxy returned malformed count")
+    web_trace_event_id = web_recommendations.get("trace_event_id")
+    if not isinstance(web_trace_event_id, int):
+        fail("web recommendation proxy did not return a trace_event_id")
     checks.append(
-        Check("web_recommendation_proxy", f"count={web_recommendation_count}")
+        Check(
+            "web_recommendation_proxy",
+            f"count={web_recommendation_count} trace={web_trace_event_id}",
+        )
     )
 
     click = post_json(
@@ -255,6 +269,29 @@ def main() -> None:
         fail("web staging summary proxy returned unexpected counts")
     checks.append(
         Check("web_admin_summary_proxy", f"offers={web_counts.get('offers')}")
+    )
+
+    traces = get_json(f"{api_url}/admin/affiliate/recommendation-traces", token)
+    if (
+        not isinstance(traces.get("total_traces"), int)
+        or traces["total_traces"] < 2
+        or not isinstance(traces.get("recent_traces"), list)
+    ):
+        fail("recommendation trace admin endpoint returned malformed data")
+    recent_trace_ids = [
+        trace.get("id") for trace in traces["recent_traces"] if isinstance(trace, dict)
+    ]
+    if trace_event_id not in recent_trace_ids:
+        fail("recommendation trace admin endpoint did not include the API trace")
+    checks.append(Check("recommendation_traces", f"total={traces['total_traces']}"))
+
+    web_traces = post_json(
+        f"{web_url}/api/admin/recommendation-traces", {"adminToken": token}
+    )
+    if not isinstance(web_traces.get("total_traces"), int):
+        fail("web recommendation trace proxy returned malformed data")
+    checks.append(
+        Check("web_recommendation_trace_proxy", f"total={web_traces['total_traces']}")
     )
 
     web_analytics = post_json(

@@ -7,6 +7,7 @@ DealHunter separates product identity from merchant commerce data.
 - `offers` represent a purchasable commercial offer for a listing.
 - `price_history` is append-only by observation and never overwrites historical prices.
 - `affiliate_click_events` records lightweight mock click events for staging observability.
+- `recommendation_trace_events` records deterministic recommendation traces for evaluation.
 
 Provider-specific raw payloads are stored only in `raw_provider_records`. Core product, merchant,
 offer, coupon, cashback, and attribution fields are structured columns.
@@ -33,6 +34,7 @@ erDiagram
   offers ||--o{ affiliate_click_events : clicked
   merchant_listings ||--o{ affiliate_click_events : clicked
   merchants ||--o{ affiliate_click_events : attributed_to
+  recommendation_trace_events }o--o{ offers : references_ids
 ```
 
 ## Product Resolution
@@ -64,6 +66,12 @@ Each event keeps the offer/listing/merchant relationship, provider attribution, 
 URL, market, optional referrer, optional user agent, and creation timestamp. It does not store user
 accounts, IP addresses, payment identifiers, or real affiliate conversion data.
 
+## Recommendation Trace Events
+
+`recommendation_trace_events` stores one row per recommendation request. It keeps the rule-based
+strategy, raw intent, parsed intent JSON, result count, recommended offer IDs, trace steps, and
+creation timestamp. It does not store users, IP addresses, tokens, or external model payloads.
+
 ## Current Tables
 
 - `affiliate_providers`
@@ -79,6 +87,7 @@ accounts, IP addresses, payment identifiers, or real affiliate conversion data.
 - `coupons`
 - `cashback_offers`
 - `affiliate_click_events`
+- `recommendation_trace_events`
 - `affiliate_sync_jobs`
 - `affiliate_sync_errors`
 - `raw_provider_records`

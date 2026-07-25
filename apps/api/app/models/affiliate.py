@@ -368,6 +368,28 @@ class AffiliateClickEvent(Base):
     __table_args__ = (Index("ix_affiliate_click_events_offer_created", "offer_id", "created_at"),)
 
 
+class RecommendationTraceEvent(Base):
+    __tablename__ = "recommendation_trace_events"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    strategy: Mapped[str] = mapped_column(String(80), nullable=False)
+    raw_intent: Mapped[str] = mapped_column(String(240), nullable=False)
+    parsed_intent: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    result_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    recommended_offer_ids: Mapped[list[int]] = mapped_column(JSON, nullable=False)
+    trace: Mapped[list[dict[str, Any]]] = mapped_column(JSON, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )
+
+    __table_args__ = (
+        Index("ix_recommendation_trace_events_created", "created_at"),
+        Index("ix_recommendation_trace_events_strategy", "strategy"),
+    )
+
+
 class AffiliateSyncJob(Base, TimestampMixin):
     __tablename__ = "affiliate_sync_jobs"
 

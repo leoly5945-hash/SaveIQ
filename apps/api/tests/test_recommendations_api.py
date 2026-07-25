@@ -9,6 +9,7 @@ import app.models  # noqa: F401
 from app.db.base import Base
 from app.db.session import get_db
 from app.main import app
+from app.models import RecommendationTraceEvent
 
 
 def make_client() -> tuple[TestClient, Session]:
@@ -42,6 +43,7 @@ def test_recommendations_return_mock_offers_with_evaluation_trace() -> None:
         assert response.status_code == 200
         payload = response.json()
         assert payload["strategy"] == "rule_based_mock_v0"
+        assert isinstance(payload["trace_event_id"], int)
         assert payload["intent"]["raw_intent"] == "Find fresh wireless earbuds with a coupon"
         assert payload["intent"]["search_query"] == "wireless earbuds"
         assert payload["intent"]["has_coupon"] is True
@@ -56,6 +58,11 @@ def test_recommendations_return_mock_offers_with_evaluation_trace() -> None:
         ]
         assert "no model call" in payload["evaluation_trace"][0]["notes"]
         assert "no web scraping" in payload["evaluation_trace"][1]["notes"]
+        trace_event = session.get(RecommendationTraceEvent, payload["trace_event_id"])
+        assert trace_event is not None
+        assert trace_event.raw_intent == "Find fresh wireless earbuds with a coupon"
+        assert trace_event.result_count == 1
+        assert trace_event.recommended_offer_ids == [payload["recommendations"][0]["offer_id"]]
     finally:
         app.dependency_overrides.clear()
         session.close()
@@ -96,6 +103,36 @@ def test_recommendations_validate_short_intent() -> None:
         response = client.post("/recommendations", json={"intent": "tv"})
 
         assert response.status_code == 422
+    finally:
+        app.dependency_overrides.clear()
+        session.close()
+
+
+def test_admin_recommendation_traces_list_recent_events() -> None:
+    client, session = make_client()
+    headers = {"X-Admin-Token": "dev-admin-token"}
+    try:
+        client.post("/admin/affiliate/sync/mock", headers=headers)
+        recommendation_response = client.post(
+            "/recommendations",
+            json={"intent": "popular earbuds with cashback", "limit": 2},
+        )
+
+        response = client.get("/admin/affiliate/recommendation-traces", headers=headers)
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["total_traces"] == 1
+        assert payload["recent_traces"][0]["id"] == recommendation_response.json()["trace_event_id"]
+        assert payload["recent_traces"][0]["strategy"] == "rule_based_mock_v0"
+        assert payload["recent_traces"][0]["raw_intent"] == "popular earbuds with cashback"
+        assert payload["recent_traces"][0]["parsed_intent"]["search_query"] == "earbuds"
+        assert payload["recent_traces"][0]["recommended_offer_ids"]
+        assert [step["step"] for step in payload["recent_traces"][0]["evaluation_trace"]] == [
+            "parse_intent",
+            "retrieve_candidates",
+            "rank_candidates",
+        ]
     finally:
         app.dependency_overrides.clear()
         session.close()

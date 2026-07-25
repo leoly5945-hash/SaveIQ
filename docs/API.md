@@ -122,6 +122,7 @@ an evaluation trace. It does not call an LLM, scrape the web, or contact affilia
 The staging web app proxies the same request at `POST /api/recommendations`.
 Gate 4B regression fixtures validate this response shape and trace behavior offline with
 `make recommendation-eval`.
+Gate 4C persists each recommendation trace for admin audit and returns `trace_event_id`.
 
 ```json
 {
@@ -135,6 +136,7 @@ Abridged example response:
 ```json
 {
   "strategy": "rule_based_mock_v0",
+  "trace_event_id": 1,
   "count": 1,
   "intent": {
     "raw_intent": "Find fresh wireless earbuds with a coupon",
@@ -196,6 +198,7 @@ Abridged example response:
 - `GET /admin/affiliate/cashback`
 - `GET /admin/affiliate/clicks`
 - `GET /admin/affiliate/click-analytics`
+- `GET /admin/affiliate/recommendation-traces`
 - `GET /admin/affiliate/staging-summary`
 
 Admin responses expose normalized operational data and do not expose provider secrets or full raw
@@ -209,9 +212,18 @@ payloads.
 - top merchants
 - recent click events
 
+`GET /admin/affiliate/recommendation-traces` returns staging-only recommendation audit events:
+
+- total trace count
+- recent trace events
+- raw and parsed intent
+- recommended offer IDs
+- deterministic evaluation trace steps
+
 `GET /admin/affiliate/staging-summary` returns staging operations state:
 
-- normalized product, listing, offer, coupon, cashback, click, sync job, and sync error counts
+- normalized product, listing, offer, coupon, cashback, click, recommendation trace, sync job, and
+  sync error counts
 - latest mock sync job status and ingest counters
 - recent sync errors for quick debugging
 

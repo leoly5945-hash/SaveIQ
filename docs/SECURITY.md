@@ -10,6 +10,8 @@ DealHunter handles commerce data, affiliate links, and future user preferences. 
 - Affiliate provider code is isolated behind interfaces.
 - Mock click tracking stores no user accounts, IP addresses, payment identifiers, or real affiliate
   conversion data.
+- Recommendation trace events store no user accounts, IP addresses, tokens, model prompts, or model
+  responses.
 
 ## Future Requirements
 

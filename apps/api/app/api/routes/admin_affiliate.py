@@ -21,6 +21,7 @@ from app.models import (
     MerchantListing,
     Offer,
     PriceHistory,
+    RecommendationTraceEvent,
 )
 from app.services.affiliate.ingestion import AffiliateIngestionService
 from app.services.affiliate.registry import registry
@@ -59,6 +60,7 @@ class StagingCountsResponse(BaseModel):
     coupons: int
     cashback_offers: int
     click_events: int
+    recommendation_trace_events: int
     sync_jobs: int
     sync_errors: int
 
@@ -165,6 +167,9 @@ def get_staging_summary(db: DbSession) -> StagingSummaryResponse:
             coupons=db.scalar(select(func.count(Coupon.id))) or 0,
             cashback_offers=db.scalar(select(func.count(CashbackOffer.id))) or 0,
             click_events=db.scalar(select(func.count(AffiliateClickEvent.id))) or 0,
+            recommendation_trace_events=(
+                db.scalar(select(func.count(RecommendationTraceEvent.id))) or 0
+            ),
             sync_jobs=db.scalar(select(func.count(AffiliateSyncJob.id))) or 0,
             sync_errors=db.scalar(select(func.count(AffiliateSyncError.id))) or 0,
         ),
@@ -410,5 +415,30 @@ def get_click_analytics(db: DbSession) -> dict[str, Any]:
                 "created_at": event.created_at,
             }
             for event in recent_events
+        ],
+    }
+
+
+@router.get("/recommendation-traces")
+def list_recommendation_traces(db: DbSession) -> dict[str, Any]:
+    total_traces = db.scalar(select(func.count(RecommendationTraceEvent.id))) or 0
+    events = db.scalars(
+        select(RecommendationTraceEvent).order_by(RecommendationTraceEvent.id.desc()).limit(50)
+    ).all()
+
+    return {
+        "total_traces": total_traces,
+        "recent_traces": [
+            {
+                "id": event.id,
+                "strategy": event.strategy,
+                "raw_intent": event.raw_intent,
+                "parsed_intent": event.parsed_intent,
+                "result_count": event.result_count,
+                "recommended_offer_ids": event.recommended_offer_ids,
+                "evaluation_trace": event.trace,
+                "created_at": event.created_at,
+            }
+            for event in events
         ],
     }

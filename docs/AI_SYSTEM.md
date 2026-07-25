@@ -24,14 +24,14 @@ parses shopping intent with simple rules, reuses stored normalized search data, 
 - Avoid scraping as a data acquisition strategy.
 - Log recommendation inputs and outputs for evaluation.
 - Keep Gate 4A recommendation output labeled as `rule_based_mock_v0`.
-- Treat the Gate 4A trace as evaluation scaffolding, not production observability.
+- Treat persisted Gate 4C traces as staging audit scaffolding, not production observability.
 
 ## Future Modules
 
 - Intent classification
 - Retrieval orchestration
 - Ranking policies
-- Recommendation trace storage
+- Recommendation trace retention policy
 - Evaluation harness
 
 ## Gate 4A Skeleton
@@ -49,7 +49,7 @@ Known limits:
 - numeric constraints such as "under $120" are not enforced yet
 - no personalization or user profile is used
 - no semantic/vector retrieval is used
-- traces are returned inline and are not persisted
+- traces are persisted for staging audit, but no user identity is stored
 
 ## Gate 4B Evaluation Fixtures
 
@@ -76,3 +76,16 @@ Passing output starts with:
 ```text
 recommendation_eval=ok
 ```
+
+## Gate 4C Persisted Traces
+
+Gate 4C stores each recommendation request in `recommendation_trace_events`. The stored event
+contains:
+
+- deterministic strategy name
+- raw intent and parsed intent fields
+- result count and recommended offer IDs
+- trace steps already returned by `POST /recommendations`
+
+The trace event intentionally does not store user identity, IP address, admin token, model prompts,
+or model responses.

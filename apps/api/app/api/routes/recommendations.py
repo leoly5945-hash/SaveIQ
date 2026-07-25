@@ -61,6 +61,7 @@ class RecommendationOfferResponse(BaseModel):
 class RecommendationResponse(BaseModel):
     intent: RecommendationIntentResponse
     strategy: str
+    trace_event_id: int
     count: int
     recommendations: list[RecommendationOfferResponse] = Field(default_factory=list)
     evaluation_trace: list[RecommendationTraceStepResponse] = Field(default_factory=list)
@@ -75,6 +76,7 @@ def recommend_products(
     return RecommendationResponse(
         intent=RecommendationIntentResponse(**result["intent"].__dict__),
         strategy=result["strategy"],
+        trace_event_id=result["trace_event_id"],
         count=len(result["results"]),
         recommendations=[
             RecommendationOfferResponse(**recommendation) for recommendation in result["results"]

@@ -58,3 +58,12 @@ Status: Accepted
 Recommendation evaluation fixtures run against a temporary in-memory database seeded from the mock
 provider. This keeps regression checks deterministic, cheap, and safe while the project has no real
 affiliate connectors, user personalization, or LLM orchestration.
+
+## 2026-07-25: Gate 4C Persists Recommendation Traces Without User Identity
+
+Status: Accepted
+
+Each recommendation request writes a `recommendation_trace_events` row containing the deterministic
+strategy, raw intent, parsed intent, result count, recommended offer IDs, and trace steps. The trace
+store is admin-only staging audit scaffolding and intentionally excludes user identity, IP address,
+tokens, real affiliate payloads, and model prompts or responses.

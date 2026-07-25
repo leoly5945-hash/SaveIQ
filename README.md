@@ -92,6 +92,10 @@ PYTHON=.venv/bin/python make recommendation-eval
 The evaluator seeds a temporary in-memory database with the deterministic mock provider and checks
 expected intent parsing, retrieval, ranking, first result, and trace guardrails.
 
+Gate 4C persists each recommendation trace for staging audit. The API returns `trace_event_id`, and
+admins can inspect recent traces through `GET /admin/affiliate/recommendation-traces` or the web
+proxy `POST /api/admin/recommendation-traces`.
+
 ## Docker Compose
 
 Run the full local stack:
@@ -165,7 +169,8 @@ ADMIN_API_TOKEN=<render-admin-token> PYTHON=.venv/bin/python make staging-seed-m
 ```
 
 Run the full staging smoke test after every deploy. It checks API/web health, mock sync, staging
-summary, public search, mock recommendations, click tracking, click analytics, and web proxies:
+summary, public search, mock recommendations, persisted recommendation traces, click tracking,
+click analytics, and web proxies:
 
 ```bash
 ADMIN_API_TOKEN=<render-admin-token> PYTHON=.venv/bin/python make staging-smoke

@@ -117,6 +117,7 @@ type StagingSummary = {
     coupons: number;
     cashback_offers: number;
     click_events: number;
+    recommendation_trace_events: number;
     sync_jobs: number;
     sync_errors: number;
   };
@@ -767,6 +768,10 @@ function StagingSummaryView({ summary }: { summary: StagingSummary }) {
       <div className="metric-card">
         <span>Clicks</span>
         <strong>{summary.counts.click_events}</strong>
+      </div>
+      <div className="metric-card">
+        <span>Recommendation traces</span>
+        <strong>{summary.counts.recommendation_trace_events ?? 0}</strong>
       </div>
 
       <section className="admin-table latest-sync">

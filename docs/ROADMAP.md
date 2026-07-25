@@ -49,5 +49,7 @@
 - Recommendation explanations grounded in existing match and ranking reasons
 - Gate 4B offline evaluation fixtures for recommendation regressions
 - Deterministic recommendation evaluator for local and CI checks
-- Future: persisted traces
+- Gate 4C persisted recommendation traces for staging audit
+- Admin trace inspection endpoint and staging smoke coverage
+- Future: trace retention policy and evaluation dashboard
 - Future: LLM intent parsing after evaluation criteria are defined
