@@ -148,3 +148,11 @@ fixture evaluation status, feedback coverage, trace volume, and retention previe
 so reviewers can decide whether the mock recommendation loop is ready for the next gate. It reuses
 existing deterministic endpoints and does not introduce a live AI model, external scoring service, or
 new production data collection.
+
+## Gate 4N Quality Report Export
+
+Gate 4N adds a staging-only JSON export for recommendation quality review. The export captures the
+current fixture evaluation, feedback summary, recent traces, staging counts, and dry-run retention
+preview. It is designed as an audit snapshot before pruning old staging quality events or changing
+ranking rules. It does not include admin tokens, user identity, scraping output, or model-generated
+content.

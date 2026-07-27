@@ -125,3 +125,12 @@ The recommendation quality cockpit is a staging web aggregation of existing eval
 trace, staging summary, and retention-preview data. It does not add a backend aggregate endpoint yet
 because the existing admin proxies already provide the needed signals. This keeps the gate small,
 cost-neutral, and mock-only while making quality review easier for non-terminal staging checks.
+
+## 2026-07-26: Gate 4N Quality Export Is Snapshot-Only
+
+Status: Accepted
+
+The recommendation quality export is a staging-only JSON snapshot that combines existing evaluation,
+feedback, trace, staging summary, and dry-run retention data. It exists to preserve review evidence
+before pruning or ranking-rule changes. The export avoids admin tokens, user identity, live AI
+outputs, scraping data, and real affiliate-network data.

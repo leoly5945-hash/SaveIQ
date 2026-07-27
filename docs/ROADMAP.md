@@ -58,4 +58,5 @@
 - Gate 4H staging feedback dashboard with Helpful rate and trace feedback coverage
 - Gate 4L staging retention controls for recommendation traces and feedback
 - Gate 4M staging quality cockpit for evaluation, coverage, trace volume, and retention readiness
+- Gate 4N staging quality report export for review snapshots before pruning or ranking changes
 - Future: LLM intent parsing after evaluation criteria are defined

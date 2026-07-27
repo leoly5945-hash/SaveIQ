@@ -299,6 +299,19 @@ recommendation traces and feedback. It defaults to dry-run mode and keeps the la
 The staging web app exposes this through the feedback dashboard retention controls and the proxy
 endpoint `POST /api/admin/recommendation-quality-retention`.
 
+`GET /admin/affiliate/recommendation-quality/export` returns a staging-only JSON quality report:
+
+- report version, export timestamp, and environment
+- staging summary counts and latest sync status
+- deterministic recommendation evaluation summary
+- recommendation feedback summary
+- recent recommendation traces
+- dry-run retention preview using the latest 10 traces
+
+The report is intended for audit snapshots before pruning quality events or changing ranking logic.
+It does not include admin tokens. The staging web app exposes this through the quality cockpit export
+button and proxy endpoint `POST /api/admin/recommendation-quality-export`.
+
 `GET /admin/affiliate/staging-summary` returns staging operations state:
 
 - normalized product, listing, offer, coupon, cashback, click, recommendation trace, sync job, and

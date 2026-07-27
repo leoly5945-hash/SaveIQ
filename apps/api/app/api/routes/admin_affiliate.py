@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -159,6 +159,18 @@ class RecommendationQualityRetentionResponse(BaseModel):
     trace_events_deleted: int
     feedback_events_deleted: int
     retained_trace_events: int
+
+
+class RecommendationQualityExportResponse(BaseModel):
+    report_version: str
+    exported_at: datetime
+    environment: str
+    staging_summary: StagingSummaryResponse
+    recommendation_evaluation: RecommendationEvaluationResponse
+    recommendation_feedback: RecommendationFeedbackSummaryResponse
+    recommendation_traces: dict[str, Any]
+    retention_preview: RecommendationQualityRetentionResponse
+    notes: list[str]
 
 
 def row(model: Any, *fields: str) -> dict[str, Any]:
@@ -650,4 +662,34 @@ def prune_recommendation_quality_events(
         trace_events_deleted=trace_events_deleted,
         feedback_events_deleted=feedback_events_deleted,
         retained_trace_events=retained_trace_events,
+    )
+
+
+@router.get(
+    "/recommendation-quality/export",
+    response_model=RecommendationQualityExportResponse,
+)
+def export_recommendation_quality_report(
+    db: DbSession,
+) -> RecommendationQualityExportResponse:
+    return RecommendationQualityExportResponse(
+        report_version="gate-4n-quality-export-v1",
+        exported_at=datetime.now(UTC),
+        environment="staging",
+        staging_summary=get_staging_summary(db),
+        recommendation_evaluation=get_recommendation_evaluation(),
+        recommendation_feedback=get_recommendation_feedback(db),
+        recommendation_traces=list_recommendation_traces(db),
+        retention_preview=prune_recommendation_quality_events(
+            RecommendationQualityRetentionRequest(
+                dry_run=True,
+                keep_latest_traces=10,
+            ),
+            db,
+        ),
+        notes=[
+            "Staging mock data only.",
+            "No live AI model, web scraping, or real affiliate integration is used.",
+            "Retention preview is dry-run only and does not delete data.",
+        ],
     )

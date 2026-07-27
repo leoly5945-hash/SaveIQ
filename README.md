@@ -120,6 +120,10 @@ Gate 4M adds a staging quality cockpit that summarizes fixture status, feedback 
 volume, and retention readiness in one admin view. It uses the existing mock-only quality endpoints
 and does not add Render services or production AI behavior.
 
+Gate 4N adds a staging quality report export. Admins can download a JSON snapshot of evaluation,
+feedback, traces, staging counts, and dry-run retention readiness before pruning or changing ranking
+logic.
+
 ## Docker Compose
 
 Run the full local stack:

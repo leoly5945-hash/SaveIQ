@@ -490,6 +490,45 @@ def main() -> None:
         )
     )
 
+    quality_export = get_json(
+        f"{api_url}/admin/affiliate/recommendation-quality/export",
+        token,
+    )
+    if (
+        quality_export.get("report_version") != "gate-4n-quality-export-v1"
+        or quality_export.get("environment") != "staging"
+        or not isinstance(quality_export.get("recommendation_evaluation"), dict)
+        or not isinstance(quality_export.get("recommendation_feedback"), dict)
+        or not isinstance(quality_export.get("recommendation_traces"), dict)
+        or quality_export.get("retention_preview", {}).get("dry_run") is not True
+    ):
+        fail("recommendation quality export returned malformed data")
+    checks.append(
+        Check(
+            "recommendation_quality_export",
+            (
+                f"traces={quality_export['recommendation_traces']['total_traces']} "
+                f"feedback={quality_export['recommendation_feedback']['total_feedback']}"
+            ),
+        )
+    )
+
+    web_quality_export = post_json(
+        f"{web_url}/api/admin/recommendation-quality-export",
+        {"adminToken": token},
+    )
+    if (
+        web_quality_export.get("report_version") != "gate-4n-quality-export-v1"
+        or web_quality_export.get("retention_preview", {}).get("dry_run") is not True
+    ):
+        fail("web recommendation quality export proxy returned malformed data")
+    checks.append(
+        Check(
+            "web_recommendation_quality_export_proxy",
+            f"version={web_quality_export['report_version']}",
+        )
+    )
+
     web_analytics = post_json(
         f"{web_url}/api/admin/click-analytics", {"adminToken": token}
     )

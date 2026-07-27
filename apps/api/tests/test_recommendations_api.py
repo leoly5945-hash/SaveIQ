@@ -362,3 +362,43 @@ def test_admin_recommendation_retention_prunes_old_events() -> None:
     finally:
         app.dependency_overrides.clear()
         session.close()
+
+
+def test_admin_recommendation_quality_export_returns_snapshot() -> None:
+    client, session = make_client()
+    headers = {"X-Admin-Token": "dev-admin-token"}
+    try:
+        client.post("/admin/affiliate/sync/mock", headers=headers)
+        recommendation_response = client.post(
+            "/recommendations",
+            json={"intent": "Find fresh wireless earbuds with a coupon", "limit": 3},
+        )
+        recommendation_payload = recommendation_response.json()
+        client.post(
+            "/recommendations/feedback",
+            json={
+                "trace_event_id": recommendation_payload["trace_event_id"],
+                "offer_id": recommendation_payload["recommendations"][0]["offer_id"],
+                "rating": "helpful",
+            },
+        )
+
+        response = client.get(
+            "/admin/affiliate/recommendation-quality/export",
+            headers=headers,
+        )
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["report_version"] == "gate-4n-quality-export-v1"
+        assert payload["environment"] == "staging"
+        assert payload["staging_summary"]["counts"]["offers"] == 6
+        assert payload["recommendation_evaluation"]["status"] == "ok"
+        assert payload["recommendation_feedback"]["total_feedback"] == 1
+        assert payload["recommendation_traces"]["total_traces"] == 1
+        assert payload["retention_preview"]["dry_run"] is True
+        assert payload["retention_preview"]["trace_events_deleted"] == 0
+        assert payload["notes"]
+    finally:
+        app.dependency_overrides.clear()
+        session.close()

@@ -553,6 +553,13 @@ h3 {
   grid-template-columns: minmax(0, 1fr) auto;
 }
 
+.admin-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
 .admin-controls {
   grid-template-columns: minmax(0, 1fr) auto auto;
 }
@@ -673,7 +680,7 @@ h3 {
 .quality-scoreboard {
   display: grid;
   gap: 14px;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
 }
 
 .quality-signal {
@@ -1014,6 +1021,7 @@ h3 {
   .detail-grid,
   .admin-heading,
   .admin-controls,
+  .admin-action-row,
   .admin-grid,
   .evaluation-metrics,
   .feedback-split,
@@ -1039,6 +1047,10 @@ h3 {
 
   button {
     width: 100%;
+  }
+
+  .admin-action-row {
+    justify-content: stretch;
   }
 
   h1 {

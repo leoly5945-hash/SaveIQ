@@ -213,6 +213,18 @@ type RecommendationRetentionResult = {
   retained_trace_events: number;
 };
 
+type RecommendationQualityExport = {
+  report_version: string;
+  exported_at: string;
+  environment: string;
+  staging_summary: StagingSummary;
+  recommendation_evaluation: RecommendationEvaluationSummary;
+  recommendation_feedback: RecommendationFeedbackSummary;
+  recommendation_traces: RecommendationTraceSummary;
+  retention_preview: RecommendationRetentionResult;
+  notes: string[];
+};
+
 type StagingSummary = {
   counts: {
     products: number;
@@ -328,6 +340,8 @@ export function SearchExperience({ searchEndpoint }: SearchExperienceProps) {
     useState<RecommendationFeedbackSummary | null>(null);
   const [recommendationRetention, setRecommendationRetention] =
     useState<RecommendationRetentionResult | null>(null);
+  const [recommendationQualityExport, setRecommendationQualityExport] =
+    useState<RecommendationQualityExport | null>(null);
   const [feedbackStatusByOffer, setFeedbackStatusByOffer] = useState<
     Record<number, "idle" | "saving" | "helpful" | "not_helpful" | "error">
   >({});
@@ -353,6 +367,9 @@ export function SearchExperience({ searchEndpoint }: SearchExperienceProps) {
     "idle" | "loading" | "ready" | "error"
   >("idle");
   const [retentionStatus, setRetentionStatus] = useState<
+    "idle" | "loading" | "ready" | "error"
+  >("idle");
+  const [qualityExportStatus, setQualityExportStatus] = useState<
     "idle" | "loading" | "ready" | "error"
   >("idle");
   const [stagingStatus, setStagingStatus] = useState<
@@ -753,6 +770,45 @@ export function SearchExperience({ searchEndpoint }: SearchExperienceProps) {
     }
   }
 
+  async function exportRecommendationQualityReport() {
+    setQualityExportStatus("loading");
+
+    try {
+      const response = await fetch("/api/admin/recommendation-quality-export", {
+        body: JSON.stringify({ adminToken }),
+        headers: {
+          Accept: "application/json",
+          "content-type": "application/json",
+        },
+        method: "POST",
+      });
+      if (!response.ok) {
+        throw new Error(
+          `Recommendation quality export failed with ${response.status}`
+        );
+      }
+      const payload = (await response.json()) as RecommendationQualityExport;
+      setRecommendationQualityExport(payload);
+      setQualityExportStatus("ready");
+
+      const blob = new Blob([JSON.stringify(payload, null, 2)], {
+        type: "application/json",
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      const timestamp = payload.exported_at.replace(/[:.]/g, "-");
+      link.href = url;
+      link.download = `dealhunter-quality-report-${timestamp}.json`;
+      document.body.append(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      setRecommendationQualityExport(null);
+      setQualityExportStatus("error");
+    }
+  }
+
   async function runMockSync() {
     setSyncStatus("loading");
 
@@ -1123,19 +1179,31 @@ export function SearchExperience({ searchEndpoint }: SearchExperienceProps) {
             <p className="eyebrow">Recommendation quality</p>
             <h2 id="quality-heading">Quality cockpit</h2>
           </div>
-          <button
-            className="secondary-button"
-            type="button"
-            disabled={
-              evaluationStatus === "loading" ||
-              feedbackSummaryStatus === "loading" ||
-              traceStatus === "loading" ||
-              stagingStatus === "loading"
-            }
-            onClick={refreshQualityLoop}
-          >
-            Refresh quality loop
-          </button>
+          <div className="admin-action-row">
+            <button
+              className="secondary-button"
+              type="button"
+              disabled={qualityExportStatus === "loading"}
+              onClick={exportRecommendationQualityReport}
+            >
+              {qualityExportStatus === "loading"
+                ? "Exporting"
+                : "Export report"}
+            </button>
+            <button
+              className="secondary-button"
+              type="button"
+              disabled={
+                evaluationStatus === "loading" ||
+                feedbackSummaryStatus === "loading" ||
+                traceStatus === "loading" ||
+                stagingStatus === "loading"
+              }
+              onClick={refreshQualityLoop}
+            >
+              Refresh quality loop
+            </button>
+          </div>
         </div>
 
         {recommendationEvaluation ||
@@ -1145,6 +1213,8 @@ export function SearchExperience({ searchEndpoint }: SearchExperienceProps) {
         recommendationRetention ? (
           <RecommendationQualityCockpit
             evaluation={recommendationEvaluation}
+            exportReport={recommendationQualityExport}
+            exportStatus={qualityExportStatus}
             feedback={recommendationFeedback}
             retention={recommendationRetention}
             stagingSummary={stagingSummary}
@@ -1315,12 +1385,16 @@ export function SearchExperience({ searchEndpoint }: SearchExperienceProps) {
 
 function RecommendationQualityCockpit({
   evaluation,
+  exportReport,
+  exportStatus,
   feedback,
   retention,
   stagingSummary,
   traces,
 }: {
   evaluation: RecommendationEvaluationSummary | null;
+  exportReport: RecommendationQualityExport | null;
+  exportStatus: "idle" | "loading" | "ready" | "error";
   feedback: RecommendationFeedbackSummary | null;
   retention: RecommendationRetentionResult | null;
   stagingSummary: StagingSummary | null;
@@ -1402,6 +1476,28 @@ function RecommendationQualityCockpit({
               : "Run preview before pruning staging quality events."
           }
         />
+        <QualitySignalCard
+          label="Export snapshot"
+          value={
+            exportReport
+              ? formatDateTime(exportReport.exported_at)
+              : exportStatus === "error"
+                ? "Failed"
+                : "Waiting"
+          }
+          status={
+            exportStatus === "ready"
+              ? "pass"
+              : exportStatus === "error"
+                ? "fail"
+                : "neutral"
+          }
+          detail={
+            exportReport
+              ? `${exportReport.report_version}; includes ${exportReport.recommendation_traces.total_traces} traces.`
+              : "Download a JSON audit report before pruning or changing rules."
+          }
+        />
       </div>
 
       <div className="quality-insights">
@@ -1436,6 +1532,14 @@ function RecommendationQualityCockpit({
                     ? "preview only"
                     : "pruned"
                   : "not previewed"}
+              </strong>
+            </li>
+            <li>
+              Last export{" "}
+              <strong>
+                {exportReport
+                  ? formatDateTime(exportReport.exported_at)
+                  : "not exported"}
               </strong>
             </li>
           </ul>
