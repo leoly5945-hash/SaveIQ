@@ -90,6 +90,9 @@ class RecommendationOfferResponse(BaseModel):
 class RecommendationResponse(BaseModel):
     intent: RecommendationIntentResponse
     strategy: str
+    rule_version: str
+    intent_parser_version: str
+    ranker_version: str
     trace_event_id: int
     count: int
     recommendations: list[RecommendationOfferResponse] = Field(default_factory=list)
@@ -105,6 +108,9 @@ def recommend_products(
     return RecommendationResponse(
         intent=RecommendationIntentResponse(**result["intent"].__dict__),
         strategy=result["strategy"],
+        rule_version=result["rule_version"],
+        intent_parser_version=result["intent_parser_version"],
+        ranker_version=result["ranker_version"],
         trace_event_id=result["trace_event_id"],
         count=len(result["results"]),
         recommendations=[

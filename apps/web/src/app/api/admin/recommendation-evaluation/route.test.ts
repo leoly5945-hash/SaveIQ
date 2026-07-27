@@ -25,7 +25,11 @@ describe("POST /api/admin/recommendation-evaluation", () => {
           case_count: 1,
           cases: [],
           failed_count: 0,
+          fixture_set_version: "fixtures-v0",
+          intent_parser_version: "intent-parser-v0",
           passed_count: 1,
+          ranker_version: "ranker-v0",
+          rule_version: "ruleset-2026-07-27-gate-4o",
           status: "ok",
           strategy: "rule_based_mock_v0",
         }),
@@ -47,6 +51,7 @@ describe("POST /api/admin/recommendation-evaluation", () => {
 
     expect(response.status).toBe(200);
     expect(body.status).toBe("ok");
+    expect(body.rule_version).toBe("ruleset-2026-07-27-gate-4o");
     expect(fetchMock).toHaveBeenCalledWith(
       new URL(
         "http://localhost:8000/admin/affiliate/recommendation-evaluation"

@@ -24,6 +24,8 @@ parses shopping intent with simple rules, reuses stored normalized search data, 
 - Avoid scraping as a data acquisition strategy.
 - Log recommendation inputs and outputs for evaluation.
 - Keep Gate 4A recommendation output labeled as `rule_based_mock_v0`.
+- Keep recommendation rules, parser, ranker, and fixture versions explicit before changing ranking
+  behavior or adding live AI.
 - Treat persisted Gate 4C traces as staging audit scaffolding, not production observability.
 
 ## Future Modules
@@ -156,3 +158,18 @@ current fixture evaluation, feedback summary, recent traces, staging counts, and
 preview. It is designed as an audit snapshot before pruning old staging quality events or changing
 ranking rules. It does not include admin tokens, user identity, scraping output, or model-generated
 content.
+
+## Gate 4O Versioned Recommendation Rules
+
+Gate 4O centralizes recommendation version metadata for the deterministic mock recommender:
+
+- strategy: `rule_based_mock_v0`
+- rule version: `ruleset-2026-07-27-gate-4o`
+- intent parser: `intent-parser-v0`
+- ranker: `ranker-v0`
+- fixture set: `fixtures-v0`
+
+The API response, fixture evaluation summary, trace admin endpoint, quality export, staging UI, and
+smoke test all expose or validate these values. The current trace table still stores the strategy
+only; the admin trace response includes current version metadata for staging audits until a future
+migration stores per-trace rule versions.

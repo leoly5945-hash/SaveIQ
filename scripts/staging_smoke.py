@@ -17,6 +17,10 @@ from urllib.request import Request, urlopen
 DEFAULT_API_URL = "https://dealhunter-staging-api.onrender.com"
 DEFAULT_WEB_URL = "https://dealhunter-staging-web.onrender.com"
 USER_AGENT = "SaveIQ-Staging-Smoke/1.0"
+EXPECTED_RECOMMENDATION_STRATEGY = "rule_based_mock_v0"
+EXPECTED_RULE_VERSION = "ruleset-2026-07-27-gate-4o"
+EXPECTED_FIXTURE_SET_VERSION = "fixtures-v0"
+EXPECTED_QUALITY_REPORT_VERSION = "gate-4o-quality-export-v1"
 
 
 @dataclass(frozen=True)
@@ -227,8 +231,10 @@ def main() -> None:
     api_recommendation_count = api_recommendations.get("count")
     if not isinstance(api_recommendation_count, int) or api_recommendation_count < 1:
         fail("API recommendations returned malformed count")
-    if api_recommendations.get("strategy") != "rule_based_mock_v0":
+    if api_recommendations.get("strategy") != EXPECTED_RECOMMENDATION_STRATEGY:
         fail("API recommendations returned unexpected strategy")
+    if api_recommendations.get("rule_version") != EXPECTED_RULE_VERSION:
+        fail("API recommendations returned unexpected rule version")
     trace_event_id = api_recommendations.get("trace_event_id")
     if not isinstance(trace_event_id, int):
         fail("API recommendations did not return a trace_event_id")
@@ -255,6 +261,16 @@ def main() -> None:
             f"signals={len(api_explanation['matched_intent'])}",
         )
     )
+    checks.append(
+        Check(
+            "recommendation_versions",
+            (
+                f"rule={api_recommendations['rule_version']} "
+                f"parser={api_recommendations['intent_parser_version']} "
+                f"ranker={api_recommendations['ranker_version']}"
+            ),
+        )
+    )
 
     web_recommendations = post_json(
         f"{web_url}/api/recommendations",
@@ -266,6 +282,8 @@ def main() -> None:
     web_trace_event_id = web_recommendations.get("trace_event_id")
     if not isinstance(web_trace_event_id, int):
         fail("web recommendation proxy did not return a trace_event_id")
+    if web_recommendations.get("rule_version") != EXPECTED_RULE_VERSION:
+        fail("web recommendation proxy returned unexpected rule version")
     web_recommendation_items = web_recommendations.get("recommendations")
     if not isinstance(web_recommendation_items, list) or not isinstance(
         web_recommendation_items[0], dict
@@ -284,6 +302,12 @@ def main() -> None:
         Check(
             "web_recommendation_explanation_proxy",
             f"signals={len(web_explanation['matched_intent'])}",
+        )
+    )
+    checks.append(
+        Check(
+            "web_recommendation_versions_proxy",
+            f"rule={web_recommendations['rule_version']}",
         )
     )
     first_recommendation = api_recommendation_items[0]
@@ -368,12 +392,23 @@ def main() -> None:
     ]
     if trace_event_id not in recent_trace_ids:
         fail("recommendation trace admin endpoint did not include the API trace")
+    trace_versions = traces.get("current_version_metadata")
+    if (
+        not isinstance(trace_versions, dict)
+        or trace_versions.get("rule_version") != EXPECTED_RULE_VERSION
+    ):
+        fail("recommendation trace admin endpoint returned unexpected version metadata")
     checks.append(Check("recommendation_traces", f"total={traces['total_traces']}"))
 
     web_traces = post_json(
         f"{web_url}/api/admin/recommendation-traces", {"adminToken": token}
     )
-    if not isinstance(web_traces.get("total_traces"), int):
+    web_trace_versions = web_traces.get("current_version_metadata")
+    if (
+        not isinstance(web_traces.get("total_traces"), int)
+        or not isinstance(web_trace_versions, dict)
+        or web_trace_versions.get("rule_version") != EXPECTED_RULE_VERSION
+    ):
         fail("web recommendation trace proxy returned malformed data")
     checks.append(
         Check("web_recommendation_trace_proxy", f"total={web_traces['total_traces']}")
@@ -384,19 +419,29 @@ def main() -> None:
         evaluation.get("status") != "ok"
         or evaluation.get("failed_count") != 0
         or evaluation.get("passed_count", 0) < 1
+        or evaluation.get("rule_version") != EXPECTED_RULE_VERSION
+        or evaluation.get("fixture_set_version") != EXPECTED_FIXTURE_SET_VERSION
     ):
         fail(f"recommendation evaluation failed: {evaluation}")
     checks.append(
         Check(
             "recommendation_evaluation",
-            f"passed={evaluation['passed_count']} failed={evaluation['failed_count']}",
+            (
+                f"passed={evaluation['passed_count']} "
+                f"failed={evaluation['failed_count']} "
+                f"rule={evaluation['rule_version']} "
+                f"fixtures={evaluation['fixture_set_version']}"
+            ),
         )
     )
 
     web_evaluation = post_json(
         f"{web_url}/api/admin/recommendation-evaluation", {"adminToken": token}
     )
-    if web_evaluation.get("status") != "ok":
+    if (
+        web_evaluation.get("status") != "ok"
+        or web_evaluation.get("rule_version") != EXPECTED_RULE_VERSION
+    ):
         fail("web recommendation evaluation proxy returned a failing summary")
     checks.append(
         Check(
@@ -494,9 +539,12 @@ def main() -> None:
         f"{api_url}/admin/affiliate/recommendation-quality/export",
         token,
     )
+    quality_versions = quality_export.get("version_metadata")
     if (
-        quality_export.get("report_version") != "gate-4n-quality-export-v1"
+        quality_export.get("report_version") != EXPECTED_QUALITY_REPORT_VERSION
         or quality_export.get("environment") != "staging"
+        or not isinstance(quality_versions, dict)
+        or quality_versions.get("rule_version") != EXPECTED_RULE_VERSION
         or not isinstance(quality_export.get("recommendation_evaluation"), dict)
         or not isinstance(quality_export.get("recommendation_feedback"), dict)
         or not isinstance(quality_export.get("recommendation_traces"), dict)
@@ -508,7 +556,8 @@ def main() -> None:
             "recommendation_quality_export",
             (
                 f"traces={quality_export['recommendation_traces']['total_traces']} "
-                f"feedback={quality_export['recommendation_feedback']['total_feedback']}"
+                f"feedback={quality_export['recommendation_feedback']['total_feedback']} "
+                f"rule={quality_versions['rule_version']}"
             ),
         )
     )
@@ -517,15 +566,21 @@ def main() -> None:
         f"{web_url}/api/admin/recommendation-quality-export",
         {"adminToken": token},
     )
+    web_quality_versions = web_quality_export.get("version_metadata")
     if (
-        web_quality_export.get("report_version") != "gate-4n-quality-export-v1"
+        web_quality_export.get("report_version") != EXPECTED_QUALITY_REPORT_VERSION
+        or not isinstance(web_quality_versions, dict)
+        or web_quality_versions.get("rule_version") != EXPECTED_RULE_VERSION
         or web_quality_export.get("retention_preview", {}).get("dry_run") is not True
     ):
         fail("web recommendation quality export proxy returned malformed data")
     checks.append(
         Check(
             "web_recommendation_quality_export_proxy",
-            f"version={web_quality_export['report_version']}",
+            (
+                f"version={web_quality_export['report_version']} "
+                f"rule={web_quality_versions['rule_version']}"
+            ),
         )
     )
 

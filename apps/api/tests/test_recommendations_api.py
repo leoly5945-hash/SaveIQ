@@ -10,6 +10,11 @@ from app.db.base import Base
 from app.db.session import get_db
 from app.main import app
 from app.models import RecommendationFeedbackEvent, RecommendationTraceEvent
+from app.services.recommendation_versions import (
+    RECOMMENDATION_FIXTURE_SET_VERSION,
+    RECOMMENDATION_RULE_VERSION,
+    RECOMMENDATION_STRATEGY,
+)
 
 
 def make_client() -> tuple[TestClient, Session]:
@@ -42,7 +47,10 @@ def test_recommendations_return_mock_offers_with_evaluation_trace() -> None:
 
         assert response.status_code == 200
         payload = response.json()
-        assert payload["strategy"] == "rule_based_mock_v0"
+        assert payload["strategy"] == RECOMMENDATION_STRATEGY
+        assert payload["rule_version"] == RECOMMENDATION_RULE_VERSION
+        assert payload["intent_parser_version"] == "intent-parser-v0"
+        assert payload["ranker_version"] == "ranker-v0"
         assert isinstance(payload["trace_event_id"], int)
         assert payload["intent"]["raw_intent"] == "Find fresh wireless earbuds with a coupon"
         assert payload["intent"]["search_query"] == "wireless earbuds"
@@ -197,8 +205,9 @@ def test_admin_recommendation_traces_list_recent_events() -> None:
         assert response.status_code == 200
         payload = response.json()
         assert payload["total_traces"] == 1
+        assert payload["current_version_metadata"]["rule_version"] == RECOMMENDATION_RULE_VERSION
         assert payload["recent_traces"][0]["id"] == recommendation_response.json()["trace_event_id"]
-        assert payload["recent_traces"][0]["strategy"] == "rule_based_mock_v0"
+        assert payload["recent_traces"][0]["strategy"] == RECOMMENDATION_STRATEGY
         assert payload["recent_traces"][0]["raw_intent"] == "popular earbuds with cashback"
         assert payload["recent_traces"][0]["parsed_intent"]["search_query"] == "earbuds"
         assert payload["recent_traces"][0]["recommended_offer_ids"]
@@ -221,7 +230,9 @@ def test_admin_recommendation_evaluation_returns_fixture_summary() -> None:
         assert response.status_code == 200
         payload = response.json()
         assert payload["status"] == "ok"
-        assert payload["strategy"] == "rule_based_mock_v0"
+        assert payload["strategy"] == RECOMMENDATION_STRATEGY
+        assert payload["rule_version"] == RECOMMENDATION_RULE_VERSION
+        assert payload["fixture_set_version"] == RECOMMENDATION_FIXTURE_SET_VERSION
         assert payload["case_count"] == 4
         assert payload["passed_count"] == 4
         assert payload["failed_count"] == 0
@@ -390,7 +401,8 @@ def test_admin_recommendation_quality_export_returns_snapshot() -> None:
 
         assert response.status_code == 200
         payload = response.json()
-        assert payload["report_version"] == "gate-4n-quality-export-v1"
+        assert payload["report_version"] == "gate-4o-quality-export-v1"
+        assert payload["version_metadata"]["rule_version"] == RECOMMENDATION_RULE_VERSION
         assert payload["environment"] == "staging"
         assert payload["staging_summary"]["counts"]["offers"] == 6
         assert payload["recommendation_evaluation"]["status"] == "ok"

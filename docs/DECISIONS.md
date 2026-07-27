@@ -134,3 +134,13 @@ The recommendation quality export is a staging-only JSON snapshot that combines 
 feedback, trace, staging summary, and dry-run retention data. It exists to preserve review evidence
 before pruning or ranking-rule changes. The export avoids admin tokens, user identity, live AI
 outputs, scraping data, and real affiliate-network data.
+
+## 2026-07-27: Gate 4O Versions Rules Before AI Changes
+
+Status: Accepted
+
+Recommendation strategy, rule set, intent parser, ranker, and fixture set versions are centralized
+and surfaced through recommendation responses, evaluation summaries, trace admin responses, quality
+exports, staging UI, and smoke checks. This gives staging a stable audit marker before future ranking
+or AI changes. The current database trace row still stores only the strategy; per-trace rule-version
+columns are deferred until historical production trace semantics are needed.

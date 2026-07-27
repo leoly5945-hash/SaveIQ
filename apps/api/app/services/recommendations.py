@@ -7,6 +7,12 @@ from typing import TypedDict
 from sqlalchemy.orm import Session
 
 from app.models import RecommendationTraceEvent
+from app.services.recommendation_versions import (
+    RECOMMENDATION_INTENT_PARSER_VERSION,
+    RECOMMENDATION_RANKER_VERSION,
+    RECOMMENDATION_RULE_VERSION,
+    RECOMMENDATION_STRATEGY,
+)
 from app.services.search import SearchFilters, SearchResultRow, search_offers
 
 MAX_RECOMMENDATION_LIMIT = 10
@@ -43,6 +49,9 @@ class RecommendationOfferResult(SearchResultRow):
 
 class RecommendationResult(TypedDict):
     strategy: str
+    rule_version: str
+    intent_parser_version: str
+    ranker_version: str
     intent: RecommendationIntent
     trace_event_id: int
     trace: list[RecommendationTraceStep]
@@ -147,7 +156,11 @@ def _trace_intent(intent: RecommendationIntent) -> RecommendationTraceStep:
         "step": "parse_intent",
         "input": intent.raw_intent,
         "output": ", ".join(filters),
-        "notes": ["rule-based parser", "no model call"],
+        "notes": [
+            "rule-based parser",
+            RECOMMENDATION_INTENT_PARSER_VERSION,
+            "no model call",
+        ],
     }
 
 
@@ -165,7 +178,11 @@ def _trace_ranking(intent: RecommendationIntent, result_count: int) -> Recommend
         "step": "rank_candidates",
         "input": intent.sort,
         "output": f"{result_count} ranked recommendations",
-        "notes": ["reuses transparent search ranking reasons", "deterministic mock strategy"],
+        "notes": [
+            "reuses transparent search ranking reasons",
+            "deterministic mock strategy",
+            RECOMMENDATION_RANKER_VERSION,
+        ],
     }
 
 
@@ -230,7 +247,7 @@ def recommend_offers(
         }
         for row in search_results
     ]
-    strategy = "rule_based_mock_v0"
+    strategy = RECOMMENDATION_STRATEGY
     trace = [
         _trace_intent(intent),
         _trace_retrieval(filters, len(search_results)),
@@ -249,6 +266,9 @@ def recommend_offers(
     db.refresh(trace_event)
     return {
         "strategy": strategy,
+        "rule_version": RECOMMENDATION_RULE_VERSION,
+        "intent_parser_version": RECOMMENDATION_INTENT_PARSER_VERSION,
+        "ranker_version": RECOMMENDATION_RANKER_VERSION,
         "intent": intent,
         "trace_event_id": trace_event.id,
         "trace": trace,

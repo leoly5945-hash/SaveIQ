@@ -16,6 +16,13 @@ from app.models import Offer
 from app.services.affiliate.ingestion import AffiliateIngestionService
 from app.services.affiliate.mock_provider import MockAffiliateProvider
 from app.services.click_tracking import ClickTrackingInput, record_click
+from app.services.recommendation_versions import (
+    RECOMMENDATION_FIXTURE_SET_VERSION,
+    RECOMMENDATION_INTENT_PARSER_VERSION,
+    RECOMMENDATION_RANKER_VERSION,
+    RECOMMENDATION_RULE_VERSION,
+    RECOMMENDATION_STRATEGY,
+)
 from app.services.recommendations import recommend_offers
 
 DEFAULT_FIXTURE_PATH = (
@@ -42,6 +49,10 @@ class EvaluationCaseResult(TypedDict):
 class EvaluationSummary(TypedDict):
     status: str
     strategy: str
+    rule_version: str
+    intent_parser_version: str
+    ranker_version: str
+    fixture_set_version: str
     case_count: int
     passed_count: int
     failed_count: int
@@ -267,7 +278,11 @@ def evaluate_recommendation_fixtures(
     failed_count = len(results) - passed_count
     return {
         "status": "ok" if failed_count == 0 else "failed",
-        "strategy": "rule_based_mock_v0",
+        "strategy": RECOMMENDATION_STRATEGY,
+        "rule_version": RECOMMENDATION_RULE_VERSION,
+        "intent_parser_version": RECOMMENDATION_INTENT_PARSER_VERSION,
+        "ranker_version": RECOMMENDATION_RANKER_VERSION,
+        "fixture_set_version": RECOMMENDATION_FIXTURE_SET_VERSION,
         "case_count": len(results),
         "passed_count": passed_count,
         "failed_count": failed_count,

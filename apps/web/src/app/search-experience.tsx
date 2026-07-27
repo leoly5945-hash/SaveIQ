@@ -60,6 +60,9 @@ type RecommendationResponse = {
   count: number;
   recommendations: RecommendationResult[];
   strategy: string;
+  rule_version: string;
+  intent_parser_version: string;
+  ranker_version: string;
   trace_event_id: number;
 };
 
@@ -151,8 +154,17 @@ type RecommendationTraceEvent = {
   created_at: string;
 };
 
+type RecommendationVersionMetadata = {
+  strategy: string;
+  rule_version: string;
+  intent_parser_version: string;
+  ranker_version: string;
+  fixture_set_version: string;
+};
+
 type RecommendationTraceSummary = {
   total_traces: number;
+  current_version_metadata: RecommendationVersionMetadata;
   recent_traces: RecommendationTraceEvent[];
 };
 
@@ -171,6 +183,10 @@ type RecommendationEvaluationCase = {
 type RecommendationEvaluationSummary = {
   status: "ok" | "failed";
   strategy: string;
+  rule_version: string;
+  intent_parser_version: string;
+  ranker_version: string;
+  fixture_set_version: string;
   case_count: number;
   passed_count: number;
   failed_count: number;
@@ -215,6 +231,7 @@ type RecommendationRetentionResult = {
 
 type RecommendationQualityExport = {
   report_version: string;
+  version_metadata: RecommendationVersionMetadata;
   exported_at: string;
   environment: string;
   staging_summary: StagingSummary;
@@ -1420,6 +1437,18 @@ function RecommendationQualityCockpit({
       ? "warn"
       : "pass"
     : "neutral";
+  const versionMetadata =
+    exportReport?.version_metadata ??
+    traces?.current_version_metadata ??
+    (evaluation
+      ? {
+          fixture_set_version: evaluation.fixture_set_version,
+          intent_parser_version: evaluation.intent_parser_version,
+          ranker_version: evaluation.ranker_version,
+          rule_version: evaluation.rule_version,
+          strategy: evaluation.strategy,
+        }
+      : null);
 
   return (
     <div className="quality-cockpit">
@@ -1477,6 +1506,16 @@ function RecommendationQualityCockpit({
           }
         />
         <QualitySignalCard
+          label="Rule version"
+          value={versionMetadata?.rule_version ?? "Waiting"}
+          status={versionMetadata ? "pass" : "neutral"}
+          detail={
+            versionMetadata
+              ? `${versionMetadata.intent_parser_version}; ${versionMetadata.ranker_version}; ${versionMetadata.fixture_set_version}`
+              : "Refresh quality data to see active recommendation versions."
+          }
+        />
+        <QualitySignalCard
           label="Export snapshot"
           value={
             exportReport
@@ -1494,7 +1533,7 @@ function RecommendationQualityCockpit({
           }
           detail={
             exportReport
-              ? `${exportReport.report_version}; includes ${exportReport.recommendation_traces.total_traces} traces.`
+              ? `${exportReport.report_version}; ${exportReport.version_metadata.rule_version}; includes ${exportReport.recommendation_traces.total_traces} traces.`
               : "Download a JSON audit report before pruning or changing rules."
           }
         />
@@ -1533,6 +1572,10 @@ function RecommendationQualityCockpit({
                     : "pruned"
                   : "not previewed"}
               </strong>
+            </li>
+            <li>
+              Active rules{" "}
+              <strong>{versionMetadata?.rule_version ?? "not loaded"}</strong>
             </li>
             <li>
               Last export{" "}
@@ -1733,7 +1776,7 @@ function RecommendationList({
         <h3>{recommendations.length} explained recommendations</h3>
         {meta ? (
           <p>
-            {meta.strategy} · trace {meta.trace_event_id}
+            {meta.strategy} · {meta.rule_version} · trace {meta.trace_event_id}
           </p>
         ) : null}
       </div>
@@ -2201,7 +2244,13 @@ function RecommendationEvaluationView({
       </div>
 
       <section className="admin-table evaluation-table">
-        <h3>{evaluation.strategy}</h3>
+        <h3>
+          {evaluation.strategy} · {evaluation.rule_version}
+        </h3>
+        <p className="result-meta">
+          {evaluation.intent_parser_version} · {evaluation.ranker_version} ·{" "}
+          {evaluation.fixture_set_version}
+        </p>
         <table>
           <thead>
             <tr>
@@ -2262,6 +2311,7 @@ function RecommendationTraceView({
       <div className="metric-card">
         <span>Total traces</span>
         <strong>{traces.total_traces}</strong>
+        <small>{traces.current_version_metadata.rule_version}</small>
       </div>
 
       {traces.recent_traces.length > 0 ? (

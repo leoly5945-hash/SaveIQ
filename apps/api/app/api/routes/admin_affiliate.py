@@ -27,6 +27,7 @@ from app.models import (
 from app.services.affiliate.ingestion import AffiliateIngestionService
 from app.services.affiliate.registry import registry
 from app.services.recommendation_evaluation import evaluate_recommendation_fixtures
+from app.services.recommendation_versions import RECOMMENDATION_VERSION_METADATA
 
 DbSession = Annotated[Session, Depends(get_db)]
 
@@ -113,6 +114,10 @@ class RecommendationEvaluationCaseResponse(BaseModel):
 class RecommendationEvaluationResponse(BaseModel):
     status: str
     strategy: str
+    rule_version: str
+    intent_parser_version: str
+    ranker_version: str
+    fixture_set_version: str
     case_count: int
     passed_count: int
     failed_count: int
@@ -163,6 +168,7 @@ class RecommendationQualityRetentionResponse(BaseModel):
 
 class RecommendationQualityExportResponse(BaseModel):
     report_version: str
+    version_metadata: dict[str, str]
     exported_at: datetime
     environment: str
     staging_summary: StagingSummaryResponse
@@ -509,6 +515,7 @@ def list_recommendation_traces(db: DbSession) -> dict[str, Any]:
 
     return {
         "total_traces": total_traces,
+        "current_version_metadata": RECOMMENDATION_VERSION_METADATA,
         "recent_traces": [
             {
                 "id": event.id,
@@ -531,6 +538,10 @@ def get_recommendation_evaluation() -> RecommendationEvaluationResponse:
     return RecommendationEvaluationResponse(
         status=summary["status"],
         strategy=summary["strategy"],
+        rule_version=summary["rule_version"],
+        intent_parser_version=summary["intent_parser_version"],
+        ranker_version=summary["ranker_version"],
+        fixture_set_version=summary["fixture_set_version"],
         case_count=summary["case_count"],
         passed_count=summary["passed_count"],
         failed_count=summary["failed_count"],
@@ -673,7 +684,8 @@ def export_recommendation_quality_report(
     db: DbSession,
 ) -> RecommendationQualityExportResponse:
     return RecommendationQualityExportResponse(
-        report_version="gate-4n-quality-export-v1",
+        report_version="gate-4o-quality-export-v1",
+        version_metadata=RECOMMENDATION_VERSION_METADATA,
         exported_at=datetime.now(UTC),
         environment="staging",
         staging_summary=get_staging_summary(db),

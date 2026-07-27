@@ -74,6 +74,9 @@ accounts, IP addresses, payment identifiers, or real affiliate conversion data.
 `recommendation_trace_events` stores one row per recommendation request. It keeps the rule-based
 strategy, raw intent, parsed intent JSON, result count, recommended offer IDs, trace steps, and
 creation timestamp. It does not store users, IP addresses, tokens, or external model payloads.
+Gate 4O surfaces current rule, parser, ranker, and fixture versions through API responses and quality
+exports; per-trace version columns are deferred until historical production trace semantics are
+needed.
 
 ## Recommendation Feedback Events
 

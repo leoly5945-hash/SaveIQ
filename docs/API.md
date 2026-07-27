@@ -126,6 +126,8 @@ Gate 4C persists each recommendation trace for admin audit and returns `trace_ev
 Gate 4F adds `decision_explanation` to each recommended offer so staging can show why a result was
 selected without calling an LLM.
 Gate 4G adds `POST /recommendations/feedback` for staging Helpful/Not helpful quality signals.
+Gate 4O adds explicit recommendation version metadata so staging can prove which rules, parser,
+ranker, and fixture set produced a result.
 
 ```json
 {
@@ -139,6 +141,9 @@ Abridged example response:
 ```json
 {
   "strategy": "rule_based_mock_v0",
+  "rule_version": "ruleset-2026-07-27-gate-4o",
+  "intent_parser_version": "intent-parser-v0",
+  "ranker_version": "ranker-v0",
   "trace_event_id": 1,
   "count": 1,
   "intent": {
@@ -185,7 +190,7 @@ Abridged example response:
       "step": "parse_intent",
       "input": "Find fresh wireless earbuds with a coupon",
       "output": "query='wireless earbuds', has_coupon=True, has_cashback=None, freshness=fresh, sort=price_asc",
-      "notes": ["rule-based parser", "no model call"]
+      "notes": ["rule-based parser", "intent-parser-v0", "no model call"]
     },
     {
       "step": "retrieve_candidates",
@@ -199,7 +204,8 @@ Abridged example response:
       "output": "1 ranked recommendations",
       "notes": [
         "reuses transparent search ranking reasons",
-        "deterministic mock strategy"
+        "deterministic mock strategy",
+        "ranker-v0"
       ]
     }
   ]
@@ -238,6 +244,8 @@ The staging web app proxies the same request at `POST /api/recommendation-feedba
 - `GET /admin/affiliate/recommendation-traces`
 - `GET /admin/affiliate/recommendation-evaluation`
 - `GET /admin/affiliate/recommendation-feedback`
+- `POST /admin/affiliate/recommendation-quality/retention`
+- `GET /admin/affiliate/recommendation-quality/export`
 - `GET /admin/affiliate/staging-summary`
 
 Admin responses expose normalized operational data and do not expose provider secrets or full raw

@@ -124,6 +124,10 @@ Gate 4N adds a staging quality report export. Admins can download a JSON snapsho
 feedback, traces, staging counts, and dry-run retention readiness before pruning or changing ranking
 logic.
 
+Gate 4O versions the deterministic recommendation strategy, rule set, intent parser, ranker, and
+fixture set across API responses, quality reports, staging UI, and staging smoke checks. This keeps
+future ranking or AI changes auditable.
+
 ## Docker Compose
 
 Run the full local stack:
