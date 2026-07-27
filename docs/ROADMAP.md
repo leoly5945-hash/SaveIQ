@@ -57,5 +57,5 @@
 - Gate 4G staging Helpful/Not helpful feedback loop for recommendations
 - Gate 4H staging feedback dashboard with Helpful rate and trace feedback coverage
 - Gate 4L staging retention controls for recommendation traces and feedback
-- Future: richer model-readiness dashboard
+- Gate 4M staging quality cockpit for evaluation, coverage, trace volume, and retention readiness
 - Future: LLM intent parsing after evaluation criteria are defined

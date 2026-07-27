@@ -1117,6 +1117,47 @@ export function SearchExperience({ searchEndpoint }: SearchExperienceProps) {
         ) : null}
       </section>
 
+      <section className="admin-panel" aria-labelledby="quality-heading">
+        <div className="admin-heading">
+          <div>
+            <p className="eyebrow">Recommendation quality</p>
+            <h2 id="quality-heading">Quality cockpit</h2>
+          </div>
+          <button
+            className="secondary-button"
+            type="button"
+            disabled={
+              evaluationStatus === "loading" ||
+              feedbackSummaryStatus === "loading" ||
+              traceStatus === "loading" ||
+              stagingStatus === "loading"
+            }
+            onClick={refreshQualityLoop}
+          >
+            Refresh quality loop
+          </button>
+        </div>
+
+        {recommendationEvaluation ||
+        recommendationFeedback ||
+        recommendationTraces ||
+        stagingSummary ||
+        recommendationRetention ? (
+          <RecommendationQualityCockpit
+            evaluation={recommendationEvaluation}
+            feedback={recommendationFeedback}
+            retention={recommendationRetention}
+            stagingSummary={stagingSummary}
+            traces={recommendationTraces}
+          />
+        ) : (
+          <p className="state-message">
+            Refresh to review recommendation test status, feedback coverage,
+            trace volume, and retention readiness.
+          </p>
+        )}
+      </section>
+
       <section className="admin-panel" aria-labelledby="analytics-heading">
         <div className="admin-heading">
           <div>
@@ -1270,6 +1311,197 @@ export function SearchExperience({ searchEndpoint }: SearchExperienceProps) {
       </section>
     </section>
   );
+}
+
+function RecommendationQualityCockpit({
+  evaluation,
+  feedback,
+  retention,
+  stagingSummary,
+  traces,
+}: {
+  evaluation: RecommendationEvaluationSummary | null;
+  feedback: RecommendationFeedbackSummary | null;
+  retention: RecommendationRetentionResult | null;
+  stagingSummary: StagingSummary | null;
+  traces: RecommendationTraceSummary | null;
+}) {
+  const traceTotal =
+    traces?.total_traces ??
+    stagingSummary?.counts.recommendation_trace_events ??
+    feedback?.total_recommendation_traces ??
+    0;
+  const feedbackTotal =
+    feedback?.total_feedback ??
+    stagingSummary?.counts.recommendation_feedback_events ??
+    0;
+  const evaluationReady = evaluation
+    ? evaluation.failed_count === 0 && evaluation.passed_count > 0
+    : false;
+  const coverageRate = feedback?.trace_feedback_coverage_rate ?? 0;
+  const retentionHasPreview = Boolean(retention?.dry_run);
+  const retentionDeleteCount = retention?.trace_events_to_delete ?? 0;
+  const retentionStatus = retentionHasPreview
+    ? retentionDeleteCount > 0
+      ? "warn"
+      : "pass"
+    : "neutral";
+
+  return (
+    <div className="quality-cockpit">
+      <div className="quality-scoreboard">
+        <QualitySignalCard
+          label="Fixture suite"
+          value={
+            evaluation
+              ? `${evaluation.passed_count}/${evaluation.case_count}`
+              : "Waiting"
+          }
+          status={evaluationReady ? "pass" : evaluation ? "fail" : "neutral"}
+          detail={
+            evaluation
+              ? `${evaluation.failed_count} failed cases`
+              : "Run evaluation to score deterministic cases."
+          }
+        />
+        <QualitySignalCard
+          label="Feedback coverage"
+          value={feedback ? formatRate(coverageRate) : "Waiting"}
+          status={
+            feedback
+              ? coverageRate >= 0.5
+                ? "pass"
+                : coverageRate > 0
+                  ? "warn"
+                  : "fail"
+              : "neutral"
+          }
+          detail={
+            feedback
+              ? `${feedback.unique_feedback_traces}/${feedback.total_recommendation_traces} traces reviewed`
+              : "Refresh feedback to inspect review coverage."
+          }
+        />
+        <QualitySignalCard
+          label="Trace volume"
+          value={String(traceTotal)}
+          status={traceTotal > 0 ? "pass" : "neutral"}
+          detail={`${feedbackTotal} feedback events recorded`}
+        />
+        <QualitySignalCard
+          label="Retention preview"
+          value={
+            retention
+              ? `${retention.trace_events_to_delete} old traces`
+              : "Waiting"
+          }
+          status={retentionStatus}
+          detail={
+            retention
+              ? `Keep latest ${retention.keep_latest_traces}; delete ${retention.feedback_events_to_delete} feedback events.`
+              : "Run preview before pruning staging quality events."
+          }
+        />
+      </div>
+
+      <div className="quality-insights">
+        <section className="quality-note">
+          <h3>Current readout</h3>
+          <ul>
+            <li>
+              Evaluation{" "}
+              <strong>{evaluation ? evaluation.status : "not loaded"}</strong>
+            </li>
+            <li>
+              Feedback{" "}
+              <strong>
+                {feedback
+                  ? `${feedback.helpful_count} helpful / ${feedback.not_helpful_count} not helpful`
+                  : "not loaded"}
+              </strong>
+            </li>
+            <li>
+              Latest trace{" "}
+              <strong>
+                {traces?.recent_traces[0]
+                  ? `#${traces.recent_traces[0].id}`
+                  : "not loaded"}
+              </strong>
+            </li>
+            <li>
+              Cleanup mode{" "}
+              <strong>
+                {retention
+                  ? retention.dry_run
+                    ? "preview only"
+                    : "pruned"
+                  : "not previewed"}
+              </strong>
+            </li>
+          </ul>
+        </section>
+
+        <section className="quality-note">
+          <h3>Next check</h3>
+          <p>
+            {getQualityNextStep(evaluation, feedback, retention, traceTotal)}
+          </p>
+        </section>
+      </div>
+    </div>
+  );
+}
+
+function QualitySignalCard({
+  detail,
+  label,
+  status,
+  value,
+}: {
+  detail: string;
+  label: string;
+  status: "pass" | "warn" | "fail" | "neutral";
+  value: string;
+}) {
+  return (
+    <div className={`quality-signal ${status}`}>
+      <div>
+        <span>{label}</span>
+        <strong>{value}</strong>
+      </div>
+      <p>{detail}</p>
+    </div>
+  );
+}
+
+function getQualityNextStep(
+  evaluation: RecommendationEvaluationSummary | null,
+  feedback: RecommendationFeedbackSummary | null,
+  retention: RecommendationRetentionResult | null,
+  traceTotal: number
+) {
+  if (!evaluation) {
+    return "Run the fixture quality checks before reviewing feedback.";
+  }
+  if (evaluation.failed_count > 0) {
+    return "Inspect failed fixture cases before changing recommendation logic.";
+  }
+  if (!feedback || feedback.total_feedback === 0) {
+    return "Collect Helpful and Not helpful signals from the staging UI.";
+  }
+  if (feedback.trace_feedback_coverage_rate < 0.5) {
+    return "Add feedback to more traces so coverage is easier to judge.";
+  }
+  if (!retention) {
+    return "Preview retention once trace volume starts growing.";
+  }
+  if (retention.trace_events_to_delete > 0) {
+    return "Review the retention preview, then prune only if old staging events are no longer needed.";
+  }
+  if (traceTotal === 0) {
+    return "Run recommendations to create trace events.";
+  }
+  return "Quality checks are ready for the next recommendation gate.";
 }
 
 function StagingSummaryView({ summary }: { summary: StagingSummary }) {

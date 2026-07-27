@@ -116,6 +116,10 @@ summary.
 Gate 4L adds staging retention controls for recommendation traces and feedback. Admins can preview
 old quality events, then prune them only after entering the confirmation phrase.
 
+Gate 4M adds a staging quality cockpit that summarizes fixture status, feedback coverage, trace
+volume, and retention readiness in one admin view. It uses the existing mock-only quality endpoints
+and does not add Render services or production AI behavior.
+
 ## Docker Compose
 
 Run the full local stack:

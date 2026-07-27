@@ -116,3 +116,12 @@ Recommendation quality retention is limited to staging trace and feedback events
 dry-run previews and requires the explicit `DELETE_STAGING_QUALITY_EVENTS` confirmation phrase before
 deleting old events. This keeps staging data bounded while avoiding accidental deletion of normalized
 offers, click analytics, or sync history.
+
+## 2026-07-26: Gate 4M Quality Cockpit Stays Web-Only
+
+Status: Accepted
+
+The recommendation quality cockpit is a staging web aggregation of existing evaluation, feedback,
+trace, staging summary, and retention-preview data. It does not add a backend aggregate endpoint yet
+because the existing admin proxies already provide the needed signals. This keeps the gate small,
+cost-neutral, and mock-only while making quality review easier for non-terminal staging checks.

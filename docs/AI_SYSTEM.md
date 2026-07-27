@@ -140,3 +140,11 @@ preview how many old events would be removed, then prune only after sending the 
 `DELETE_STAGING_QUALITY_EVENTS`. The retention flow protects staging from unbounded quality-event
 growth without touching normalized offers, clicks, sync jobs, real user identity, or external
 services.
+
+## Gate 4M Quality Cockpit
+
+Gate 4M adds a staging-only recommendation quality cockpit to the web admin surface. It summarizes
+fixture evaluation status, feedback coverage, trace volume, and retention preview state in one place
+so reviewers can decide whether the mock recommendation loop is ready for the next gate. It reuses
+existing deterministic endpoints and does not introduce a live AI model, external scoring service, or
+new production data collection.

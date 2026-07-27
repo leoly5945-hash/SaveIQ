@@ -665,6 +665,90 @@ h3 {
   gap: 14px;
 }
 
+.quality-cockpit {
+  display: grid;
+  gap: 14px;
+}
+
+.quality-scoreboard {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.quality-signal {
+  border: 1px solid var(--border);
+  border-left: 4px solid #94a3b8;
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+}
+
+.quality-signal.pass {
+  border-left-color: var(--accent);
+}
+
+.quality-signal.warn {
+  border-left-color: #d97706;
+}
+
+.quality-signal.fail {
+  border-left-color: #dc2626;
+}
+
+.quality-signal div {
+  display: grid;
+  gap: 5px;
+}
+
+.quality-signal span {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.quality-signal strong {
+  font-size: 1.55rem;
+  line-height: 1.1;
+}
+
+.quality-signal p {
+  color: var(--muted);
+  line-height: 1.45;
+  margin: 0;
+}
+
+.quality-insights {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.quality-note ul {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.quality-note li {
+  align-items: center;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  padding-top: 8px;
+}
+
+.quality-note li strong {
+  color: var(--foreground);
+  text-align: right;
+}
+
 .feedback-split {
   display: grid;
   gap: 14px;
@@ -933,6 +1017,8 @@ h3 {
   .admin-grid,
   .evaluation-metrics,
   .feedback-split,
+  .quality-insights,
+  .quality-scoreboard,
   .retention-controls,
   .retention-danger,
   .retention-result,
