@@ -162,3 +162,12 @@ The recommendation trace drilldown is built in the staging web UI from existing 
 summary proxy responses. It intentionally avoids a new backend endpoint because the required row
 versions, parsed intent, ranked offer IDs, evaluation steps, and recent feedback are already present
 in the admin payloads. This keeps the gate small and avoids expanding staging infrastructure.
+
+## 2026-07-27: Gate 4R Compares Traces Without Expanding the API
+
+Status: Accepted
+
+Trace comparison is implemented client-side from the existing recent trace payload. Comparing
+versions, parsed intent, result count, ranked offer IDs, and evaluation step outputs is enough for
+staging reviewers to spot ranking changes before the system introduces real AI parsing. A dedicated
+compare endpoint is deferred until traces become large enough to need server-side diffing.

@@ -906,6 +906,7 @@ h3 {
 .trace-list,
 .trace-drilldown,
 .trace-card,
+.trace-compare-panel,
 .trace-detail-panel,
 .trace-detail-section,
 .trace-steps {
@@ -973,6 +974,10 @@ h3 {
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 16px;
+}
+
+.trace-compare-panel {
+  grid-column: 2;
 }
 
 .trace-card-heading {
@@ -1065,6 +1070,68 @@ h3 {
   margin: 0;
 }
 
+.trace-compare-picker {
+  color: var(--muted);
+  display: grid;
+  font-size: 0.82rem;
+  font-weight: 800;
+  gap: 6px;
+  min-width: 220px;
+}
+
+.trace-compare-picker select {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font: inherit;
+  padding: 10px;
+}
+
+.trace-compare-table {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.trace-compare-row {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(110px, 0.8fr) repeat(2, minmax(0, 1fr)) minmax(
+      80px,
+      0.5fr
+    );
+  padding: 10px 12px;
+}
+
+.trace-compare-row + .trace-compare-row {
+  border-top: 1px solid var(--border);
+}
+
+.trace-compare-row.heading {
+  background: #f8fafc;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.trace-compare-row span,
+.trace-compare-row strong {
+  overflow-wrap: anywhere;
+}
+
+.trace-compare-row.changed span:last-child {
+  color: #991b1b;
+  font-weight: 900;
+}
+
+.trace-compare-row.same span:last-child {
+  color: #0f6b4f;
+  font-weight: 900;
+}
+
 @media (max-width: 760px) {
   .app-shell {
     padding: 24px 16px 40px;
@@ -1101,9 +1168,14 @@ h3 {
   .sync-list,
   .trace-viewer,
   .trace-drilldown,
+  .trace-compare-row,
   .trace-card-heading,
   .trace-intent {
     grid-template-columns: 1fr;
+  }
+
+  .trace-compare-panel {
+    grid-column: auto;
   }
 
   .latest-sync {

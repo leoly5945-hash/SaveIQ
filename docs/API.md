@@ -130,6 +130,7 @@ Gate 4O adds explicit recommendation version metadata so staging can prove which
 ranker, and fixture set produced a result.
 Gate 4Q does not add a new endpoint; the staging trace drilldown reads existing recommendation trace
 and feedback summary admin responses through the web proxy.
+Gate 4R also uses the same trace payload for UI-side comparison and does not change API contracts.
 
 ```json
 {

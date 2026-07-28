@@ -136,6 +136,10 @@ Gate 4Q adds a staging trace drilldown in the admin UI. Reviewers can select a r
 recommendation trace and inspect its saved versions, parsed intent, result count, recommended offer
 IDs, evaluation steps, and any recently loaded feedback attached to the trace.
 
+Gate 4R adds a trace comparison view. Staging reviewers can compare two recent recommendation
+traces across versions, parsed intent fields, result counts, ranked offer IDs, and evaluation steps
+before changing ranking logic.
+
 ## Docker Compose
 
 Run the full local stack:

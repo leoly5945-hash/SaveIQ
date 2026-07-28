@@ -172,6 +172,13 @@ type RecommendationTraceSummary = {
   recent_traces: RecommendationTraceEvent[];
 };
 
+type TraceComparisonRow = {
+  label: string;
+  left: string;
+  right: string;
+  changed: boolean;
+};
+
 type RecommendationEvaluationCase = {
   id: string;
   status: "pass" | "fail";
@@ -2318,15 +2325,29 @@ function RecommendationTraceView({
   const [selectedTraceId, setSelectedTraceId] = useState<number | null>(
     traces.recent_traces[0]?.id ?? null
   );
+  const [compareTraceId, setCompareTraceId] = useState<number | null>(
+    traces.recent_traces[1]?.id ?? traces.recent_traces[0]?.id ?? null
+  );
   const selectedTrace =
     traces.recent_traces.find((trace) => trace.id === selectedTraceId) ??
     traces.recent_traces[0] ??
+    null;
+  const compareTrace =
+    traces.recent_traces.find((trace) => trace.id === compareTraceId) ??
+    traces.recent_traces.find((trace) => trace.id !== selectedTrace?.id) ??
     null;
   const selectedFeedback = selectedTrace
     ? (feedback?.recent_feedback.filter(
         (event) => event.trace_event_id === selectedTrace.id
       ) ?? [])
     : [];
+  const comparisonRows = useMemo(
+    () =>
+      selectedTrace && compareTrace
+        ? buildTraceComparisonRows(selectedTrace, compareTrace)
+        : [],
+    [compareTrace, selectedTrace]
+  );
 
   return (
     <div className="trace-viewer">
@@ -2362,11 +2383,174 @@ function RecommendationTraceView({
               trace={selectedTrace}
             />
           ) : null}
+
+          {selectedTrace && traces.recent_traces.length > 1 ? (
+            <TraceComparePanel
+              comparisonRows={comparisonRows}
+              compareTrace={compareTrace}
+              onCompareTraceChange={setCompareTraceId}
+              recentTraces={traces.recent_traces}
+              selectedTrace={selectedTrace}
+            />
+          ) : null}
         </div>
       ) : (
         <p className="state-message">No recommendation traces yet.</p>
       )}
     </div>
+  );
+}
+
+function buildTraceComparisonRows(
+  selectedTrace: RecommendationTraceEvent,
+  compareTrace: RecommendationTraceEvent
+): TraceComparisonRow[] {
+  const selectedSteps = selectedTrace.evaluation_trace
+    .map((step) => `${step.step}:${step.output}`)
+    .join(" | ");
+  const compareSteps = compareTrace.evaluation_trace
+    .map((step) => `${step.step}:${step.output}`)
+    .join(" | ");
+
+  const rows = [
+    {
+      label: "Rule",
+      left: selectedTrace.rule_version,
+      right: compareTrace.rule_version,
+    },
+    {
+      label: "Parser",
+      left: selectedTrace.intent_parser_version,
+      right: compareTrace.intent_parser_version,
+    },
+    {
+      label: "Ranker",
+      left: selectedTrace.ranker_version,
+      right: compareTrace.ranker_version,
+    },
+    {
+      label: "Fixtures",
+      left: selectedTrace.fixture_set_version,
+      right: compareTrace.fixture_set_version,
+    },
+    {
+      label: "Query",
+      left: selectedTrace.parsed_intent.search_query ?? "none",
+      right: compareTrace.parsed_intent.search_query ?? "none",
+    },
+    {
+      label: "Coupon",
+      left: String(selectedTrace.parsed_intent.has_coupon ?? "any"),
+      right: String(compareTrace.parsed_intent.has_coupon ?? "any"),
+    },
+    {
+      label: "Cashback",
+      left: String(selectedTrace.parsed_intent.has_cashback ?? "any"),
+      right: String(compareTrace.parsed_intent.has_cashback ?? "any"),
+    },
+    {
+      label: "Freshness",
+      left: selectedTrace.parsed_intent.freshness ?? "any",
+      right: compareTrace.parsed_intent.freshness ?? "any",
+    },
+    {
+      label: "Sort",
+      left: selectedTrace.parsed_intent.sort,
+      right: compareTrace.parsed_intent.sort,
+    },
+    {
+      label: "Result count",
+      left: String(selectedTrace.result_count),
+      right: String(compareTrace.result_count),
+    },
+    {
+      label: "Offer IDs",
+      left: selectedTrace.recommended_offer_ids.join(", ") || "none",
+      right: compareTrace.recommended_offer_ids.join(", ") || "none",
+    },
+    {
+      label: "Steps",
+      left: selectedSteps || "none",
+      right: compareSteps || "none",
+    },
+  ];
+
+  return rows.map((row) => ({
+    ...row,
+    changed: row.left !== row.right,
+  }));
+}
+
+function TraceComparePanel({
+  comparisonRows,
+  compareTrace,
+  onCompareTraceChange,
+  recentTraces,
+  selectedTrace,
+}: {
+  comparisonRows: TraceComparisonRow[];
+  compareTrace: RecommendationTraceEvent | null;
+  onCompareTraceChange: (traceId: number) => void;
+  recentTraces: RecommendationTraceEvent[];
+  selectedTrace: RecommendationTraceEvent;
+}) {
+  const changedCount = comparisonRows.filter((row) => row.changed).length;
+
+  return (
+    <section className="trace-card trace-compare-panel">
+      <div className="trace-card-heading">
+        <div>
+          <p className="merchant-name">Trace compare</p>
+          <h3>
+            Trace {selectedTrace.id} vs{" "}
+            {compareTrace ? `Trace ${compareTrace.id}` : "another trace"}
+          </h3>
+          <p className="result-meta">
+            {changedCount} changed fields · {comparisonRows.length} checked
+          </p>
+        </div>
+        <label className="trace-compare-picker">
+          Compare with
+          <select
+            value={compareTrace?.id ?? ""}
+            onChange={(event) =>
+              onCompareTraceChange(Number(event.target.value))
+            }
+          >
+            {recentTraces.map((trace) => (
+              <option key={trace.id} value={trace.id}>
+                Trace {trace.id} · {trace.raw_intent}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      <div className="trace-compare-table" role="table">
+        <div className="trace-compare-row heading" role="row">
+          <span role="columnheader">Field</span>
+          <span role="columnheader">Selected</span>
+          <span role="columnheader">Compared</span>
+          <span role="columnheader">Status</span>
+        </div>
+        {comparisonRows.map((row) => (
+          <div
+            className={
+              row.changed
+                ? "trace-compare-row changed"
+                : "trace-compare-row same"
+            }
+            key={row.label}
+            role="row"
+          >
+            <strong role="cell">{row.label}</strong>
+            <span role="cell">{row.left}</span>
+            <span role="cell">{row.right}</span>
+            <span role="cell">{row.changed ? "changed" : "same"}</span>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 

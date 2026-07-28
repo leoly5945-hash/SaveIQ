@@ -187,3 +187,11 @@ feedback summary proxy endpoints, so no new API surface or Render service is req
 select a recent trace and inspect the saved recommendation versions, parsed intent fields, result
 count, recommended offer IDs, deterministic evaluation steps, and attached feedback that has already
 been loaded in the quality cockpit.
+
+## Gate 4R Trace Comparison
+
+Gate 4R adds a staging-only comparison panel for recent recommendation traces. The UI compares the
+selected trace against another trace across rule, parser, ranker, fixture versions, parsed intent
+fields, result count, recommended offer IDs, and deterministic evaluation step outputs. This is a
+review aid before ranking or AI parser changes and does not add new persistence, external model
+calls, scraping, or affiliate integrations.

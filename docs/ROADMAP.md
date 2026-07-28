@@ -62,4 +62,5 @@
 - Gate 4O versioned recommendation rules, parser, ranker, fixture set, and quality export metadata
 - Gate 4P persisted recommendation trace version columns and row-level trace audit display
 - Gate 4Q staging recommendation trace drilldown with parsed intent, versions, steps, and feedback
+- Gate 4R staging recommendation trace comparison before ranking or parser changes
 - Future: LLM intent parsing after evaluation criteria are defined
