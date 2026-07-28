@@ -128,6 +128,8 @@ selected without calling an LLM.
 Gate 4G adds `POST /recommendations/feedback` for staging Helpful/Not helpful quality signals.
 Gate 4O adds explicit recommendation version metadata so staging can prove which rules, parser,
 ranker, and fixture set produced a result.
+Gate 4Q does not add a new endpoint; the staging trace drilldown reads existing recommendation trace
+and feedback summary admin responses through the web proxy.
 
 ```json
 {

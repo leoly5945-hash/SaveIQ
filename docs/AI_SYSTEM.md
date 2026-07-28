@@ -179,3 +179,11 @@ Gate 4P adds persisted rule, parser, ranker, and fixture version columns to
 migration, and new traces store the versions at creation time. The trace admin endpoint and staging
 UI now show row-level version metadata, so future ranking or AI changes can be audited trace by
 trace.
+
+## Gate 4Q Trace Drilldown
+
+Gate 4Q adds a staging-only trace detail view to the admin UI. It uses the existing trace and
+feedback summary proxy endpoints, so no new API surface or Render service is required. Reviewers can
+select a recent trace and inspect the saved recommendation versions, parsed intent fields, result
+count, recommended offer IDs, deterministic evaluation steps, and attached feedback that has already
+been loaded in the quality cockpit.

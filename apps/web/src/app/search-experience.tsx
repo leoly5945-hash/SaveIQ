@@ -1397,7 +1397,10 @@ export function SearchExperience({ searchEndpoint }: SearchExperienceProps) {
           </p>
         ) : null}
         {recommendationTraces ? (
-          <RecommendationTraceView traces={recommendationTraces} />
+          <RecommendationTraceView
+            feedback={recommendationFeedback}
+            traces={recommendationTraces}
+          />
         ) : null}
       </section>
     </section>
@@ -2306,10 +2309,25 @@ function RecommendationEvaluationView({
 }
 
 function RecommendationTraceView({
+  feedback,
   traces,
 }: {
+  feedback: RecommendationFeedbackSummary | null;
   traces: RecommendationTraceSummary;
 }) {
+  const [selectedTraceId, setSelectedTraceId] = useState<number | null>(
+    traces.recent_traces[0]?.id ?? null
+  );
+  const selectedTrace =
+    traces.recent_traces.find((trace) => trace.id === selectedTraceId) ??
+    traces.recent_traces[0] ??
+    null;
+  const selectedFeedback = selectedTrace
+    ? (feedback?.recent_feedback.filter(
+        (event) => event.trace_event_id === selectedTrace.id
+      ) ?? [])
+    : [];
+
   return (
     <div className="trace-viewer">
       <div className="metric-card">
@@ -2319,81 +2337,149 @@ function RecommendationTraceView({
       </div>
 
       {traces.recent_traces.length > 0 ? (
-        <div className="trace-list">
-          {traces.recent_traces.map((trace) => (
-            <article className="trace-card" key={trace.id}>
-              <div className="trace-card-heading">
-                <div>
-                  <p className="merchant-name">Trace {trace.id}</p>
-                  <h3>{trace.raw_intent}</h3>
-                  <p className="result-meta">
-                    {trace.strategy} · {trace.rule_version} ·{" "}
-                    {formatDateTime(trace.created_at)}
-                  </p>
-                </div>
-                <div className="price-block">
-                  <p className="price">{trace.result_count}</p>
-                  <p className="compare-price">results</p>
-                </div>
-              </div>
+        <div className="trace-drilldown">
+          <div className="trace-index" aria-label="Recent traces">
+            {traces.recent_traces.map((trace) => (
+              <button
+                className={trace.id === selectedTrace?.id ? "active" : ""}
+                key={trace.id}
+                type="button"
+                onClick={() => setSelectedTraceId(trace.id)}
+              >
+                <span>Trace {trace.id}</span>
+                <strong>{trace.raw_intent}</strong>
+                <small>
+                  {trace.result_count} results ·{" "}
+                  {formatDateTime(trace.created_at)}
+                </small>
+              </button>
+            ))}
+          </div>
 
-              <dl className="trace-intent">
-                <div>
-                  <dt>Parser</dt>
-                  <dd>{trace.intent_parser_version}</dd>
-                </div>
-                <div>
-                  <dt>Ranker</dt>
-                  <dd>{trace.ranker_version}</dd>
-                </div>
-                <div>
-                  <dt>Fixtures</dt>
-                  <dd>{trace.fixture_set_version}</dd>
-                </div>
-                <div>
-                  <dt>Query</dt>
-                  <dd>{trace.parsed_intent.search_query ?? "none"}</dd>
-                </div>
-                <div>
-                  <dt>Sort</dt>
-                  <dd>{trace.parsed_intent.sort}</dd>
-                </div>
-                <div>
-                  <dt>Coupon</dt>
-                  <dd>{String(trace.parsed_intent.has_coupon ?? "any")}</dd>
-                </div>
-                <div>
-                  <dt>Cashback</dt>
-                  <dd>{String(trace.parsed_intent.has_cashback ?? "any")}</dd>
-                </div>
-                <div>
-                  <dt>Freshness</dt>
-                  <dd>{trace.parsed_intent.freshness ?? "any"}</dd>
-                </div>
-                <div>
-                  <dt>Offer IDs</dt>
-                  <dd>{trace.recommended_offer_ids.join(", ") || "none"}</dd>
-                </div>
-              </dl>
-
-              <ol className="trace-steps">
-                {trace.evaluation_trace.map((step) => (
-                  <li key={`${trace.id}-${step.step}`}>
-                    <div>
-                      <strong>{step.step}</strong>
-                      <span>{step.output}</span>
-                    </div>
-                    <p>{step.notes.join(", ")}</p>
-                  </li>
-                ))}
-              </ol>
-            </article>
-          ))}
+          {selectedTrace ? (
+            <TraceDetailPanel
+              feedback={selectedFeedback}
+              trace={selectedTrace}
+            />
+          ) : null}
         </div>
       ) : (
         <p className="state-message">No recommendation traces yet.</p>
       )}
     </div>
+  );
+}
+
+function TraceDetailPanel({
+  feedback,
+  trace,
+}: {
+  feedback: RecommendationFeedbackSummary["recent_feedback"];
+  trace: RecommendationTraceEvent;
+}) {
+  return (
+    <article className="trace-card trace-detail-panel">
+      <div className="trace-card-heading">
+        <div>
+          <p className="merchant-name">Trace {trace.id}</p>
+          <h3>{trace.raw_intent}</h3>
+          <p className="result-meta">
+            {trace.strategy} · {trace.rule_version} ·{" "}
+            {formatDateTime(trace.created_at)}
+          </p>
+        </div>
+        <div className="price-block">
+          <p className="price">{trace.result_count}</p>
+          <p className="compare-price">results</p>
+        </div>
+      </div>
+
+      <dl className="trace-intent">
+        <div>
+          <dt>Parser</dt>
+          <dd>{trace.intent_parser_version}</dd>
+        </div>
+        <div>
+          <dt>Ranker</dt>
+          <dd>{trace.ranker_version}</dd>
+        </div>
+        <div>
+          <dt>Fixtures</dt>
+          <dd>{trace.fixture_set_version}</dd>
+        </div>
+        <div>
+          <dt>Query</dt>
+          <dd>{trace.parsed_intent.search_query ?? "none"}</dd>
+        </div>
+        <div>
+          <dt>Sort</dt>
+          <dd>{trace.parsed_intent.sort}</dd>
+        </div>
+        <div>
+          <dt>Coupon</dt>
+          <dd>{String(trace.parsed_intent.has_coupon ?? "any")}</dd>
+        </div>
+        <div>
+          <dt>Cashback</dt>
+          <dd>{String(trace.parsed_intent.has_cashback ?? "any")}</dd>
+        </div>
+        <div>
+          <dt>Freshness</dt>
+          <dd>{trace.parsed_intent.freshness ?? "any"}</dd>
+        </div>
+        <div>
+          <dt>Offer IDs</dt>
+          <dd>{trace.recommended_offer_ids.join(", ") || "none"}</dd>
+        </div>
+      </dl>
+
+      <section className="trace-detail-section">
+        <h4>Evaluation steps</h4>
+        <ol className="trace-steps">
+          {trace.evaluation_trace.map((step) => (
+            <li key={`${trace.id}-${step.step}`}>
+              <div>
+                <strong>{step.step}</strong>
+                <span>{step.output}</span>
+              </div>
+              <p>{step.notes.join(", ")}</p>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      <section className="trace-detail-section">
+        <h4>Attached feedback</h4>
+        {feedback.length > 0 ? (
+          <div className="trace-feedback-list">
+            {feedback.map((event) => (
+              <div key={event.id}>
+                <span
+                  className={
+                    event.rating === "helpful"
+                      ? "status-pill pass"
+                      : "status-pill fail"
+                  }
+                >
+                  {event.rating.replace("_", " ")}
+                </span>
+                <strong>
+                  {event.offer_title ?? `Offer ${event.offer_id}`}
+                </strong>
+                <small>
+                  {event.source} · {formatDateTime(event.created_at)}
+                </small>
+                {event.reason ? <p>{event.reason}</p> : null}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="state-message">
+            No recent feedback is loaded for this trace.
+          </p>
+        )}
+      </section>
+    </article>
   );
 }
 

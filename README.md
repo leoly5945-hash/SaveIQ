@@ -132,6 +132,10 @@ Gate 4P stores those recommendation versions on each persisted trace row with an
 Trace audits can now read the exact rule, parser, ranker, and fixture versions saved with the
 recommendation event.
 
+Gate 4Q adds a staging trace drilldown in the admin UI. Reviewers can select a recent
+recommendation trace and inspect its saved versions, parsed intent, result count, recommended offer
+IDs, evaluation steps, and any recently loaded feedback attached to the trace.
+
 ## Docker Compose
 
 Run the full local stack:

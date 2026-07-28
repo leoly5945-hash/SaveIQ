@@ -904,7 +904,10 @@ h3 {
 
 .trace-viewer,
 .trace-list,
+.trace-drilldown,
 .trace-card,
+.trace-detail-panel,
+.trace-detail-section,
 .trace-steps {
   display: grid;
   gap: 14px;
@@ -916,6 +919,54 @@ h3 {
 
 .trace-list {
   min-width: 0;
+}
+
+.trace-drilldown {
+  grid-template-columns: minmax(180px, 280px) minmax(0, 1fr);
+  min-width: 0;
+}
+
+.trace-index {
+  align-content: start;
+  display: grid;
+  gap: 10px;
+}
+
+.trace-index button {
+  background: #f8fafc;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  cursor: pointer;
+  display: grid;
+  gap: 5px;
+  padding: 12px;
+  text-align: left;
+}
+
+.trace-index button.active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(19, 126, 110, 0.12);
+}
+
+.trace-index span,
+.trace-detail-section h4 {
+  color: var(--accent);
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.trace-index strong {
+  overflow-wrap: anywhere;
+}
+
+.trace-index small,
+.trace-feedback-list small {
+  color: var(--muted);
+  font-weight: 700;
 }
 
 .trace-card {
@@ -997,6 +1048,23 @@ h3 {
   margin: 0;
 }
 
+.trace-feedback-list {
+  display: grid;
+  gap: 10px;
+}
+
+.trace-feedback-list > div {
+  border-top: 1px solid var(--border);
+  display: grid;
+  gap: 6px;
+  padding-top: 12px;
+}
+
+.trace-feedback-list p {
+  color: var(--muted);
+  margin: 0;
+}
+
 @media (max-width: 760px) {
   .app-shell {
     padding: 24px 16px 40px;
@@ -1032,6 +1100,7 @@ h3 {
   .retention-result,
   .sync-list,
   .trace-viewer,
+  .trace-drilldown,
   .trace-card-heading,
   .trace-intent {
     grid-template-columns: 1fr;

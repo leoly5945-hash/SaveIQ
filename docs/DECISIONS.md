@@ -153,3 +153,12 @@ Recommendation trace rows now store rule, parser, ranker, and fixture versions a
 strategy. Existing staging rows are backfilled to the Gate 4O metadata by migration. This makes trace
 audits historical instead of only comparing against current metadata, while still avoiding user
 identity, live AI payloads, scraping output, or real affiliate-network data.
+
+## 2026-07-27: Gate 4Q Keeps Trace Drilldown UI-Only
+
+Status: Accepted
+
+The recommendation trace drilldown is built in the staging web UI from existing trace and feedback
+summary proxy responses. It intentionally avoids a new backend endpoint because the required row
+versions, parsed intent, ranked offer IDs, evaluation steps, and recent feedback are already present
+in the admin payloads. This keeps the gate small and avoids expanding staging infrastructure.
