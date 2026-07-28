@@ -74,6 +74,8 @@ def test_recommendations_return_mock_offers_with_evaluation_trace() -> None:
         trace_event = session.get(RecommendationTraceEvent, payload["trace_event_id"])
         assert trace_event is not None
         assert trace_event.raw_intent == "Find fresh wireless earbuds with a coupon"
+        assert trace_event.rule_version == RECOMMENDATION_RULE_VERSION
+        assert trace_event.fixture_set_version == RECOMMENDATION_FIXTURE_SET_VERSION
         assert trace_event.result_count == 1
         assert trace_event.recommended_offer_ids == [payload["recommendations"][0]["offer_id"]]
     finally:
@@ -208,6 +210,10 @@ def test_admin_recommendation_traces_list_recent_events() -> None:
         assert payload["current_version_metadata"]["rule_version"] == RECOMMENDATION_RULE_VERSION
         assert payload["recent_traces"][0]["id"] == recommendation_response.json()["trace_event_id"]
         assert payload["recent_traces"][0]["strategy"] == RECOMMENDATION_STRATEGY
+        assert payload["recent_traces"][0]["rule_version"] == RECOMMENDATION_RULE_VERSION
+        assert (
+            payload["recent_traces"][0]["fixture_set_version"] == RECOMMENDATION_FIXTURE_SET_VERSION
+        )
         assert payload["recent_traces"][0]["raw_intent"] == "popular earbuds with cashback"
         assert payload["recent_traces"][0]["parsed_intent"]["search_query"] == "earbuds"
         assert payload["recent_traces"][0]["recommended_offer_ids"]
@@ -401,7 +407,7 @@ def test_admin_recommendation_quality_export_returns_snapshot() -> None:
 
         assert response.status_code == 200
         payload = response.json()
-        assert payload["report_version"] == "gate-4o-quality-export-v1"
+        assert payload["report_version"] == "gate-4p-quality-export-v1"
         assert payload["version_metadata"]["rule_version"] == RECOMMENDATION_RULE_VERSION
         assert payload["environment"] == "staging"
         assert payload["staging_summary"]["counts"]["offers"] == 6

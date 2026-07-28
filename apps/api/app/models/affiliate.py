@@ -378,6 +378,10 @@ class RecommendationTraceEvent(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     strategy: Mapped[str] = mapped_column(String(80), nullable=False)
+    rule_version: Mapped[str] = mapped_column(String(80), nullable=False)
+    intent_parser_version: Mapped[str] = mapped_column(String(80), nullable=False)
+    ranker_version: Mapped[str] = mapped_column(String(80), nullable=False)
+    fixture_set_version: Mapped[str] = mapped_column(String(80), nullable=False)
     raw_intent: Mapped[str] = mapped_column(String(240), nullable=False)
     parsed_intent: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
     result_count: Mapped[int] = mapped_column(Integer, nullable=False)
@@ -392,6 +396,7 @@ class RecommendationTraceEvent(Base):
     __table_args__ = (
         Index("ix_recommendation_trace_events_created", "created_at"),
         Index("ix_recommendation_trace_events_strategy", "strategy"),
+        Index("ix_recommendation_trace_events_rule_version", "rule_version"),
     )
 
 

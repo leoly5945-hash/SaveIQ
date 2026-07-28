@@ -140,6 +140,10 @@ type RecommendationTraceStep = {
 type RecommendationTraceEvent = {
   id: number;
   strategy: string;
+  rule_version: string;
+  intent_parser_version: string;
+  ranker_version: string;
+  fixture_set_version: string;
   raw_intent: string;
   parsed_intent: {
     search_query: string | null;
@@ -2323,7 +2327,8 @@ function RecommendationTraceView({
                   <p className="merchant-name">Trace {trace.id}</p>
                   <h3>{trace.raw_intent}</h3>
                   <p className="result-meta">
-                    {trace.strategy} · {formatDateTime(trace.created_at)}
+                    {trace.strategy} · {trace.rule_version} ·{" "}
+                    {formatDateTime(trace.created_at)}
                   </p>
                 </div>
                 <div className="price-block">
@@ -2333,6 +2338,18 @@ function RecommendationTraceView({
               </div>
 
               <dl className="trace-intent">
+                <div>
+                  <dt>Parser</dt>
+                  <dd>{trace.intent_parser_version}</dd>
+                </div>
+                <div>
+                  <dt>Ranker</dt>
+                  <dd>{trace.ranker_version}</dd>
+                </div>
+                <div>
+                  <dt>Fixtures</dt>
+                  <dd>{trace.fixture_set_version}</dd>
+                </div>
                 <div>
                   <dt>Query</dt>
                   <dd>{trace.parsed_intent.search_query ?? "none"}</dd>

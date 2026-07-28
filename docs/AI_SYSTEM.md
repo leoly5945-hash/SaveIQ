@@ -170,6 +170,12 @@ Gate 4O centralizes recommendation version metadata for the deterministic mock r
 - fixture set: `fixtures-v0`
 
 The API response, fixture evaluation summary, trace admin endpoint, quality export, staging UI, and
-smoke test all expose or validate these values. The current trace table still stores the strategy
-only; the admin trace response includes current version metadata for staging audits until a future
-migration stores per-trace rule versions.
+smoke test all expose or validate these values.
+
+## Gate 4P Persisted Trace Versions
+
+Gate 4P adds persisted rule, parser, ranker, and fixture version columns to
+`recommendation_trace_events`. Existing staging trace rows receive the Gate 4O defaults during
+migration, and new traces store the versions at creation time. The trace admin endpoint and staging
+UI now show row-level version metadata, so future ranking or AI changes can be audited trace by
+trace.

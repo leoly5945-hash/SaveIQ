@@ -263,6 +263,7 @@ payloads.
 
 - total trace count
 - recent trace events
+- persisted strategy, rule, parser, ranker, and fixture versions per trace
 - raw and parsed intent
 - recommended offer IDs
 - deterministic evaluation trace steps

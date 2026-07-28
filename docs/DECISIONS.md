@@ -144,3 +144,12 @@ and surfaced through recommendation responses, evaluation summaries, trace admin
 exports, staging UI, and smoke checks. This gives staging a stable audit marker before future ranking
 or AI changes. The current database trace row still stores only the strategy; per-trace rule-version
 columns are deferred until historical production trace semantics are needed.
+
+## 2026-07-27: Gate 4P Persists Version Metadata Per Trace
+
+Status: Accepted
+
+Recommendation trace rows now store rule, parser, ranker, and fixture versions alongside the
+strategy. Existing staging rows are backfilled to the Gate 4O metadata by migration. This makes trace
+audits historical instead of only comparing against current metadata, while still avoiding user
+identity, live AI payloads, scraping output, or real affiliate-network data.

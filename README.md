@@ -128,6 +128,10 @@ Gate 4O versions the deterministic recommendation strategy, rule set, intent par
 fixture set across API responses, quality reports, staging UI, and staging smoke checks. This keeps
 future ranking or AI changes auditable.
 
+Gate 4P stores those recommendation versions on each persisted trace row with an Alembic migration.
+Trace audits can now read the exact rule, parser, ranker, and fixture versions saved with the
+recommendation event.
+
 ## Docker Compose
 
 Run the full local stack:

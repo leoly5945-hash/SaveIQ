@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.models import RecommendationTraceEvent
 from app.services.recommendation_versions import (
+    RECOMMENDATION_FIXTURE_SET_VERSION,
     RECOMMENDATION_INTENT_PARSER_VERSION,
     RECOMMENDATION_RANKER_VERSION,
     RECOMMENDATION_RULE_VERSION,
@@ -255,6 +256,10 @@ def recommend_offers(
     ]
     trace_event = RecommendationTraceEvent(
         strategy=strategy,
+        rule_version=RECOMMENDATION_RULE_VERSION,
+        intent_parser_version=RECOMMENDATION_INTENT_PARSER_VERSION,
+        ranker_version=RECOMMENDATION_RANKER_VERSION,
+        fixture_set_version=RECOMMENDATION_FIXTURE_SET_VERSION,
         raw_intent=raw_intent,
         parsed_intent=asdict(intent),
         result_count=len(results),

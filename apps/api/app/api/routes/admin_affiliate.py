@@ -520,6 +520,10 @@ def list_recommendation_traces(db: DbSession) -> dict[str, Any]:
             {
                 "id": event.id,
                 "strategy": event.strategy,
+                "rule_version": event.rule_version,
+                "intent_parser_version": event.intent_parser_version,
+                "ranker_version": event.ranker_version,
+                "fixture_set_version": event.fixture_set_version,
                 "raw_intent": event.raw_intent,
                 "parsed_intent": event.parsed_intent,
                 "result_count": event.result_count,
@@ -684,7 +688,7 @@ def export_recommendation_quality_report(
     db: DbSession,
 ) -> RecommendationQualityExportResponse:
     return RecommendationQualityExportResponse(
-        report_version="gate-4o-quality-export-v1",
+        report_version="gate-4p-quality-export-v1",
         version_metadata=RECOMMENDATION_VERSION_METADATA,
         exported_at=datetime.now(UTC),
         environment="staging",

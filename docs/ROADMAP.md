@@ -60,4 +60,5 @@
 - Gate 4M staging quality cockpit for evaluation, coverage, trace volume, and retention readiness
 - Gate 4N staging quality report export for review snapshots before pruning or ranking changes
 - Gate 4O versioned recommendation rules, parser, ranker, fixture set, and quality export metadata
+- Gate 4P persisted recommendation trace version columns and row-level trace audit display
 - Future: LLM intent parsing after evaluation criteria are defined

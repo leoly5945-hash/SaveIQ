@@ -20,7 +20,7 @@ USER_AGENT = "SaveIQ-Staging-Smoke/1.0"
 EXPECTED_RECOMMENDATION_STRATEGY = "rule_based_mock_v0"
 EXPECTED_RULE_VERSION = "ruleset-2026-07-27-gate-4o"
 EXPECTED_FIXTURE_SET_VERSION = "fixtures-v0"
-EXPECTED_QUALITY_REPORT_VERSION = "gate-4o-quality-export-v1"
+EXPECTED_QUALITY_REPORT_VERSION = "gate-4p-quality-export-v1"
 
 
 @dataclass(frozen=True)
@@ -392,13 +392,28 @@ def main() -> None:
     ]
     if trace_event_id not in recent_trace_ids:
         fail("recommendation trace admin endpoint did not include the API trace")
+    api_recent_trace = next(
+        trace
+        for trace in traces["recent_traces"]
+        if isinstance(trace, dict) and trace.get("id") == trace_event_id
+    )
+    if (
+        api_recent_trace.get("rule_version") != EXPECTED_RULE_VERSION
+        or api_recent_trace.get("fixture_set_version") != EXPECTED_FIXTURE_SET_VERSION
+    ):
+        fail("recommendation trace row returned unexpected persisted version metadata")
     trace_versions = traces.get("current_version_metadata")
     if (
         not isinstance(trace_versions, dict)
         or trace_versions.get("rule_version") != EXPECTED_RULE_VERSION
     ):
         fail("recommendation trace admin endpoint returned unexpected version metadata")
-    checks.append(Check("recommendation_traces", f"total={traces['total_traces']}"))
+    checks.append(
+        Check(
+            "recommendation_traces",
+            f"total={traces['total_traces']} row_rule={api_recent_trace['rule_version']}",
+        )
+    )
 
     web_traces = post_json(
         f"{web_url}/api/admin/recommendation-traces", {"adminToken": token}
@@ -410,8 +425,26 @@ def main() -> None:
         or web_trace_versions.get("rule_version") != EXPECTED_RULE_VERSION
     ):
         fail("web recommendation trace proxy returned malformed data")
+    web_recent_trace = next(
+        (
+            trace
+            for trace in web_traces.get("recent_traces", [])
+            if isinstance(trace, dict) and trace.get("id") == web_trace_event_id
+        ),
+        None,
+    )
+    if (
+        not isinstance(web_recent_trace, dict)
+        or web_recent_trace.get("rule_version") != EXPECTED_RULE_VERSION
+    ):
+        fail(
+            "web recommendation trace proxy returned unexpected persisted version metadata"
+        )
     checks.append(
-        Check("web_recommendation_trace_proxy", f"total={web_traces['total_traces']}")
+        Check(
+            "web_recommendation_trace_proxy",
+            f"total={web_traces['total_traces']} row_rule={web_recent_trace['rule_version']}",
+        )
     )
 
     evaluation = get_json(f"{api_url}/admin/affiliate/recommendation-evaluation", token)
