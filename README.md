@@ -144,6 +144,9 @@ Gate 4S adds an admin closeout checklist to the quality cockpit. It summarizes f
 trace audit coverage, feedback coverage, retention preview, export snapshot status, and active
 version metadata before final Gate 4 closeout.
 
+Gate 4T closes the recommendation staging phase. The closeout evidence, exit criteria, and remaining
+deferrals are recorded in `docs/GATE_4_CLOSEOUT.md`.
+
 ## Docker Compose
 
 Run the full local stack:
@@ -228,6 +231,7 @@ The token must come from Render's `ADMIN_API_TOKEN` environment variable. Do not
 it into docs.
 
 Gate 3 staging closeout evidence is recorded in `docs/GATE_3_CLOSEOUT.md`.
+Gate 4 recommendation closeout evidence is recorded in `docs/GATE_4_CLOSEOUT.md`.
 
 For template-only validation before placeholders are replaced:
 

@@ -64,4 +64,5 @@
 - Gate 4Q staging recommendation trace drilldown with parsed intent, versions, steps, and feedback
 - Gate 4R staging recommendation trace comparison before ranking or parser changes
 - Gate 4S admin closeout checklist for fixture, trace, feedback, retention, export, and version readiness
-- Future: LLM intent parsing after evaluation criteria are defined
+- Gate 4T final recommendation staging closeout
+- Future: Gate 5 constrained LLM intent parser prototype behind existing evaluation and trace surfaces

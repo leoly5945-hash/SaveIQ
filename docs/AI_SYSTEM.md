@@ -202,3 +202,11 @@ Gate 4S adds a staging-only closeout checklist to the recommendation quality coc
 fixture status, trace audit volume, feedback coverage, retention preview readiness, quality export
 status, and active version metadata. The checklist is a review surface only; it does not alter
 recommendation behavior, persistence, external integrations, or AI execution.
+
+## Gate 4T Recommendation Phase Closeout
+
+Gate 4T closes the deterministic recommendation staging phase. The system now has enough mock-only
+quality scaffolding to evaluate future AI changes: fixtures, persisted traces, row-level versions,
+decision explanations, feedback, retention preview, trace comparison, and quality export. The next
+AI step should be a constrained LLM intent-parser prototype behind the same evaluation and trace
+surfaces, not a full autonomous agent.

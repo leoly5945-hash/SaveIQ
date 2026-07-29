@@ -180,3 +180,12 @@ Gate 4 closeout readiness is represented as a staging UI checklist instead of a 
 endpoint. The cockpit already has all required source data from evaluation, traces, feedback,
 retention preview, quality export, and version metadata. Keeping the readiness calculation in the UI
 avoids expanding the API before the recommendation quality rules stabilize.
+
+## 2026-07-29: Gate 4T Closes The Deterministic Recommendation Phase
+
+Status: Accepted
+
+Gate 4 is closed with deterministic recommendations, fixture evaluation, persisted traces, version
+metadata, explanations, feedback, retention preview, trace comparison, quality export, and staging
+smoke coverage. The next phase should prototype LLM intent parsing behind these existing guardrails
+rather than introducing a full autonomous agent or real affiliate integrations.
