@@ -65,4 +65,11 @@
 - Gate 4R staging recommendation trace comparison before ranking or parser changes
 - Gate 4S admin closeout checklist for fixture, trace, feedback, retention, export, and version readiness
 - Gate 4T final recommendation staging closeout
-- Future: Gate 5 constrained LLM intent parser prototype behind existing evaluation and trace surfaces
+
+## Phase 5: Constrained LLM Intent Parser
+
+- Gate 5A versioned LLM intent-parser contract, schema guardrails, and fallback policy
+- Gate 5B OpenAI configuration and mockable parser service
+- Gate 5C feature-flagged parser path behind deterministic fallback
+- Gate 5D evaluation and trace coverage for LLM parser behavior
+- Gate 5E staging enablement and closeout

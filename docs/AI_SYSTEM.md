@@ -210,3 +210,28 @@ quality scaffolding to evaluate future AI changes: fixtures, persisted traces, r
 decision explanations, feedback, retention preview, trace comparison, and quality export. The next
 AI step should be a constrained LLM intent-parser prototype behind the same evaluation and trace
 surfaces, not a full autonomous agent.
+
+## Gate 5A LLM Intent Parser Contract
+
+Gate 5A defines the contract for a future LLM-powered intent parser without calling a model or
+changing recommendation endpoint behavior. The contract lives in
+`apps/api/app/services/llm_intent_contract.py` and includes:
+
+- contract version: `llm-intent-contract-2026-07-29-gate-5a`
+- prompt version: `llm-intent-prompt-v0`
+- output schema name: `dealhunter.recommendation_intent.v1`
+- allowed sorts: `price_asc`, `price_desc`, and `clicks_desc`
+- fallback parser: `intent-parser-v0`
+
+The parser input is limited to the raw shopping intent, market, locale, and allowed sort values. The
+parser output is limited to normalized search query, coupon/cashback flags, freshness, sort,
+confidence, reasoning summary, and optional fallback reason.
+
+The fallback policy keeps the deterministic parser active when the feature flag is disabled, API key
+configuration is missing, model calls fail, model output fails schema validation, or confidence is
+below `0.60`.
+
+Guardrails require the future parser to parse shopping intent only, return only declared schema
+fields, avoid inventing merchants, products, prices, coupons, or cashback, and avoid browsing or
+calling affiliate networks. Gate 5A is intentionally contract-only; the OpenAI configuration,
+mockable parser service, feature flag, and trace integration are deferred to later Gate 5 steps.

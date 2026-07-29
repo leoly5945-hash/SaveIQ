@@ -189,3 +189,13 @@ Gate 4 is closed with deterministic recommendations, fixture evaluation, persist
 metadata, explanations, feedback, retention preview, trace comparison, quality export, and staging
 smoke coverage. The next phase should prototype LLM intent parsing behind these existing guardrails
 rather than introducing a full autonomous agent or real affiliate integrations.
+
+## 2026-07-29: Gate 5A Defines Parser Contract Before Model Calls
+
+Status: Accepted
+
+The LLM intent-parser phase starts with versioned input/output schemas, allowed sort values,
+guardrails, and fallback policy before adding OpenAI configuration or model execution. The active
+recommendation parser remains deterministic `intent-parser-v0`, and low-confidence, invalid,
+misconfigured, or failed LLM parsing must fall back to it. This keeps Gate 5 small, auditable, and
+mock-only while preserving the existing evaluation and trace foundation.

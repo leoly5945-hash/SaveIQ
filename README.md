@@ -147,6 +147,11 @@ version metadata before final Gate 4 closeout.
 Gate 4T closes the recommendation staging phase. The closeout evidence, exit criteria, and remaining
 deferrals are recorded in `docs/GATE_4_CLOSEOUT.md`.
 
+Gate 5A starts the constrained LLM intent-parser phase with a contract only. The backend now has
+versioned input/output schemas, allowed sort values, guardrails, and fallback policy for a future
+LLM parser. No model is called, no endpoint behavior changes, and the deterministic
+`intent-parser-v0` remains the active parser.
+
 ## Docker Compose
 
 Run the full local stack:
@@ -232,6 +237,7 @@ it into docs.
 
 Gate 3 staging closeout evidence is recorded in `docs/GATE_3_CLOSEOUT.md`.
 Gate 4 recommendation closeout evidence is recorded in `docs/GATE_4_CLOSEOUT.md`.
+Gate 5A is contract-only and should not change staging smoke output beyond normal trace counters.
 
 For template-only validation before placeholders are replaced:
 

@@ -12,6 +12,8 @@ DealHunter handles commerce data, affiliate links, and future user preferences. 
   conversion data.
 - Recommendation trace events store no user accounts, IP addresses, tokens, model prompts, or model
   responses.
+- Gate 5A LLM parser artifacts are contract-only and must not include admin tokens, raw secrets,
+  scraping output, live affiliate payloads, or model calls.
 
 ## Future Requirements
 
