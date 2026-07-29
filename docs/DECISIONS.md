@@ -171,3 +171,12 @@ Trace comparison is implemented client-side from the existing recent trace paylo
 versions, parsed intent, result count, ranked offer IDs, and evaluation step outputs is enough for
 staging reviewers to spot ranking changes before the system introduces real AI parsing. A dedicated
 compare endpoint is deferred until traces become large enough to need server-side diffing.
+
+## 2026-07-28: Gate 4S Uses a UI Checklist for Phase Readiness
+
+Status: Accepted
+
+Gate 4 closeout readiness is represented as a staging UI checklist instead of a new backend status
+endpoint. The cockpit already has all required source data from evaluation, traces, feedback,
+retention preview, quality export, and version metadata. Keeping the readiness calculation in the UI
+avoids expanding the API before the recommendation quality rules stabilize.

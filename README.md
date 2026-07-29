@@ -140,6 +140,10 @@ Gate 4R adds a trace comparison view. Staging reviewers can compare two recent r
 traces across versions, parsed intent fields, result counts, ranked offer IDs, and evaluation steps
 before changing ranking logic.
 
+Gate 4S adds an admin closeout checklist to the quality cockpit. It summarizes fixture readiness,
+trace audit coverage, feedback coverage, retention preview, export snapshot status, and active
+version metadata before final Gate 4 closeout.
+
 ## Docker Compose
 
 Run the full local stack:

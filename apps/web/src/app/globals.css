@@ -727,6 +727,75 @@ h3 {
   margin: 0;
 }
 
+.quality-closeout {
+  border: 1px solid var(--border);
+  border-left: 4px solid #d97706;
+  border-radius: 8px;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(220px, 0.7fr) minmax(0, 1fr);
+  padding: 16px;
+}
+
+.quality-closeout.ready {
+  border-left-color: var(--accent);
+}
+
+.quality-closeout h3,
+.quality-closeout p {
+  margin: 0;
+}
+
+.quality-closeout p {
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.quality-closeout ul {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.quality-closeout li {
+  align-items: start;
+  border-top: 1px solid var(--border);
+  display: grid;
+  gap: 10px;
+  grid-template-columns: auto minmax(0, 1fr);
+  padding-top: 10px;
+}
+
+.quality-closeout li > span {
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 900;
+  padding: 4px 8px;
+  text-transform: uppercase;
+}
+
+.quality-closeout li.pass > span {
+  background: #dff7ee;
+  color: #0f6b4f;
+}
+
+.quality-closeout li.warn > span {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.quality-closeout li.fail > span {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.quality-closeout li div {
+  display: grid;
+  gap: 4px;
+}
+
 .quality-insights {
   display: grid;
   gap: 14px;
@@ -1160,6 +1229,7 @@ h3 {
   .admin-grid,
   .evaluation-metrics,
   .feedback-split,
+  .quality-closeout,
   .quality-insights,
   .quality-scoreboard,
   .retention-controls,

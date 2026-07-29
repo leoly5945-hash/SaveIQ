@@ -131,6 +131,7 @@ ranker, and fixture set produced a result.
 Gate 4Q does not add a new endpoint; the staging trace drilldown reads existing recommendation trace
 and feedback summary admin responses through the web proxy.
 Gate 4R also uses the same trace payload for UI-side comparison and does not change API contracts.
+Gate 4S is also UI-only and adds no API fields or routes.
 
 ```json
 {

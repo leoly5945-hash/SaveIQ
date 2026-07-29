@@ -195,3 +195,10 @@ selected trace against another trace across rule, parser, ranker, fixture versio
 fields, result count, recommended offer IDs, and deterministic evaluation step outputs. This is a
 review aid before ranking or AI parser changes and does not add new persistence, external model
 calls, scraping, or affiliate integrations.
+
+## Gate 4S Admin Closeout Checklist
+
+Gate 4S adds a staging-only closeout checklist to the recommendation quality cockpit. It summarizes
+fixture status, trace audit volume, feedback coverage, retention preview readiness, quality export
+status, and active version metadata. The checklist is a review surface only; it does not alter
+recommendation behavior, persistence, external integrations, or AI execution.

@@ -179,6 +179,12 @@ type TraceComparisonRow = {
   changed: boolean;
 };
 
+type QualityCloseoutItem = {
+  label: string;
+  status: "pass" | "warn" | "fail";
+  detail: string;
+};
+
 type RecommendationEvaluationCase = {
   id: string;
   status: "pass" | "fail";
@@ -1463,6 +1469,15 @@ function RecommendationQualityCockpit({
           strategy: evaluation.strategy,
         }
       : null);
+  const closeoutItems = getQualityCloseoutItems({
+    evaluation,
+    exportReport,
+    feedback,
+    retention,
+    traceTotal,
+    versionMetadata,
+  });
+  const closeoutReady = closeoutItems.every((item) => item.status === "pass");
 
   return (
     <div className="quality-cockpit">
@@ -1553,6 +1568,38 @@ function RecommendationQualityCockpit({
         />
       </div>
 
+      <section
+        className={
+          closeoutReady
+            ? "quality-closeout ready"
+            : "quality-closeout needs-attention"
+        }
+      >
+        <div>
+          <p className="merchant-name">Gate 4S closeout</p>
+          <h3>
+            {closeoutReady
+              ? "Recommendation staging is ready to close"
+              : "Recommendation staging needs review"}
+          </h3>
+          <p>
+            Checklist for moving from the mock recommendation quality loop to
+            the final Gate 4 closeout.
+          </p>
+        </div>
+        <ul>
+          {closeoutItems.map((item) => (
+            <li className={item.status} key={item.label}>
+              <span>{item.status}</span>
+              <div>
+                <strong>{item.label}</strong>
+                <p>{item.detail}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </section>
+
       <div className="quality-insights">
         <section className="quality-note">
           <h3>Current readout</h3>
@@ -1611,6 +1658,83 @@ function RecommendationQualityCockpit({
       </div>
     </div>
   );
+}
+
+function getQualityCloseoutItems({
+  evaluation,
+  exportReport,
+  feedback,
+  retention,
+  traceTotal,
+  versionMetadata,
+}: {
+  evaluation: RecommendationEvaluationSummary | null;
+  exportReport: RecommendationQualityExport | null;
+  feedback: RecommendationFeedbackSummary | null;
+  retention: RecommendationRetentionResult | null;
+  traceTotal: number;
+  versionMetadata: RecommendationVersionMetadata | null;
+}): QualityCloseoutItem[] {
+  const coverageRate = feedback?.trace_feedback_coverage_rate ?? 0;
+
+  return [
+    {
+      detail: evaluation
+        ? `${evaluation.passed_count}/${evaluation.case_count} cases passed.`
+        : "Run fixture quality checks.",
+      label: "Fixture suite",
+      status:
+        evaluation &&
+        evaluation.failed_count === 0 &&
+        evaluation.passed_count > 0
+          ? "pass"
+          : evaluation
+            ? "fail"
+            : "warn",
+    },
+    {
+      detail:
+        traceTotal > 0
+          ? `${traceTotal} recommendation traces available for audit.`
+          : "Run recommendations to create trace rows.",
+      label: "Trace audit trail",
+      status: traceTotal > 0 ? "pass" : "warn",
+    },
+    {
+      detail: feedback
+        ? `${formatRate(coverageRate)} coverage across ${feedback.total_recommendation_traces} traces.`
+        : "Refresh feedback summary.",
+      label: "Feedback coverage",
+      status: feedback
+        ? coverageRate >= 0.5
+          ? "pass"
+          : coverageRate > 0
+            ? "warn"
+            : "fail"
+        : "warn",
+    },
+    {
+      detail: retention
+        ? `Preview keeps ${retention.keep_latest_traces} traces and would delete ${retention.trace_events_to_delete}.`
+        : "Run retention preview before closeout.",
+      label: "Retention preview",
+      status: retention ? "pass" : "warn",
+    },
+    {
+      detail: exportReport
+        ? `${exportReport.report_version} exported at ${formatDateTime(exportReport.exported_at)}.`
+        : "Export a quality snapshot for review.",
+      label: "Quality export",
+      status: exportReport ? "pass" : "warn",
+    },
+    {
+      detail: versionMetadata
+        ? `${versionMetadata.rule_version}; ${versionMetadata.intent_parser_version}; ${versionMetadata.ranker_version}.`
+        : "Load version metadata from evaluation, traces, or export.",
+      label: "Version metadata",
+      status: versionMetadata ? "pass" : "warn",
+    },
+  ];
 }
 
 function QualitySignalCard({
