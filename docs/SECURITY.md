@@ -14,6 +14,8 @@ DealHunter handles commerce data, affiliate links, and future user preferences. 
   responses.
 - Gate 5A LLM parser artifacts are contract-only and must not include admin tokens, raw secrets,
   scraping output, live affiliate payloads, or model calls.
+- Gate 5B OpenAI settings default to disabled. `OPENAI_API_KEY` must remain a secret, and parser
+  tests must use injected mock clients instead of live model calls.
 
 ## Future Requirements
 

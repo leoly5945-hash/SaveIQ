@@ -235,3 +235,25 @@ Guardrails require the future parser to parse shopping intent only, return only 
 fields, avoid inventing merchants, products, prices, coupons, or cashback, and avoid browsing or
 calling affiliate networks. Gate 5A is intentionally contract-only; the OpenAI configuration,
 mockable parser service, feature flag, and trace integration are deferred to later Gate 5 steps.
+
+## Gate 5B Mockable LLM Parser Service
+
+Gate 5B adds the configuration and service boundary for the future LLM intent parser. The active
+recommendation endpoint still uses deterministic `intent-parser-v0`; this gate does not wire the LLM
+parser into user-facing recommendations.
+
+New configuration:
+
+- `FEATURE_LLM_INTENT_PARSER`, default `false`
+- `LLM_INTENT_PARSER_MODE`, default `disabled`, allowed `disabled`, `mock`, or `openai`
+- `OPENAI_API_KEY`, optional and never committed
+- `OPENAI_INTENT_MODEL`, default `gpt-4.1-mini`
+- `OPENAI_INTENT_TIMEOUT_SECONDS`, default `10`
+
+The service in `apps/api/app/services/llm_intent_parser.py` accepts an injected parser client. Tests
+use a mock client so Gate 5B can validate schema parsing, invalid-output fallback, low-confidence
+fallback, missing-key fallback, and timeout/model propagation without making network requests.
+
+Fallback remains mandatory when the feature flag is off, parser mode is disabled, OpenAI mode is
+selected without an API key, no client is available, output fails validation, or confidence is below
+`0.60`.

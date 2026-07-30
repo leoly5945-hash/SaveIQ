@@ -199,3 +199,13 @@ guardrails, and fallback policy before adding OpenAI configuration or model exec
 recommendation parser remains deterministic `intent-parser-v0`, and low-confidence, invalid,
 misconfigured, or failed LLM parsing must fall back to it. This keeps Gate 5 small, auditable, and
 mock-only while preserving the existing evaluation and trace foundation.
+
+## 2026-07-29: Gate 5B Keeps OpenAI Behind An Injected Client
+
+Status: Accepted
+
+OpenAI configuration is added before any live model execution. The LLM parser service accepts an
+injected client and falls back unless the feature flag, parser mode, key requirements, schema
+validation, and confidence threshold all pass. This lets local tests and future staging checks
+exercise the parser boundary with a mock client while avoiding accidental network calls, spend, or
+unreviewed model output.

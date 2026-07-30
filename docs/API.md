@@ -135,6 +135,8 @@ Gate 4S is also UI-only and adds no API fields or routes.
 Gate 4T closes the phase with documentation and does not change API contracts.
 Gate 5A defines an internal LLM intent-parser contract only. It adds no endpoint, request field,
 response field, model call, scraping behavior, or affiliate integration.
+Gate 5B adds configuration and an internal mockable parser service only. It also adds no endpoint,
+request field, response field, model call, scraping behavior, or affiliate integration.
 
 ```json
 {

@@ -152,6 +152,10 @@ versioned input/output schemas, allowed sort values, guardrails, and fallback po
 LLM parser. No model is called, no endpoint behavior changes, and the deterministic
 `intent-parser-v0` remains the active parser.
 
+Gate 5B adds OpenAI-related configuration and a mockable LLM intent-parser service. The default
+configuration keeps the service disabled. Tests can inject a mock client to validate schema handling,
+confidence fallback, and missing-key fallback without making a network request or calling a model.
+
 ## Docker Compose
 
 Run the full local stack:

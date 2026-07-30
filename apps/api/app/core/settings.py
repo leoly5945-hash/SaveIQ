@@ -1,4 +1,5 @@
 from functools import lru_cache
+from typing import Literal
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -19,6 +20,23 @@ class Settings(BaseSettings):
     )
     log_level: str = Field(default="info", validation_alias="LOG_LEVEL")
     admin_api_token: str = Field(default="dev-admin-token", validation_alias="ADMIN_API_TOKEN")
+    feature_llm_intent_parser: bool = Field(
+        default=False,
+        validation_alias="FEATURE_LLM_INTENT_PARSER",
+    )
+    llm_intent_parser_mode: Literal["disabled", "mock", "openai"] = Field(
+        default="disabled",
+        validation_alias="LLM_INTENT_PARSER_MODE",
+    )
+    openai_api_key: str | None = Field(default=None, validation_alias="OPENAI_API_KEY")
+    openai_intent_model: str = Field(
+        default="gpt-4.1-mini",
+        validation_alias="OPENAI_INTENT_MODEL",
+    )
+    openai_intent_timeout_seconds: float = Field(
+        default=10.0,
+        validation_alias="OPENAI_INTENT_TIMEOUT_SECONDS",
+    )
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
@@ -30,6 +48,19 @@ class Settings(BaseSettings):
     @classmethod
     def normalize_log_level(cls, value: str) -> str:
         return value.lower()
+
+    @field_validator("llm_intent_parser_mode")
+    @classmethod
+    def normalize_llm_intent_parser_mode(cls, value: str) -> str:
+        return value.lower()
+
+    @field_validator("openai_api_key")
+    @classmethod
+    def normalize_openai_api_key(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        stripped = value.strip()
+        return stripped or None
 
     @field_validator("database_url")
     @classmethod
