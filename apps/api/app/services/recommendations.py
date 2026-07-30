@@ -7,6 +7,12 @@ from typing import TypedDict
 from sqlalchemy.orm import Session
 
 from app.models import RecommendationTraceEvent
+from app.services.llm_intent_contract import LlmParsedIntent
+from app.services.llm_intent_parser import (
+    LLM_INTENT_RUNTIME_PARSER_VERSION,
+    LlmIntentParserResult,
+    LlmIntentParserService,
+)
 from app.services.recommendation_versions import (
     RECOMMENDATION_FIXTURE_SET_VERSION,
     RECOMMENDATION_INTENT_PARSER_VERSION,
@@ -145,7 +151,48 @@ def parse_recommendation_intent(raw_intent: str) -> RecommendationIntent:
     )
 
 
-def _trace_intent(intent: RecommendationIntent) -> RecommendationTraceStep:
+def _intent_from_llm(raw_intent: str, parsed: LlmParsedIntent) -> RecommendationIntent:
+    return RecommendationIntent(
+        raw_intent=raw_intent,
+        search_query=parsed.search_query,
+        has_coupon=parsed.has_coupon,
+        has_cashback=parsed.has_cashback,
+        freshness=parsed.freshness,
+        sort=parsed.sort,
+    )
+
+
+def _trace_llm_intent_parser(result: LlmIntentParserResult) -> RecommendationTraceStep:
+    if result.fallback_required:
+        output = f"fallback to {RECOMMENDATION_INTENT_PARSER_VERSION}"
+        notes = [
+            "LLM parser attempted",
+            f"mode={result.parser_mode}",
+            f"model={result.model}",
+            result.fallback_reason or "fallback required",
+        ]
+    else:
+        output = f"parsed with {LLM_INTENT_RUNTIME_PARSER_VERSION}"
+        confidence = result.parsed_intent.confidence if result.parsed_intent is not None else 0.0
+        notes = [
+            "LLM parser accepted",
+            f"mode={result.parser_mode}",
+            f"model={result.model}",
+            f"confidence={confidence:.2f}",
+        ]
+    return {
+        "step": "llm_intent_parser",
+        "input": result.parser_mode,
+        "output": output,
+        "notes": notes,
+    }
+
+
+def _trace_intent(
+    intent: RecommendationIntent,
+    *,
+    parser_version: str = RECOMMENDATION_INTENT_PARSER_VERSION,
+) -> RecommendationTraceStep:
     filters = [
         f"query={intent.search_query!r}",
         f"has_coupon={intent.has_coupon}",
@@ -158,8 +205,10 @@ def _trace_intent(intent: RecommendationIntent) -> RecommendationTraceStep:
         "input": intent.raw_intent,
         "output": ", ".join(filters),
         "notes": [
-            "rule-based parser",
-            RECOMMENDATION_INTENT_PARSER_VERSION,
+            "LLM parser path"
+            if parser_version == LLM_INTENT_RUNTIME_PARSER_VERSION
+            else "rule-based parser",
+            parser_version,
             "no model call",
         ],
     }
@@ -229,9 +278,20 @@ def recommend_offers(
     db: Session,
     raw_intent: str,
     limit: int = DEFAULT_RECOMMENDATION_LIMIT,
+    llm_intent_parser: LlmIntentParserService | None = None,
 ) -> RecommendationResult:
     bounded_limit = max(1, min(limit, MAX_RECOMMENDATION_LIMIT))
-    intent = parse_recommendation_intent(raw_intent)
+    llm_parser_result = llm_intent_parser.parse(raw_intent) if llm_intent_parser else None
+    if (
+        llm_parser_result is not None
+        and not llm_parser_result.fallback_required
+        and llm_parser_result.parsed_intent is not None
+    ):
+        intent = _intent_from_llm(raw_intent, llm_parser_result.parsed_intent)
+        intent_parser_version = LLM_INTENT_RUNTIME_PARSER_VERSION
+    else:
+        intent = parse_recommendation_intent(raw_intent)
+        intent_parser_version = RECOMMENDATION_INTENT_PARSER_VERSION
     filters = SearchFilters(
         query=intent.search_query,
         has_coupon=intent.has_coupon,
@@ -249,15 +309,20 @@ def recommend_offers(
         for row in search_results
     ]
     strategy = RECOMMENDATION_STRATEGY
-    trace = [
-        _trace_intent(intent),
-        _trace_retrieval(filters, len(search_results)),
-        _trace_ranking(intent, len(search_results)),
-    ]
+    trace = []
+    if llm_parser_result is not None:
+        trace.append(_trace_llm_intent_parser(llm_parser_result))
+    trace.extend(
+        [
+            _trace_intent(intent, parser_version=intent_parser_version),
+            _trace_retrieval(filters, len(search_results)),
+            _trace_ranking(intent, len(search_results)),
+        ]
+    )
     trace_event = RecommendationTraceEvent(
         strategy=strategy,
         rule_version=RECOMMENDATION_RULE_VERSION,
-        intent_parser_version=RECOMMENDATION_INTENT_PARSER_VERSION,
+        intent_parser_version=intent_parser_version,
         ranker_version=RECOMMENDATION_RANKER_VERSION,
         fixture_set_version=RECOMMENDATION_FIXTURE_SET_VERSION,
         raw_intent=raw_intent,
@@ -272,7 +337,7 @@ def recommend_offers(
     return {
         "strategy": strategy,
         "rule_version": RECOMMENDATION_RULE_VERSION,
-        "intent_parser_version": RECOMMENDATION_INTENT_PARSER_VERSION,
+        "intent_parser_version": intent_parser_version,
         "ranker_version": RECOMMENDATION_RANKER_VERSION,
         "intent": intent,
         "trace_event_id": trace_event.id,

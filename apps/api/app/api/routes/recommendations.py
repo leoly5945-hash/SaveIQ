@@ -6,12 +6,15 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
+from app.core.settings import Settings, get_settings
 from app.db.session import get_db
 from app.models import RecommendationFeedbackRating
+from app.services.llm_intent_parser import LlmIntentParserService
 from app.services.recommendation_feedback import record_recommendation_feedback
 from app.services.recommendations import recommend_offers
 
 DbSession = Annotated[Session, Depends(get_db)]
+AppSettings = Annotated[Settings, Depends(get_settings)]
 
 router = APIRouter(prefix="/recommendations", tags=["recommendations"])
 
@@ -103,8 +106,14 @@ class RecommendationResponse(BaseModel):
 def recommend_products(
     request: RecommendationRequest,
     db: DbSession,
+    settings: AppSettings,
 ) -> RecommendationResponse:
-    result = recommend_offers(db, request.intent, request.limit)
+    result = recommend_offers(
+        db,
+        request.intent,
+        request.limit,
+        llm_intent_parser=LlmIntentParserService(settings),
+    )
     return RecommendationResponse(
         intent=RecommendationIntentResponse(**result["intent"].__dict__),
         strategy=result["strategy"],

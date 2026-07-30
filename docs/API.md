@@ -137,6 +137,9 @@ Gate 5A defines an internal LLM intent-parser contract only. It adds no endpoint
 response field, model call, scraping behavior, or affiliate integration.
 Gate 5B adds configuration and an internal mockable parser service only. It also adds no endpoint,
 request field, response field, model call, scraping behavior, or affiliate integration.
+Gate 5C keeps the same endpoint and response shape, but route-driven recommendation traces include a
+`llm_intent_parser` step before deterministic `parse_intent`. With default staging config, that step
+records fallback to `intent-parser-v0`.
 
 ```json
 {

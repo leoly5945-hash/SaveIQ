@@ -13,6 +13,7 @@ from app.services.llm_intent_contract import (
 )
 
 MIN_LLM_INTENT_CONFIDENCE = 0.60
+LLM_INTENT_RUNTIME_PARSER_VERSION = "llm-intent-parser-v0"
 
 
 class LlmIntentParserClient(Protocol):

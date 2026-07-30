@@ -257,3 +257,19 @@ fallback, missing-key fallback, and timeout/model propagation without making net
 Fallback remains mandatory when the feature flag is off, parser mode is disabled, OpenAI mode is
 selected without an API key, no client is available, output fails validation, or confidence is below
 `0.60`.
+
+## Gate 5C Feature-Flagged Parser Path
+
+Gate 5C wires the mockable parser service into `POST /recommendations` while keeping the default
+staging behavior deterministic. The route creates `LlmIntentParserService` from runtime settings and
+passes it to the recommendation service. With `FEATURE_LLM_INTENT_PARSER=false`, the service records
+a fallback result and recommendations continue through `intent-parser-v0`.
+
+The persisted recommendation trace now includes a `llm_intent_parser` step before `parse_intent` for
+route-driven recommendations. In disabled staging, that step records `fallback to intent-parser-v0`.
+When tests inject a mock parser client and enable `LLM_INTENT_PARSER_MODE=mock`, the recommendation
+service can accept the parsed schema output and store `llm-intent-parser-v0` as the trace parser
+version.
+
+No OpenAI SDK call, external network request, scraping, autonomous agent behavior, or real affiliate
+integration is introduced in Gate 5C.

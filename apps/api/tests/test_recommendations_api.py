@@ -6,15 +6,22 @@ from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 import app.models  # noqa: F401
+from app.core.settings import Settings
 from app.db.base import Base
 from app.db.session import get_db
 from app.main import app
 from app.models import RecommendationFeedbackEvent, RecommendationTraceEvent
+from app.services.llm_intent_contract import LlmIntentParserInput
+from app.services.llm_intent_parser import (
+    LLM_INTENT_RUNTIME_PARSER_VERSION,
+    LlmIntentParserService,
+)
 from app.services.recommendation_versions import (
     RECOMMENDATION_FIXTURE_SET_VERSION,
     RECOMMENDATION_RULE_VERSION,
     RECOMMENDATION_STRATEGY,
 )
+from app.services.recommendations import recommend_offers
 
 
 def make_client() -> tuple[TestClient, Session]:
@@ -32,6 +39,25 @@ def make_client() -> tuple[TestClient, Session]:
 
     app.dependency_overrides[get_db] = override_db
     return TestClient(app), session
+
+
+class MockIntentParserClient:
+    def parse_intent(
+        self,
+        request: LlmIntentParserInput,
+        *,
+        model: str,
+        timeout_seconds: float,
+    ) -> dict[str, object]:
+        return {
+            "search_query": "wireless earbuds",
+            "has_coupon": True,
+            "has_cashback": None,
+            "freshness": "fresh",
+            "sort": "price_asc",
+            "confidence": 0.91,
+            "reasoning_summary": "Mock parser found fresh coupon earbuds intent.",
+        }
 
 
 def test_recommendations_return_mock_offers_with_evaluation_trace() -> None:
@@ -64,13 +90,18 @@ def test_recommendations_return_mock_offers_with_evaluation_trace() -> None:
         assert "coupon requested and available" in explanation["matched_intent"]
         assert "no model call" in explanation["guardrails"]
         assert "no web scraping" in explanation["guardrails"]
-        assert [step["step"] for step in payload["evaluation_trace"]] == [
+        trace_steps = [step["step"] for step in payload["evaluation_trace"]]
+        assert trace_steps == [
+            "llm_intent_parser",
             "parse_intent",
             "retrieve_candidates",
             "rank_candidates",
         ]
-        assert "no model call" in payload["evaluation_trace"][0]["notes"]
-        assert "no web scraping" in payload["evaluation_trace"][1]["notes"]
+        assert payload["evaluation_trace"][0]["output"] == "fallback to intent-parser-v0"
+        parse_step = payload["evaluation_trace"][1]
+        retrieval_step = payload["evaluation_trace"][2]
+        assert "no model call" in parse_step["notes"]
+        assert "no web scraping" in retrieval_step["notes"]
         trace_event = session.get(RecommendationTraceEvent, payload["trace_event_id"])
         assert trace_event is not None
         assert trace_event.raw_intent == "Find fresh wireless earbuds with a coupon"
@@ -78,6 +109,40 @@ def test_recommendations_return_mock_offers_with_evaluation_trace() -> None:
         assert trace_event.fixture_set_version == RECOMMENDATION_FIXTURE_SET_VERSION
         assert trace_event.result_count == 1
         assert trace_event.recommended_offer_ids == [payload["recommendations"][0]["offer_id"]]
+    finally:
+        app.dependency_overrides.clear()
+        session.close()
+
+
+def test_recommendations_can_use_feature_flagged_mock_llm_parser_path() -> None:
+    client, session = make_client()
+    headers = {"X-Admin-Token": "dev-admin-token"}
+    try:
+        client.post("/admin/affiliate/sync/mock", headers=headers)
+        parser = LlmIntentParserService(
+            Settings(
+                FEATURE_LLM_INTENT_PARSER="true",
+                LLM_INTENT_PARSER_MODE="mock",
+                OPENAI_INTENT_MODEL="mock-intent-model",
+            ),
+            MockIntentParserClient(),
+        )
+
+        result = recommend_offers(
+            session,
+            "Use a mock parser for fresh coupon earbuds",
+            limit=3,
+            llm_intent_parser=parser,
+        )
+
+        assert result["intent_parser_version"] == LLM_INTENT_RUNTIME_PARSER_VERSION
+        assert result["intent"].search_query == "wireless earbuds"
+        assert result["results"][0]["merchant"] == "Maple Tech"
+        assert result["trace"][0]["step"] == "llm_intent_parser"
+        assert result["trace"][0]["output"] == "parsed with llm-intent-parser-v0"
+        trace_event = session.get(RecommendationTraceEvent, result["trace_event_id"])
+        assert trace_event is not None
+        assert trace_event.intent_parser_version == LLM_INTENT_RUNTIME_PARSER_VERSION
     finally:
         app.dependency_overrides.clear()
         session.close()
@@ -218,6 +283,7 @@ def test_admin_recommendation_traces_list_recent_events() -> None:
         assert payload["recent_traces"][0]["parsed_intent"]["search_query"] == "earbuds"
         assert payload["recent_traces"][0]["recommended_offer_ids"]
         assert [step["step"] for step in payload["recent_traces"][0]["evaluation_trace"]] == [
+            "llm_intent_parser",
             "parse_intent",
             "retrieve_candidates",
             "rank_candidates",

@@ -156,6 +156,11 @@ Gate 5B adds OpenAI-related configuration and a mockable LLM intent-parser servi
 configuration keeps the service disabled. Tests can inject a mock client to validate schema handling,
 confidence fallback, and missing-key fallback without making a network request or calling a model.
 
+Gate 5C wires the parser service into the recommendation flow behind the feature flag. With the
+default disabled config, recommendations still use deterministic `intent-parser-v0`; the trace now
+records the parser gate fallback before the rule parser step. Tests cover the mock-enabled path
+without a live model call.
+
 ## Docker Compose
 
 Run the full local stack:

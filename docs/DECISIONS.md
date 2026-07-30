@@ -209,3 +209,13 @@ injected client and falls back unless the feature flag, parser mode, key require
 validation, and confidence threshold all pass. This lets local tests and future staging checks
 exercise the parser boundary with a mock client while avoiding accidental network calls, spend, or
 unreviewed model output.
+
+## 2026-07-30: Gate 5C Wires The Parser Behind Fallback
+
+Status: Accepted
+
+The recommendation route now passes runtime settings into the LLM parser service, but the default
+configuration still falls back to deterministic `intent-parser-v0`. Route-driven traces include a
+parser-gate step so staging can prove why deterministic parsing was used. The mock-enabled parser
+path is covered in tests through an injected client, keeping live model calls and OpenAI spend out of
+Gate 5C.

@@ -16,6 +16,9 @@ DealHunter handles commerce data, affiliate links, and future user preferences. 
   scraping output, live affiliate payloads, or model calls.
 - Gate 5B OpenAI settings default to disabled. `OPENAI_API_KEY` must remain a secret, and parser
   tests must use injected mock clients instead of live model calls.
+- Gate 5C route integration must preserve deterministic fallback unless the feature flag and parser
+  client are explicitly enabled. Disabled staging traces may record parser fallback metadata but must
+  not store raw model prompts or responses.
 
 ## Future Requirements
 
