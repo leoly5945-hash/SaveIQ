@@ -19,6 +19,9 @@ DealHunter handles commerce data, affiliate links, and future user preferences. 
 - Gate 5C route integration must preserve deterministic fallback unless the feature flag and parser
   client are explicitly enabled. Disabled staging traces may record parser fallback metadata but must
   not store raw model prompts or responses.
+- Gate 5D live parser calls must be enabled only through explicit environment variables. The OpenAI
+  API key must stay in Render/local secrets, request failures must not expose the key, and persisted
+  traces must store parser status/version metadata rather than raw OpenAI request or response bodies.
 
 ## Future Requirements
 

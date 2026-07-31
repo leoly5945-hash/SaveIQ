@@ -209,7 +209,9 @@ def _trace_intent(
             if parser_version == LLM_INTENT_RUNTIME_PARSER_VERSION
             else "rule-based parser",
             parser_version,
-            "no model call",
+            "model output used for intent fields"
+            if parser_version == LLM_INTENT_RUNTIME_PARSER_VERSION
+            else "no model call",
         ],
     }
 
@@ -239,6 +241,8 @@ def _trace_ranking(intent: RecommendationIntent, result_count: int) -> Recommend
 def _decision_explanation(
     row: SearchResultRow,
     intent: RecommendationIntent,
+    *,
+    parser_version: str = RECOMMENDATION_INTENT_PARSER_VERSION,
 ) -> RecommendationDecisionExplanation:
     matched_intent = list(row["match_reasons"])
     if intent.has_coupon is True and row["has_coupon"]:
@@ -251,7 +255,9 @@ def _decision_explanation(
     ranking_signals = list(row["ranking_reasons"])
     guardrails = [
         "uses stored normalized mock offers",
-        "no model call",
+        "model call limited to intent parsing"
+        if parser_version == LLM_INTENT_RUNTIME_PARSER_VERSION
+        else "no model call",
         "no web scraping",
         "no real affiliate network request",
     ]
@@ -304,7 +310,11 @@ def recommend_offers(
     results: list[RecommendationOfferResult] = [
         {
             **row,
-            "decision_explanation": _decision_explanation(row, intent),
+            "decision_explanation": _decision_explanation(
+                row,
+                intent,
+                parser_version=intent_parser_version,
+            ),
         }
         for row in search_results
     ]

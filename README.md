@@ -161,6 +161,13 @@ default disabled config, recommendations still use deterministic `intent-parser-
 records the parser gate fallback before the rule parser step. Tests cover the mock-enabled path
 without a live model call.
 
+Gate 5D adds a constrained live OpenAI parser client behind the same feature flag. The route creates
+the live client only when `FEATURE_LLM_INTENT_PARSER=true`, `LLM_INTENT_PARSER_MODE=openai`, and
+`OPENAI_API_KEY` are all configured. The client requests schema-constrained JSON, validates the
+response with the Gate 5A contract, and falls back to `intent-parser-v0` on missing config, request
+failure, invalid JSON, schema failure, or low confidence. Staging smoke should remain disabled unless
+you are explicitly testing live parser behavior.
+
 ## Docker Compose
 
 Run the full local stack:

@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import json
+import urllib.error
+import urllib.request
 from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any, Protocol
@@ -8,12 +11,17 @@ from pydantic import ValidationError
 
 from app.core.settings import Settings
 from app.services.llm_intent_contract import (
+    LLM_INTENT_ALLOWED_SORTS,
+    LLM_INTENT_GUARDRAILS,
+    LLM_INTENT_OUTPUT_SCHEMA_NAME,
+    LLM_INTENT_PROMPT_VERSION,
     LlmIntentParserInput,
     LlmParsedIntent,
 )
 
 MIN_LLM_INTENT_CONFIDENCE = 0.60
 LLM_INTENT_RUNTIME_PARSER_VERSION = "llm-intent-parser-v0"
+OPENAI_CHAT_COMPLETIONS_URL = "https://api.openai.com/v1/chat/completions"
 
 
 class LlmIntentParserClient(Protocol):
@@ -25,6 +33,76 @@ class LlmIntentParserClient(Protocol):
         timeout_seconds: float,
     ) -> Mapping[str, Any]:
         """Return a raw model-shaped intent payload for schema validation."""
+
+
+class OpenAIHttpTransport(Protocol):
+    def post_json(
+        self,
+        url: str,
+        *,
+        headers: Mapping[str, str],
+        payload: Mapping[str, Any],
+        timeout_seconds: float,
+    ) -> Mapping[str, Any]:
+        """Send JSON and return a decoded JSON object."""
+
+
+class UrllibOpenAIHttpTransport:
+    def post_json(
+        self,
+        url: str,
+        *,
+        headers: Mapping[str, str],
+        payload: Mapping[str, Any],
+        timeout_seconds: float,
+    ) -> Mapping[str, Any]:
+        request = urllib.request.Request(
+            url,
+            data=json.dumps(payload).encode("utf-8"),
+            headers=dict(headers),
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=timeout_seconds) as response:
+                raw_body = response.read().decode("utf-8")
+        except (TimeoutError, OSError, urllib.error.URLError) as exc:
+            raise RuntimeError("OpenAI intent parser request failed") from exc
+
+        try:
+            decoded = json.loads(raw_body)
+        except json.JSONDecodeError as exc:
+            raise RuntimeError("OpenAI intent parser returned invalid JSON") from exc
+        if not isinstance(decoded, Mapping):
+            raise RuntimeError("OpenAI intent parser returned a non-object response")
+        return decoded
+
+
+class OpenAIIntentParserClient:
+    def __init__(
+        self,
+        api_key: str,
+        transport: OpenAIHttpTransport | None = None,
+    ) -> None:
+        self._api_key = api_key
+        self._transport = transport or UrllibOpenAIHttpTransport()
+
+    def parse_intent(
+        self,
+        request: LlmIntentParserInput,
+        *,
+        model: str,
+        timeout_seconds: float,
+    ) -> Mapping[str, Any]:
+        response = self._transport.post_json(
+            OPENAI_CHAT_COMPLETIONS_URL,
+            headers={
+                "Authorization": f"Bearer {self._api_key}",
+                "Content-Type": "application/json",
+            },
+            payload=_build_openai_chat_payload(request, model=model),
+            timeout_seconds=timeout_seconds,
+        )
+        return _extract_openai_intent_payload(response)
 
 
 @dataclass(frozen=True)
@@ -106,3 +184,113 @@ class LlmIntentParserService:
             fallback_required=True,
             fallback_reason=reason,
         )
+
+
+def build_llm_intent_parser_service(settings: Settings) -> LlmIntentParserService:
+    client: LlmIntentParserClient | None = None
+    if (
+        settings.feature_llm_intent_parser
+        and settings.llm_intent_parser_mode == "openai"
+        and settings.openai_api_key
+    ):
+        client = OpenAIIntentParserClient(settings.openai_api_key)
+    return LlmIntentParserService(settings, client)
+
+
+def _build_openai_chat_payload(
+    request: LlmIntentParserInput,
+    *,
+    model: str,
+) -> dict[str, Any]:
+    return {
+        "model": model,
+        "messages": [
+            {
+                "role": "system",
+                "content": (
+                    "You are DealHunter's constrained shopping-intent parser. "
+                    "Return only valid JSON for the supplied schema. "
+                    "Do not browse, call tools, invent merchants, invent products, "
+                    "invent prices, invent coupons, or invent cashback."
+                ),
+            },
+            {
+                "role": "user",
+                "content": json.dumps(
+                    {
+                        "prompt_version": LLM_INTENT_PROMPT_VERSION,
+                        "raw_intent": request.raw_intent,
+                        "market": request.market,
+                        "locale": request.locale,
+                        "allowed_sorts": list(request.allowed_sorts),
+                        "guardrails": list(LLM_INTENT_GUARDRAILS),
+                    },
+                    sort_keys=True,
+                ),
+            },
+        ],
+        "response_format": {
+            "type": "json_schema",
+            "json_schema": {
+                "name": LLM_INTENT_OUTPUT_SCHEMA_NAME.replace(".", "_"),
+                "strict": True,
+                "schema": _openai_intent_response_schema(),
+            },
+        },
+    }
+
+
+def _openai_intent_response_schema() -> dict[str, Any]:
+    return {
+        "type": "object",
+        "additionalProperties": False,
+        "required": [
+            "search_query",
+            "has_coupon",
+            "has_cashback",
+            "freshness",
+            "sort",
+            "confidence",
+            "reasoning_summary",
+            "fallback_reason",
+        ],
+        "properties": {
+            "search_query": {
+                "anyOf": [{"type": "string", "maxLength": 120}, {"type": "null"}],
+            },
+            "has_coupon": {"anyOf": [{"type": "boolean"}, {"type": "null"}]},
+            "has_cashback": {"anyOf": [{"type": "boolean"}, {"type": "null"}]},
+            "freshness": {"anyOf": [{"type": "string", "enum": ["fresh"]}, {"type": "null"}]},
+            "sort": {"type": "string", "enum": list(LLM_INTENT_ALLOWED_SORTS)},
+            "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+            "reasoning_summary": {"type": "string", "minLength": 1, "maxLength": 240},
+            "fallback_reason": {
+                "anyOf": [{"type": "string", "maxLength": 160}, {"type": "null"}],
+            },
+        },
+    }
+
+
+def _extract_openai_intent_payload(response: Mapping[str, Any]) -> Mapping[str, Any]:
+    try:
+        choices = response["choices"]
+        if not isinstance(choices, list) or not choices:
+            raise RuntimeError("OpenAI intent parser response missing choices")
+        first_choice = choices[0]
+        if not isinstance(first_choice, Mapping):
+            raise RuntimeError("OpenAI intent parser choice is not an object")
+        message = first_choice["message"]
+        if not isinstance(message, Mapping):
+            raise RuntimeError("OpenAI intent parser message is not an object")
+        content = message["content"]
+        if not isinstance(content, str):
+            raise RuntimeError("OpenAI intent parser content is not a string")
+        parsed = json.loads(content)
+    except KeyError as exc:
+        raise RuntimeError("OpenAI intent parser response is missing fields") from exc
+    except json.JSONDecodeError as exc:
+        raise RuntimeError("OpenAI intent parser content is invalid JSON") from exc
+
+    if not isinstance(parsed, Mapping):
+        raise RuntimeError("OpenAI intent parser content is not an object")
+    return parsed

@@ -273,3 +273,26 @@ version.
 
 No OpenAI SDK call, external network request, scraping, autonomous agent behavior, or real affiliate
 integration is introduced in Gate 5C.
+
+## Gate 5D Controlled Live Parser Client
+
+Gate 5D introduces a live OpenAI parser client behind the existing parser service boundary. The
+recommendation route still creates the parser from runtime settings, but the OpenAI HTTP client is
+attached only when all live-parser controls are present:
+
+- `FEATURE_LLM_INTENT_PARSER=true`
+- `LLM_INTENT_PARSER_MODE=openai`
+- `OPENAI_API_KEY` is configured
+
+The client sends only the constrained Gate 5A parser input, guardrails, prompt version, and allowed
+sort values. It requests JSON shaped by the Gate 5A output schema and then validates the model output
+with `LlmParsedIntent` before any recommendation filters are used.
+
+Fallback remains mandatory when config is incomplete, the request fails, the model response is not
+valid JSON, schema validation fails, or confidence is below `0.60`. When fallback happens,
+recommendations still use deterministic `intent-parser-v0` and trace the fallback reason. When a
+live parser output is accepted, only intent parsing used the model; retrieval, ranking, offer facts,
+prices, coupons, cashback, and click data still come from stored normalized mock records.
+
+Gate 5D does not implement a full AI agent, web scraping, browser access, real affiliate
+integrations, autonomous actions, or model training.

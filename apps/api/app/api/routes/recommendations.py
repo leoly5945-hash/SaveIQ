@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from app.core.settings import Settings, get_settings
 from app.db.session import get_db
 from app.models import RecommendationFeedbackRating
-from app.services.llm_intent_parser import LlmIntentParserService
+from app.services.llm_intent_parser import build_llm_intent_parser_service
 from app.services.recommendation_feedback import record_recommendation_feedback
 from app.services.recommendations import recommend_offers
 
@@ -112,7 +112,7 @@ def recommend_products(
         db,
         request.intent,
         request.limit,
-        llm_intent_parser=LlmIntentParserService(settings),
+        llm_intent_parser=build_llm_intent_parser_service(settings),
     )
     return RecommendationResponse(
         intent=RecommendationIntentResponse(**result["intent"].__dict__),

@@ -140,6 +140,11 @@ request field, response field, model call, scraping behavior, or affiliate integ
 Gate 5C keeps the same endpoint and response shape, but route-driven recommendation traces include a
 `llm_intent_parser` step before deterministic `parse_intent`. With default staging config, that step
 records fallback to `intent-parser-v0`.
+Gate 5D adds a controlled live OpenAI parser client behind the same settings. The public request and
+response shape are unchanged. If the live parser is enabled and accepted, `intent_parser_version`
+becomes `llm-intent-parser-v0` and trace notes show that model output was used only for intent
+fields. If config is incomplete or the model path fails, the endpoint falls back to
+`intent-parser-v0`.
 
 ```json
 {
@@ -198,6 +203,17 @@ Abridged example response:
     }
   ],
   "evaluation_trace": [
+    {
+      "step": "llm_intent_parser",
+      "input": "disabled",
+      "output": "fallback to intent-parser-v0",
+      "notes": [
+        "LLM parser attempted",
+        "mode=disabled",
+        "model=gpt-4.1-mini",
+        "feature flag disabled"
+      ]
+    },
     {
       "step": "parse_intent",
       "input": "Find fresh wireless earbuds with a coupon",

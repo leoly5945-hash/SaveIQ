@@ -71,5 +71,5 @@
 - Gate 5A versioned LLM intent-parser contract, schema guardrails, and fallback policy
 - Gate 5B OpenAI configuration and mockable parser service
 - Gate 5C feature-flagged parser path wired into recommendations behind deterministic fallback
-- Gate 5D evaluation and trace coverage for LLM parser behavior
+- Gate 5D controlled live OpenAI parser client behind feature flag, schema validation, and fallback
 - Gate 5E staging enablement and closeout

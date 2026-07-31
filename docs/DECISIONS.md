@@ -219,3 +219,14 @@ configuration still falls back to deterministic `intent-parser-v0`. Route-driven
 parser-gate step so staging can prove why deterministic parsing was used. The mock-enabled parser
 path is covered in tests through an injected client, keeping live model calls and OpenAI spend out of
 Gate 5C.
+
+## 2026-07-30: Gate 5D Adds Live Parser Only Behind Explicit Controls
+
+Status: Accepted
+
+The first live OpenAI parser client is implemented inside the existing parser service boundary. It
+is only attached when the feature flag is enabled, parser mode is `openai`, and `OPENAI_API_KEY` is
+configured. The client sends constrained parser input, requests schema-shaped JSON, validates the
+response locally, and falls back to `intent-parser-v0` on request errors, invalid JSON, schema
+failure, or low confidence. Tests use a fake HTTP transport so CI and staging smoke do not depend on
+OpenAI network access or spend.
