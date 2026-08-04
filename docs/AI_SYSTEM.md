@@ -296,3 +296,24 @@ prices, coupons, cashback, and click data still come from stored normalized mock
 
 Gate 5D does not implement a full AI agent, web scraping, browser access, real affiliate
 integrations, autonomous actions, or model training.
+
+## Gate 5E Parser Enablement Closeout
+
+Gate 5E closes the constrained LLM intent-parser enablement phase without enabling the live parser by
+default. The recommendation path remains deterministic on staging unless all explicit live-parser
+controls are set.
+
+The admin-only status endpoint reports the current parser state:
+
+- feature flag enabled/disabled
+- parser mode
+- whether an OpenAI key is configured, as a boolean only
+- active and fallback parser versions
+- live-parser readiness
+- staging-safe default status
+- guardrails and required enablement steps
+
+The endpoint and web proxy intentionally do not return `OPENAI_API_KEY`, `ADMIN_API_TOKEN`, raw
+prompts, raw model responses, scraping output, or affiliate payloads. Staging smoke now checks this
+status before validating recommendation behavior so accidental parser enablement is visible before
+future gates change ranking or personalization.

@@ -72,4 +72,4 @@
 - Gate 5B OpenAI configuration and mockable parser service
 - Gate 5C feature-flagged parser path wired into recommendations behind deterministic fallback
 - Gate 5D controlled live OpenAI parser client behind feature flag, schema validation, and fallback
-- Gate 5E staging enablement and closeout
+- Gate 5E staging parser enablement status, smoke coverage, and closeout

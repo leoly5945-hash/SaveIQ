@@ -168,6 +168,12 @@ response with the Gate 5A contract, and falls back to `intent-parser-v0` on miss
 failure, invalid JSON, schema failure, or low confidence. Staging smoke should remain disabled unless
 you are explicitly testing live parser behavior.
 
+Gate 5E closes the constrained parser enablement phase. It adds an admin-only parser status endpoint
+and web proxy so staging smoke can verify whether the live parser is disabled safely or explicitly
+ready. The status response exposes booleans, parser versions, guardrails, and enablement steps only;
+it does not expose `OPENAI_API_KEY`, `ADMIN_API_TOKEN`, prompts, model responses, scraping output, or
+affiliate payloads.
+
 ## Docker Compose
 
 Run the full local stack:
@@ -242,7 +248,7 @@ ADMIN_API_TOKEN=<render-admin-token> PYTHON=.venv/bin/python make staging-seed-m
 
 Run the full staging smoke test after every deploy. It checks API/web health, mock sync, staging
 summary, public search, mock recommendations, persisted recommendation traces, click tracking,
-recommendation evaluation, click analytics, and web proxies:
+recommendation evaluation, parser enablement status, click analytics, and web proxies:
 
 ```bash
 ADMIN_API_TOKEN=<render-admin-token> PYTHON=.venv/bin/python make staging-smoke
@@ -253,7 +259,7 @@ it into docs.
 
 Gate 3 staging closeout evidence is recorded in `docs/GATE_3_CLOSEOUT.md`.
 Gate 4 recommendation closeout evidence is recorded in `docs/GATE_4_CLOSEOUT.md`.
-Gate 5A is contract-only and should not change staging smoke output beyond normal trace counters.
+Gate 5 parser enablement closeout evidence is recorded in `docs/GATE_5_CLOSEOUT.md`.
 
 For template-only validation before placeholders are replaced:
 

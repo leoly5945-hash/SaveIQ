@@ -145,6 +145,8 @@ response shape are unchanged. If the live parser is enabled and accepted, `inten
 becomes `llm-intent-parser-v0` and trace notes show that model output was used only for intent
 fields. If config is incomplete or the model path fails, the endpoint falls back to
 `intent-parser-v0`.
+Gate 5E adds an admin-only parser status endpoint and web proxy for staging enablement checks. It
+does not change public recommendation request or response fields.
 
 ```json
 {
@@ -274,6 +276,7 @@ The staging web app proxies the same request at `POST /api/recommendation-feedba
 - `GET /admin/affiliate/recommendation-feedback`
 - `POST /admin/affiliate/recommendation-quality/retention`
 - `GET /admin/affiliate/recommendation-quality/export`
+- `GET /admin/affiliate/llm-parser-status`
 - `GET /admin/affiliate/staging-summary`
 
 Admin responses expose normalized operational data and do not expose provider secrets or full raw
@@ -348,6 +351,19 @@ endpoint `POST /api/admin/recommendation-quality-retention`.
 The report is intended for audit snapshots before pruning quality events or changing ranking logic.
 It does not include admin tokens. The staging web app exposes this through the quality cockpit export
 button and proxy endpoint `POST /api/admin/recommendation-quality-export`.
+
+`GET /admin/affiliate/llm-parser-status` returns parser enablement metadata for Gate 5E:
+
+- feature flag status
+- parser mode
+- OpenAI key configured boolean
+- active and fallback parser versions
+- live-parser readiness
+- staging-safe default status
+- guardrails and required enablement steps
+
+It does not return API keys, admin tokens, prompts, or model responses. The staging web app exposes
+the same data through `POST /api/admin/llm-parser-status`.
 
 `GET /admin/affiliate/staging-summary` returns staging operations state:
 

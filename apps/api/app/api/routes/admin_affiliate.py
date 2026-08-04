@@ -10,6 +10,7 @@ from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import require_admin
+from app.core.settings import Settings, get_settings
 from app.db.session import get_db
 from app.models import (
     AffiliateClickEvent,
@@ -26,10 +27,16 @@ from app.models import (
 )
 from app.services.affiliate.ingestion import AffiliateIngestionService
 from app.services.affiliate.registry import registry
+from app.services.llm_intent_contract import LLM_INTENT_GUARDRAILS
+from app.services.llm_intent_parser import LLM_INTENT_RUNTIME_PARSER_VERSION
 from app.services.recommendation_evaluation import evaluate_recommendation_fixtures
-from app.services.recommendation_versions import RECOMMENDATION_VERSION_METADATA
+from app.services.recommendation_versions import (
+    RECOMMENDATION_INTENT_PARSER_VERSION,
+    RECOMMENDATION_VERSION_METADATA,
+)
 
 DbSession = Annotated[Session, Depends(get_db)]
+AppSettings = Annotated[Settings, Depends(get_settings)]
 
 router = APIRouter(
     prefix="/admin/affiliate",
@@ -179,6 +186,22 @@ class RecommendationQualityExportResponse(BaseModel):
     notes: list[str]
 
 
+class LlmParserStatusResponse(BaseModel):
+    feature_enabled: bool
+    parser_mode: str
+    openai_configured: bool
+    openai_intent_model: str
+    timeout_seconds: float
+    active_parser_version: str
+    fallback_parser_version: str
+    live_parser_ready: bool
+    staging_default_safe: bool
+    closeout_ready: bool
+    guardrails: list[str]
+    required_enablement: list[str]
+    notes: list[str]
+
+
 def row(model: Any, *fields: str) -> dict[str, Any]:
     return {field: getattr(model, field) for field in fields}
 
@@ -188,6 +211,49 @@ def _click_target_counts(events: Sequence[AffiliateClickEvent]) -> dict[str, int
     for event in events:
         counts[event.target_type] = counts.get(event.target_type, 0) + 1
     return counts
+
+
+@router.get("/llm-parser-status", response_model=LlmParserStatusResponse)
+def get_llm_parser_status(settings: AppSettings) -> LlmParserStatusResponse:
+    openai_configured = bool(settings.openai_api_key)
+    live_parser_ready = (
+        settings.feature_llm_intent_parser
+        and settings.llm_intent_parser_mode == "openai"
+        and openai_configured
+    )
+    staging_default_safe = (
+        not settings.feature_llm_intent_parser and settings.llm_intent_parser_mode == "disabled"
+    )
+    active_parser_version = (
+        LLM_INTENT_RUNTIME_PARSER_VERSION
+        if live_parser_ready
+        else RECOMMENDATION_INTENT_PARSER_VERSION
+    )
+
+    return LlmParserStatusResponse(
+        feature_enabled=settings.feature_llm_intent_parser,
+        parser_mode=settings.llm_intent_parser_mode,
+        openai_configured=openai_configured,
+        openai_intent_model=settings.openai_intent_model,
+        timeout_seconds=settings.openai_intent_timeout_seconds,
+        active_parser_version=active_parser_version,
+        fallback_parser_version=RECOMMENDATION_INTENT_PARSER_VERSION,
+        live_parser_ready=live_parser_ready,
+        staging_default_safe=staging_default_safe,
+        closeout_ready=staging_default_safe or live_parser_ready,
+        guardrails=list(LLM_INTENT_GUARDRAILS),
+        required_enablement=[
+            "Set FEATURE_LLM_INTENT_PARSER=true",
+            "Set LLM_INTENT_PARSER_MODE=openai",
+            "Set the OpenAI API key as a secret environment variable",
+            "Run staging smoke before and after enabling the live parser",
+        ],
+        notes=[
+            "No API keys or admin tokens are returned by this endpoint.",
+            "Disabled staging continues to use intent-parser-v0.",
+            "The live parser must still fall back to intent-parser-v0 on invalid output.",
+        ],
+    )
 
 
 @router.post("/sync/mock", response_model=SyncResultResponse)

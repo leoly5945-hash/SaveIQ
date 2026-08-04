@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 import app.models  # noqa: F401
-from app.core.settings import Settings
+from app.core.settings import Settings, get_settings
 from app.db.base import Base
 from app.db.session import get_db
 from app.main import app
@@ -18,6 +18,7 @@ from app.services.llm_intent_parser import (
 )
 from app.services.recommendation_versions import (
     RECOMMENDATION_FIXTURE_SET_VERSION,
+    RECOMMENDATION_INTENT_PARSER_VERSION,
     RECOMMENDATION_RULE_VERSION,
     RECOMMENDATION_STRATEGY,
 )
@@ -483,6 +484,73 @@ def test_admin_recommendation_quality_export_returns_snapshot() -> None:
         assert payload["retention_preview"]["dry_run"] is True
         assert payload["retention_preview"]["trace_events_deleted"] == 0
         assert payload["notes"]
+    finally:
+        app.dependency_overrides.clear()
+        session.close()
+
+
+def test_admin_llm_parser_status_defaults_to_safe_staging() -> None:
+    client, session = make_client()
+    headers = {"X-Admin-Token": "dev-admin-token"}
+
+    def override_settings() -> Settings:
+        return Settings(
+            FEATURE_LLM_INTENT_PARSER="false",
+            LLM_INTENT_PARSER_MODE="disabled",
+            OPENAI_API_KEY=None,
+        )
+
+    app.dependency_overrides[get_settings] = override_settings
+    try:
+        response = client.get("/admin/affiliate/llm-parser-status", headers=headers)
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["feature_enabled"] is False
+        assert payload["parser_mode"] == "disabled"
+        assert payload["openai_configured"] is False
+        assert payload["active_parser_version"] == RECOMMENDATION_INTENT_PARSER_VERSION
+        assert payload["fallback_parser_version"] == RECOMMENDATION_INTENT_PARSER_VERSION
+        assert payload["live_parser_ready"] is False
+        assert payload["staging_default_safe"] is True
+        assert payload["closeout_ready"] is True
+        assert "do not browse the web or call affiliate networks" in payload["guardrails"]
+        assert "openai_api_key" not in response.text.lower()
+        assert "dev-admin-token" not in response.text
+    finally:
+        app.dependency_overrides.clear()
+        session.close()
+
+
+def test_admin_llm_parser_status_reports_live_parser_readiness_without_secret() -> None:
+    client, session = make_client()
+    headers = {"X-Admin-Token": "dev-admin-token"}
+
+    def override_settings() -> Settings:
+        return Settings(
+            FEATURE_LLM_INTENT_PARSER="true",
+            LLM_INTENT_PARSER_MODE="openai",
+            OPENAI_API_KEY="test-openai-key",
+            OPENAI_INTENT_MODEL="test-intent-model",
+        )
+
+    app.dependency_overrides[get_settings] = override_settings
+    try:
+        response = client.get("/admin/affiliate/llm-parser-status", headers=headers)
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["feature_enabled"] is True
+        assert payload["parser_mode"] == "openai"
+        assert payload["openai_configured"] is True
+        assert payload["openai_intent_model"] == "test-intent-model"
+        assert payload["active_parser_version"] == LLM_INTENT_RUNTIME_PARSER_VERSION
+        assert payload["fallback_parser_version"] == RECOMMENDATION_INTENT_PARSER_VERSION
+        assert payload["live_parser_ready"] is True
+        assert payload["staging_default_safe"] is False
+        assert payload["closeout_ready"] is True
+        assert "test-openai-key" not in response.text
+        assert "dev-admin-token" not in response.text
     finally:
         app.dependency_overrides.clear()
         session.close()

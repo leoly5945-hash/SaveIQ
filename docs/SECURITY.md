@@ -22,6 +22,9 @@ DealHunter handles commerce data, affiliate links, and future user preferences. 
 - Gate 5D live parser calls must be enabled only through explicit environment variables. The OpenAI
   API key must stay in Render/local secrets, request failures must not expose the key, and persisted
   traces must store parser status/version metadata rather than raw OpenAI request or response bodies.
+- Gate 5E parser status responses must expose readiness metadata only. They may reveal whether an
+  OpenAI key is configured, but must never return the key value, admin token, raw prompt, raw model
+  response, scraping output, or affiliate payload.
 
 ## Future Requirements
 

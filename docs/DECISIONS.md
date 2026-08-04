@@ -230,3 +230,14 @@ configured. The client sends constrained parser input, requests schema-shaped JS
 response locally, and falls back to `intent-parser-v0` on request errors, invalid JSON, schema
 failure, or low confidence. Tests use a fake HTTP transport so CI and staging smoke do not depend on
 OpenAI network access or spend.
+
+## 2026-08-04: Gate 5E Closes Parser Enablement With Status Checks
+
+Status: Accepted
+
+The constrained LLM parser phase closes with an admin-only parser status endpoint instead of turning
+the model on by default. Staging can now prove that the live parser is either safely disabled or
+explicitly ready through feature flag, mode, and secret presence checks. The endpoint returns
+versions, guardrails, readiness booleans, and required enablement steps, but never returns API keys,
+admin tokens, prompts, raw model responses, scraping output, or affiliate payloads. Staging smoke
+checks the API endpoint and web proxy before validating recommendation behavior.

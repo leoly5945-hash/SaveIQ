@@ -19,6 +19,8 @@ DEFAULT_WEB_URL = "https://dealhunter-staging-web.onrender.com"
 USER_AGENT = "SaveIQ-Staging-Smoke/1.0"
 EXPECTED_RECOMMENDATION_STRATEGY = "rule_based_mock_v0"
 EXPECTED_RULE_VERSION = "ruleset-2026-07-27-gate-4o"
+EXPECTED_FALLBACK_PARSER_VERSION = "intent-parser-v0"
+EXPECTED_LLM_PARSER_VERSION = "llm-intent-parser-v0"
 EXPECTED_FIXTURE_SET_VERSION = "fixtures-v0"
 EXPECTED_QUALITY_REPORT_VERSION = "gate-4p-quality-export-v1"
 
@@ -202,6 +204,45 @@ def main() -> None:
     if counts.get("products", 0) < 5 or counts.get("offers", 0) < 6:
         fail(f"staging summary counts look wrong: {counts}")
     checks.append(Check("admin_summary", f"offers={counts.get('offers')}"))
+
+    parser_status = get_json(f"{api_url}/admin/affiliate/llm-parser-status", token)
+    active_parser = parser_status.get("active_parser_version")
+    if (
+        active_parser
+        not in {EXPECTED_FALLBACK_PARSER_VERSION, EXPECTED_LLM_PARSER_VERSION}
+        or parser_status.get("fallback_parser_version")
+        != EXPECTED_FALLBACK_PARSER_VERSION
+        or parser_status.get("closeout_ready") is not True
+        or "openai_api_key" in json.dumps(parser_status).lower()
+    ):
+        fail(f"LLM parser status returned unsafe or malformed data: {parser_status}")
+    checks.append(
+        Check(
+            "llm_parser_status",
+            (
+                f"active={active_parser} "
+                f"live_ready={parser_status.get('live_parser_ready')} "
+                f"configured={parser_status.get('openai_configured')}"
+            ),
+        )
+    )
+
+    web_parser_status = post_json(
+        f"{web_url}/api/admin/llm-parser-status", {"adminToken": token}
+    )
+    if (
+        web_parser_status.get("active_parser_version") != active_parser
+        or web_parser_status.get("fallback_parser_version")
+        != EXPECTED_FALLBACK_PARSER_VERSION
+        or web_parser_status.get("closeout_ready") is not True
+    ):
+        fail("web LLM parser status proxy returned unexpected data")
+    checks.append(
+        Check(
+            "web_llm_parser_status_proxy",
+            f"active={web_parser_status['active_parser_version']}",
+        )
+    )
 
     api_search = get_json(
         search_url(api_url, "/search", q=args.query, sort="clicks_desc")
