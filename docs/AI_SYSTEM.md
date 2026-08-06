@@ -320,23 +320,111 @@ future gates change ranking or personalization.
 
 ## Gate 6A Mock AI Router
 
-Gate 6A adds a mock-only AI router in front of the constrained intent parser. The router never
+Gate 6A adds a mock-only AI router before intent parsing. The router never
 calls a live model, never requires an API key, and never scrapes or contacts affiliate networks.
 
 New configuration:
 
 - `FEATURE_AI_ROUTER`, default `false`
-- `AI_ROUTER_MODE`, default `disabled`, allowed `disabled` or `mock`
+- `AI_ROUTER_MODE`, default `disabled`, allowed `disabled` or `mock` (Gate 6B adds `live`)
 - `AI_ROUTER_DEFAULT_MODEL`, default `intent-parser-v0`
 
-When the router feature flag is off, recommendation parsing is unchanged. When it is enabled in
-`mock` mode, the router classifies query complexity for observability and selects the only available
-model identity (`intent-parser-v0`). The parser then falls back to the deterministic rule parser.
-Router exceptions also force that same safe fallback.
+When the router feature flag is off, recommendation parsing is unchanged.
 
-Admin status:
+## Gate 6B Production AI Router
 
-- `GET /admin/router-status` (admin token required)
-- reports `active`, `mode`, `default_model`, `live_ready=false`, and
-  `available_models=["intent-parser-v0"]`
-- never returns secrets
+Gate 6B upgrades the router with provider adapters, Redis caching, cost logging, and
+runtime strategy overrides. Defaults remain safe:
+
+```text
+FEATURE_AI_ROUTER=false
+AI_ROUTER_MODE=disabled
+```
+
+Providers:
+
+- `MockProvider` for keyless tests (`AI_ROUTER_MODE=mock`)
+- `OpenAIProvider` and `AnthropicProvider` for `AI_ROUTER_MODE=live`
+- Keys come only from `OPENAI_API_KEY` / `ANTHROPIC_API_KEY`
+
+Routing strategies:
+
+- `quality_optimized`: SIMPLE/MEDIUM → OpenAI, COMPLEX → Anthropic
+- `cost_optimized`: prefer OpenAI; configured fallback provider on failure
+
+Caching and cost:
+
+- Redis cache keyed by hash(query, market, intent_type), TTL from `AI_ROUTER_CACHE_TTL_SECONDS`
+- Token/cost estimates are logged and aggregated for `/admin/router/metrics`
+- No automatic budget hard-stop in this gate
+
+Admin endpoints:
+
+- `GET /admin/router-status`
+- `GET /admin/router/metrics`
+- `GET|PUT /admin/router/config` (strategy override only; never accepts secrets)
+
+## Gate 7 Contextual Bandit Router
+
+Gate 7 adds a LinUCB contextual bandit behind safe defaults:
+
+```text
+FEATURE_BANDIT_ROUTER=false
+BANDIT_ROUTER_MODE=disabled
+```
+
+Modes:
+
+- `logging` — propose + log without changing provider selection
+- `active` — apply bandit choice only when the agent is ready; otherwise rule-based
+
+Endpoints:
+
+- `GET /admin/bandit/status`
+- `GET /admin/bandit/metrics`
+- `POST /admin/bandit/train`
+- `POST /admin/bandit/reset`
+- `GET /bandit/status` (public sanitized)
+- Web proxy: `GET /api/bandit/status`
+
+See `docs/BANDIT_DESIGN.md` and `docs/GATE_7_CLOSEOUT.md`.
+
+## Gate 8 Personalization And User Context
+
+Gate 8 adds anonymized personalization behind:
+
+```text
+FEATURE_PERSONALIZATION=false
+```
+
+Identity is an opaque client header `X-Anonymous-User-Id` (8–64 chars `[A-Za-z0-9_-]`).
+Email/phone-like values are rejected. Users can opt out via `POST /user/opt-out`.
+
+When enabled:
+
+- Profiles persist in `anonymous_users` + `user_events` (Redis cache optional)
+- Hash embeddings (dim 8) and engagement norms feed the bandit feature vector
+- Recommendations may soft-boost preferred categories; otherwise fall back to rule-based order
+
+Public status: `GET /personalization/status`. Admin stats: `GET /admin/users/stats`.
+See `docs/GATE_8_CLOSEOUT.md`.
+
+## Gate 9 Super Intelligence Integration
+
+Gate 9 adds Chinese LLM providers and advanced router optimization behind defaults that stay off:
+
+```text
+FEATURE_CHINESE_LLM_PROVIDERS=false
+FEATURE_NEURAL_BANDIT=false
+FEATURE_RLHF_ROUTER=false
+FEATURE_LLM_USER_EMBEDDING=false
+FEATURE_BAYESIAN_TUNING=false
+BANDIT_POLICY=linucb
+```
+
+Providers: DeepSeek, Qwen (DashScope compatible-mode), ERNIE (Baidu Qianfan). Keys are env-only.
+Router policies may switch among `rule`, `linucb`, `neural`, and `rlhf` via admin when flags allow.
+Neural/RLHF fall back to LinUCB/rule until ready. Offline Bayesian tuning and benchmark replay live
+under `/admin/benchmark/*` and `/admin/models/status`.
+
+See `docs/GATE_9_CLOSEOUT.md`.

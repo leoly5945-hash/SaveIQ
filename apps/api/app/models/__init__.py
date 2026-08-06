@@ -24,6 +24,8 @@ from app.models.affiliate import (
     RecommendationTraceEvent,
     RecordStatus,
 )
+from app.models.bandit import BanditLog
+from app.models.user import AnonymousUser, UserEvent
 
 __all__ = [
     "AffiliateClickEvent",
@@ -31,6 +33,8 @@ __all__ = [
     "AffiliateProvider",
     "AffiliateSyncError",
     "AffiliateSyncJob",
+    "AnonymousUser",
+    "BanditLog",
     "Brand",
     "CashbackOffer",
     "CanonicalProduct",
@@ -48,4 +52,5 @@ __all__ = [
     "RecommendationFeedbackRating",
     "RecordStatus",
     "RecommendationTraceEvent",
+    "UserEvent",
 ]

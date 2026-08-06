@@ -54,6 +54,60 @@ services:
         value: disabled
       - key: AI_ROUTER_DEFAULT_MODEL
         value: intent-parser-v0
+      - key: AI_ROUTER_STRATEGY
+        value: cost_optimized
+      - key: AI_ROUTER_FALLBACK_PROVIDER
+        value: openai
+      - key: AI_ROUTER_CACHE_ENABLED
+        value: "true"
+      - key: AI_ROUTER_CACHE_TTL_SECONDS
+        value: "300"
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: FEATURE_BANDIT_ROUTER
+        value: "false"
+      - key: BANDIT_ROUTER_MODE
+        value: disabled
+      - key: BANDIT_EPSILON
+        value: "0.1"
+      - key: BANDIT_ALPHA
+        value: "0.5"
+      - key: BANDIT_MIN_SAMPLES_READY
+        value: "10"
+      - key: BANDIT_REWARD_ALPHA
+        value: "0.5"
+      - key: BANDIT_REWARD_BETA
+        value: "0.3"
+      - key: BANDIT_REWARD_GAMMA
+        value: "0.2"
+      - key: BANDIT_REWARD_DELTA
+        value: "0.0"
+      - key: FEATURE_PERSONALIZATION
+        value: "false"
+      - key: PERSONALIZATION_CACHE_ENABLED
+        value: "true"
+      - key: PERSONALIZATION_CACHE_TTL_SECONDS
+        value: "300"
+      - key: FEATURE_CHINESE_LLM_PROVIDERS
+        value: "false"
+      - key: DEEPSEEK_API_KEY
+        sync: false
+      - key: DASHSCOPE_API_KEY
+        sync: false
+      - key: BAIDU_API_KEY
+        sync: false
+      - key: BAIDU_SECRET_KEY
+        sync: false
+      - key: BANDIT_POLICY
+        value: linucb
+      - key: FEATURE_NEURAL_BANDIT
+        value: "false"
+      - key: FEATURE_RLHF_ROUTER
+        value: "false"
+      - key: FEATURE_LLM_USER_EMBEDDING
+        value: "false"
+      - key: FEATURE_BAYESIAN_TUNING
+        value: "false"
 
   - type: web
     name: dealhunter-staging-web

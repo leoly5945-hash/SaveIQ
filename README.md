@@ -179,6 +179,21 @@ Gate 6A adds a mock-only AI router before intent parsing. Defaults are
 exposes `intent-parser-v0`. When enabled in mock mode it still forces the deterministic parser path.
 Check status with `GET /admin/router-status`.
 
+Gate 6B upgrades the router with OpenAI/Anthropic/Mock providers, Redis intent caching, cost logging,
+and `/admin/router/metrics` plus `/admin/router/config`. Live mode stays off unless explicitly
+enabled with provider keys in the environment.
+
+Gate 7 adds a LinUCB contextual bandit (`FEATURE_BANDIT_ROUTER=false` by default). Start in
+`BANDIT_ROUTER_MODE=logging` to collect `bandit_logs` without changing routing. Admin endpoints live
+under `/admin/bandit/*`; public status is `GET /bandit/status` (web proxy `/api/bandit/status`).
+
+Gate 8 adds anonymous personalization (`FEATURE_PERSONALIZATION=false` by default). Clients send an
+opaque `X-Anonymous-User-Id` (no email/phone). Profiles support opt-out; recommendations and bandit
+features fall back to the non-personalized path when disabled or opted out.
+
+Gate 9 adds DeepSeek/Qwen/ERNIE providers plus neural/RLHF/Bayesian tooling. All advanced flags
+default off (`FEATURE_CHINESE_LLM_PROVIDERS`, `FEATURE_NEURAL_BANDIT`, `FEATURE_RLHF_ROUTER`, etc.).
+
 ## Docker Compose
 
 Run the full local stack:

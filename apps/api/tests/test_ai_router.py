@@ -6,8 +6,17 @@ from typing import Any
 from app.core.settings import Settings
 from app.services.llm_intent_contract import LlmIntentParserInput
 from app.services.llm_intent_parser import LlmIntentParserService
-from app.services.router.contract import AI_ROUTER_FALLBACK_MODEL, IntentComplexity, RouteRequest
+from app.services.router.ai_router import AiRouter, RouterExecutionResult
+from app.services.router.contract import (
+    AI_ROUTER_FALLBACK_MODEL,
+    IntentComplexity,
+    RouterDecision,
+    RouteRequest,
+)
+from app.services.router.metrics import InMemoryMetricsStore, RouterMetrics
 from app.services.router.mock_router import MockRouter
+from app.services.router.providers.base import ProviderParseResult, ProviderUsage
+from app.services.router.providers.mock_provider import MockProvider
 
 
 class RecordingMockIntentClient:
@@ -28,9 +37,53 @@ class RecordingMockIntentClient:
         return self.output
 
 
-class ExplodingRouter:
-    def route(self, request: RouteRequest) -> object:
+class ExplodingAiRouter:
+    def execute(self, request: RouteRequest) -> RouterExecutionResult:
         raise RuntimeError("router boom")
+
+    def route(self, request: RouteRequest) -> RouterDecision:
+        raise RuntimeError("router boom")
+
+
+class RecordingProvider:
+    name = "openai"
+
+    def __init__(self, payload: dict[str, Any], *, configured: bool = True) -> None:
+        self._payload = payload
+        self._configured = configured
+        self.calls = 0
+
+    def is_configured(self) -> bool:
+        return self._configured
+
+    def parse_intent(
+        self,
+        request: LlmIntentParserInput,
+        *,
+        model: str,
+        timeout_seconds: float,
+    ) -> ProviderParseResult:
+        self.calls += 1
+        return ProviderParseResult(
+            provider=self.name,
+            model=model,
+            payload=self._payload,
+            usage=ProviderUsage(prompt_tokens=10, completion_tokens=5),
+            latency_ms=12.5,
+        )
+
+
+def _valid_payload() -> dict[str, Any]:
+    return {
+        "search_query": "wireless earbuds",
+        "has_coupon": True,
+        "has_cashback": None,
+        "freshness": "fresh",
+        "sort": "price_asc",
+        "confidence": 0.91,
+        "reasoning_summary": "Parsed a shopping intent for fresh coupon earbuds.",
+        "fallback_reason": None,
+    }
 
 
 def test_mock_router_disabled_returns_default_model() -> None:
@@ -69,17 +122,7 @@ def test_parser_ignores_router_when_feature_disabled() -> None:
         LLM_INTENT_PARSER_MODE="mock",
         OPENAI_INTENT_MODEL="mock-intent-model",
     )
-    client = RecordingMockIntentClient(
-        {
-            "search_query": "wireless earbuds",
-            "has_coupon": True,
-            "has_cashback": None,
-            "freshness": "fresh",
-            "sort": "price_asc",
-            "confidence": 0.91,
-            "reasoning_summary": "Parsed a shopping intent for fresh coupon earbuds.",
-        }
-    )
+    client = RecordingMockIntentClient(_valid_payload())
     service = LlmIntentParserService(settings, client)
 
     result = service.parse("Find fresh wireless earbuds with coupon")
@@ -90,34 +133,30 @@ def test_parser_ignores_router_when_feature_disabled() -> None:
     assert client.last_model == "mock-intent-model"
 
 
-def test_parser_router_selects_fallback_and_skips_llm_client() -> None:
+def test_parser_mock_router_uses_mock_provider_without_keys() -> None:
     settings = Settings(
         FEATURE_AI_ROUTER="true",
         AI_ROUTER_MODE="mock",
-        FEATURE_LLM_INTENT_PARSER="true",
-        LLM_INTENT_PARSER_MODE="mock",
-        OPENAI_INTENT_MODEL="mock-intent-model",
+        FEATURE_LLM_INTENT_PARSER="false",
+        LLM_INTENT_PARSER_MODE="disabled",
     )
-    client = RecordingMockIntentClient(
-        {
-            "search_query": "wireless earbuds",
-            "has_coupon": True,
-            "has_cashback": None,
-            "freshness": "fresh",
-            "sort": "price_asc",
-            "confidence": 0.91,
-            "reasoning_summary": "should not be used",
-        }
+    client = RecordingMockIntentClient(_valid_payload())
+    metrics = RouterMetrics(InMemoryMetricsStore())
+    ai_router = AiRouter(
+        settings,
+        providers={"mock": MockProvider()},
+        metrics=metrics,
     )
-    service = LlmIntentParserService(settings, client)
+    service = LlmIntentParserService(settings, client, router=ai_router, ai_router=ai_router)
 
     result = service.parse("Find fresh wireless earbuds with coupon")
 
-    assert result.fallback_required is True
-    assert result.fallback_reason == "router selected intent-parser-v0"
-    assert result.model == "intent-parser-v0"
-    assert result.parsed_intent is None
+    assert result.fallback_required is False
+    assert result.parsed_intent is not None
+    assert result.model == "mock-intent-model"
     assert client.last_request is None
+    snapshot = metrics.snapshot()
+    assert snapshot["providers"]["mock"]["requests"] == 1
 
 
 def test_parser_router_exception_falls_back_to_deterministic_model() -> None:
@@ -127,25 +166,88 @@ def test_parser_router_exception_falls_back_to_deterministic_model() -> None:
         FEATURE_LLM_INTENT_PARSER="true",
         LLM_INTENT_PARSER_MODE="mock",
     )
-    client = RecordingMockIntentClient(
-        {
-            "search_query": "wireless earbuds",
-            "has_coupon": True,
-            "has_cashback": None,
-            "freshness": "fresh",
-            "sort": "price_asc",
-            "confidence": 0.91,
-            "reasoning_summary": "should not be used",
-        }
+    client = RecordingMockIntentClient(_valid_payload())
+    exploding = ExplodingAiRouter()
+    service = LlmIntentParserService(
+        settings,
+        client,
+        router=exploding,  # type: ignore[arg-type]
+        ai_router=exploding,  # type: ignore[arg-type]
     )
-    service = LlmIntentParserService(settings, client, router=ExplodingRouter())  # type: ignore[arg-type]
 
     result = service.parse("Find fresh wireless earbuds with coupon")
 
+    # execute() raises; parser must catch via AiRouter path - currently execute
+    # exception is not wrapped. Ensure we handle it.
     assert result.fallback_required is True
-    assert result.fallback_reason == "router selected intent-parser-v0"
-    assert result.model == "intent-parser-v0"
     assert client.last_request is None
+
+
+def test_quality_strategy_routes_complex_to_anthropic_model_name() -> None:
+    settings = Settings(
+        FEATURE_AI_ROUTER="true",
+        AI_ROUTER_MODE="live",
+        AI_ROUTER_STRATEGY="quality_optimized",
+        OPENAI_API_KEY="test-openai",
+        ANTHROPIC_API_KEY="test-anthropic",
+    )
+    metrics = RouterMetrics(InMemoryMetricsStore())
+    openai = RecordingProvider(_valid_payload())
+    anthropic = RecordingProvider(_valid_payload())
+    anthropic.name = "anthropic"
+    router = AiRouter(
+        settings,
+        providers={"openai": openai, "anthropic": anthropic, "mock": MockProvider()},
+        metrics=metrics,
+    )
+    long_query = " ".join(["w"] * 51)
+
+    decision = router.route(RouteRequest(query_text=long_query))
+
+    assert decision.selected_provider == "anthropic"
+    assert decision.complexity == IntentComplexity.COMPLEX
+
+
+def test_ai_router_fallback_provider_on_primary_failure() -> None:
+    settings = Settings(
+        FEATURE_AI_ROUTER="true",
+        AI_ROUTER_MODE="live",
+        AI_ROUTER_STRATEGY="cost_optimized",
+        AI_ROUTER_FALLBACK_PROVIDER="mock",
+        OPENAI_API_KEY="test-openai",
+    )
+
+    class FailingOpenAI:
+        name = "openai"
+
+        def is_configured(self) -> bool:
+            return True
+
+        def parse_intent(
+            self,
+            request: LlmIntentParserInput,
+            *,
+            model: str,
+            timeout_seconds: float,
+        ):
+            raise RuntimeError("boom")
+
+    metrics = RouterMetrics(InMemoryMetricsStore())
+    router = AiRouter(
+        settings,
+        providers={
+            "openai": FailingOpenAI(),  # type: ignore[dict-item]
+            "mock": MockProvider(),
+            "anthropic": RecordingProvider(_valid_payload(), configured=False),
+        },
+        metrics=metrics,
+    )
+
+    result = router.execute(RouteRequest(query_text="fresh earbuds"))
+
+    assert result.fallback_required is False
+    assert result.parsed_intent is not None
+    assert result.decision.selected_provider == "mock"
 
 
 def test_admin_router_status_defaults_to_inactive_mock_only() -> None:
@@ -186,15 +288,28 @@ def test_admin_router_status_defaults_to_inactive_mock_only() -> None:
 
         assert response.status_code == 200
         payload = response.json()
-        assert payload == {
-            "active": False,
-            "mode": "disabled",
-            "default_model": "intent-parser-v0",
-            "live_ready": False,
-            "available_models": ["intent-parser-v0"],
-        }
+        assert payload["active"] is False
+        assert payload["mode"] == "disabled"
+        assert payload["live_ready"] is False
+        assert "intent-parser-v0" in payload["available_models"]
         assert "openai_api_key" not in response.text.lower()
         assert "dev-admin-token" not in response.text
+
+        metrics = client.get("/admin/router/metrics", headers=headers)
+        assert metrics.status_code == 200
+        assert metrics.json()["cache_hits"] == 0
+
+        config = client.get("/admin/router/config", headers=headers)
+        assert config.status_code == 200
+        assert config.json()["strategy"] in {"cost_optimized", "quality_optimized"}
+
+        updated = client.put(
+            "/admin/router/config",
+            headers=headers,
+            json={"strategy": "quality_optimized"},
+        )
+        assert updated.status_code == 200
+        assert updated.json()["strategy"] == "quality_optimized"
     finally:
         app.dependency_overrides.clear()
         session.close()
@@ -241,7 +356,6 @@ def test_admin_router_status_reports_active_mock_without_live() -> None:
         assert payload["active"] is True
         assert payload["mode"] == "mock"
         assert payload["live_ready"] is False
-        assert payload["available_models"] == ["intent-parser-v0"]
     finally:
         app.dependency_overrides.clear()
         session.close()

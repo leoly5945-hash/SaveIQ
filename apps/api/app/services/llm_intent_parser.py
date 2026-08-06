@@ -19,6 +19,7 @@ from app.services.llm_intent_contract import (
     LlmIntentParserInput,
     LlmParsedIntent,
 )
+from app.services.router.ai_router import AiRouter, build_ai_router
 from app.services.router.contract import AI_ROUTER_FALLBACK_MODEL, RouteRequest
 from app.services.router.mock_router import MockRouter
 
@@ -124,18 +125,69 @@ class LlmIntentParserService:
         self,
         settings: Settings,
         client: LlmIntentParserClient | None = None,
-        router: MockRouter | None = None,
+        router: MockRouter | AiRouter | None = None,
+        ai_router: AiRouter | None = None,
     ) -> None:
         self._settings = settings
         self._client = client
         self._router = router or MockRouter(settings)
+        self._ai_router = ai_router or (
+            router if isinstance(router, AiRouter) else build_ai_router(settings)
+        )
 
-    def parse(self, raw_intent: str, *, market: str = "CA") -> LlmIntentParserResult:
+    def parse(
+        self,
+        raw_intent: str,
+        *,
+        market: str = "CA",
+        user_id: str | None = None,
+    ) -> LlmIntentParserResult:
         parser_mode = self._settings.llm_intent_parser_mode
         model = self._settings.openai_intent_model
 
+        if self._settings.feature_ai_router and self._settings.ai_router_mode in {"mock", "live"}:
+            try:
+                execution = self._ai_router.execute(
+                    RouteRequest(
+                        query_text=raw_intent,
+                        intent_type="recommendation",
+                        market=market,
+                        user_id=user_id,
+                    )
+                )
+            except Exception as exc:  # noqa: BLE001 - router must never break parsing
+                logger.warning(
+                    "AI router execute failed; falling back (%s)",
+                    exc.__class__.__name__,
+                )
+                return self._fallback(
+                    "router execute failed",
+                    parser_mode,
+                    AI_ROUTER_FALLBACK_MODEL,
+                )
+            logger.info(
+                "AI router execute provider=%s model=%s cache_hit=%s fallback=%s",
+                execution.decision.selected_provider,
+                execution.decision.selected_model,
+                execution.decision.cache_hit,
+                execution.fallback_required,
+            )
+            if execution.fallback_required or execution.parsed_intent is None:
+                return self._fallback(
+                    execution.fallback_reason or "router fallback",
+                    parser_mode,
+                    execution.decision.selected_model or AI_ROUTER_FALLBACK_MODEL,
+                )
+            return LlmIntentParserResult(
+                parsed_intent=execution.parsed_intent,
+                parser_mode=f"router:{self._settings.ai_router_mode}",
+                model=execution.decision.selected_model,
+                fallback_required=False,
+                fallback_reason=None,
+            )
+
         if self._settings.feature_ai_router:
-            selected_model = self._route_selected_model(raw_intent)
+            selected_model = self._route_selected_model(raw_intent, user_id=user_id)
             logger.info("AI router selected_model=%s", selected_model)
             if selected_model == AI_ROUTER_FALLBACK_MODEL:
                 return self._fallback(
@@ -189,12 +241,18 @@ class LlmIntentParserService:
             fallback_reason=None,
         )
 
-    def _route_selected_model(self, raw_intent: str) -> str:
+    def _route_selected_model(
+        self,
+        raw_intent: str,
+        *,
+        user_id: str | None = None,
+    ) -> str:
         try:
             decision = self._router.route(
                 RouteRequest(
                     query_text=raw_intent,
                     intent_type="recommendation",
+                    user_id=user_id,
                 )
             )
             logger.info(
@@ -235,7 +293,13 @@ def build_llm_intent_parser_service(settings: Settings) -> LlmIntentParserServic
         and settings.openai_api_key
     ):
         client = OpenAIIntentParserClient(settings.openai_api_key)
-    return LlmIntentParserService(settings, client, router=MockRouter(settings))
+    ai_router = build_ai_router(settings)
+    return LlmIntentParserService(
+        settings,
+        client,
+        router=ai_router,
+        ai_router=ai_router,
+    )
 
 
 def _build_openai_chat_payload(

@@ -77,4 +77,17 @@
 ## Phase 6: AI Router And Assistant Shell
 
 - Gate 6A mock-only AI router before intent parsing, disabled by default, deterministic fallback
-- Later: assistant shell and live routing remain deferred until controlled enablement gates
+- Gate 6B production AI router with OpenAI/Anthropic/Mock providers, Redis cache, cost logs, metrics
+- Later: assistant shell remains deferred until controlled enablement gates
+
+## Phase 7: Contextual Bandit Router Optimization
+
+- Gate 7 LinUCB bandit with logging-first mode, `bandit_logs` persistence, offline train, admin/public status
+
+## Phase 8: Personalization And User Context
+
+- Gate 8 anonymous user profiles, opt-out, embedding features for bandit, category-boost recommendations
+
+## Phase 9: Super Intelligence Integration
+
+- Gate 9 Chinese LLM providers (DeepSeek/Qwen/ERNIE), neural/RLHF policies, Bayesian tuning, benchmarks

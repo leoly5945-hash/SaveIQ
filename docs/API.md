@@ -279,6 +279,43 @@ The staging web app proxies the same request at `POST /api/recommendation-feedba
 - `GET /admin/affiliate/llm-parser-status`
 - `GET /admin/affiliate/staging-summary`
 
+## Admin AI Router And Bandit
+
+- `GET /admin/router-status`
+- `GET /admin/router/metrics`
+- `GET|PUT /admin/router/config`
+- `GET /admin/bandit/status`
+- `GET /admin/bandit/metrics`
+- `POST /admin/bandit/train`
+- `POST /admin/bandit/reset`
+- `GET /bandit/status` (public sanitized; also proxied as `GET /api/bandit/status`)
+
+Bandit defaults are off (`FEATURE_BANDIT_ROUTER=false`, `BANDIT_ROUTER_MODE=disabled`). Logging mode
+never changes live provider selection. Responses do not include API keys.
+
+## Personalization (Anonymous Users)
+
+- `GET /personalization/status`
+- `GET /user/profile` (requires `X-Anonymous-User-Id`)
+- `POST /user/feedback` (requires `X-Anonymous-User-Id`)
+- `POST /user/opt-out` (requires `X-Anonymous-User-Id`)
+- `POST /user/recommendations` (requires `X-Anonymous-User-Id`)
+- `GET /admin/users/stats`
+- Web proxies: `GET /api/personalization/status`, `GET /api/user/profile`, `POST /api/user/feedback`
+
+`FEATURE_PERSONALIZATION` defaults to `false`. User IDs must be opaque anonymized tokens; email and
+phone-like values are rejected. Opt-out disables personalization for that ID.
+
+## Gate 9 Models And Benchmarks
+
+- `GET /admin/models/status` — provider configured booleans, latency/cost rollups, key presence flags
+- `GET /admin/benchmark/results` — latest router policy comparison
+- `POST /admin/benchmark/run` — regenerate benchmark from logs (or synthetic fallback)
+- `POST /admin/bandit/switch_policy` — `{ "policy": "rule|linucb|neural|rlhf" }` (feature-gated)
+
+Chinese providers and neural/RLHF policies remain off unless their feature flags are enabled.
+Responses never include API keys/secrets.
+
 Admin responses expose normalized operational data and do not expose provider secrets or full raw
 payloads.
 
