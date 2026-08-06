@@ -317,3 +317,26 @@ The endpoint and web proxy intentionally do not return `OPENAI_API_KEY`, `ADMIN_
 prompts, raw model responses, scraping output, or affiliate payloads. Staging smoke now checks this
 status before validating recommendation behavior so accidental parser enablement is visible before
 future gates change ranking or personalization.
+
+## Gate 6A Mock AI Router
+
+Gate 6A adds a mock-only AI router in front of the constrained intent parser. The router never
+calls a live model, never requires an API key, and never scrapes or contacts affiliate networks.
+
+New configuration:
+
+- `FEATURE_AI_ROUTER`, default `false`
+- `AI_ROUTER_MODE`, default `disabled`, allowed `disabled` or `mock`
+- `AI_ROUTER_DEFAULT_MODEL`, default `intent-parser-v0`
+
+When the router feature flag is off, recommendation parsing is unchanged. When it is enabled in
+`mock` mode, the router classifies query complexity for observability and selects the only available
+model identity (`intent-parser-v0`). The parser then falls back to the deterministic rule parser.
+Router exceptions also force that same safe fallback.
+
+Admin status:
+
+- `GET /admin/router-status` (admin token required)
+- reports `active`, `mode`, `default_model`, `live_ready=false`, and
+  `available_models=["intent-parser-v0"]`
+- never returns secrets

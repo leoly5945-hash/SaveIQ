@@ -241,3 +241,13 @@ explicitly ready through feature flag, mode, and secret presence checks. The end
 versions, guardrails, readiness booleans, and required enablement steps, but never returns API keys,
 admin tokens, prompts, raw model responses, scraping output, or affiliate payloads. Staging smoke
 checks the API endpoint and web proxy before validating recommendation behavior.
+
+## 2026-08-06: Gate 6A Introduces Mock-Only AI Router
+
+Status: Accepted
+
+Model selection before intent parsing is introduced as a mock-only router behind
+`FEATURE_AI_ROUTER=false` by default. Allowed modes are `disabled` and `mock`. The mock router never
+calls OpenAI, never requires an API key, and only exposes `intent-parser-v0`. When enabled, selecting
+the fallback model forces the existing deterministic parser path. Router failures also fall back to
+`intent-parser-v0`, so recommendation behavior remains safe if the router misbehaves.

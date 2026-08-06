@@ -174,6 +174,11 @@ ready. The status response exposes booleans, parser versions, guardrails, and en
 it does not expose `OPENAI_API_KEY`, `ADMIN_API_TOKEN`, prompts, model responses, scraping output, or
 affiliate payloads.
 
+Gate 6A adds a mock-only AI router before intent parsing. Defaults are
+`FEATURE_AI_ROUTER=false` and `AI_ROUTER_MODE=disabled`. The router never calls a live model and only
+exposes `intent-parser-v0`. When enabled in mock mode it still forces the deterministic parser path.
+Check status with `GET /admin/router-status`.
+
 ## Docker Compose
 
 Run the full local stack:

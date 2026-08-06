@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes.admin_affiliate import router as admin_affiliate_router
+from app.api.routes.admin_router import router as admin_router_status
 from app.api.routes.clicks import router as clicks_router
 from app.api.routes.health import router as health_router
 from app.api.routes.recommendations import router as recommendations_router
@@ -24,6 +25,7 @@ def create_app() -> FastAPI:
     app.include_router(search_router)
     app.include_router(recommendations_router)
     app.include_router(admin_affiliate_router)
+    app.include_router(admin_router_status)
     return app
 
 

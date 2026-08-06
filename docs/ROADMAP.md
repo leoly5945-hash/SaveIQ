@@ -73,3 +73,8 @@
 - Gate 5C feature-flagged parser path wired into recommendations behind deterministic fallback
 - Gate 5D controlled live OpenAI parser client behind feature flag, schema validation, and fallback
 - Gate 5E staging parser enablement status, smoke coverage, and closeout
+
+## Phase 6: AI Router And Assistant Shell
+
+- Gate 6A mock-only AI router before intent parsing, disabled by default, deterministic fallback
+- Later: assistant shell and live routing remain deferred until controlled enablement gates

@@ -37,6 +37,18 @@ class Settings(BaseSettings):
         default=10.0,
         validation_alias="OPENAI_INTENT_TIMEOUT_SECONDS",
     )
+    feature_ai_router: bool = Field(
+        default=False,
+        validation_alias="FEATURE_AI_ROUTER",
+    )
+    ai_router_mode: Literal["disabled", "mock"] = Field(
+        default="disabled",
+        validation_alias="AI_ROUTER_MODE",
+    )
+    ai_router_default_model: str = Field(
+        default="intent-parser-v0",
+        validation_alias="AI_ROUTER_DEFAULT_MODEL",
+    )
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
@@ -53,6 +65,17 @@ class Settings(BaseSettings):
     @classmethod
     def normalize_llm_intent_parser_mode(cls, value: str) -> str:
         return value.lower()
+
+    @field_validator("ai_router_mode")
+    @classmethod
+    def normalize_ai_router_mode(cls, value: str) -> str:
+        return value.lower()
+
+    @field_validator("ai_router_default_model")
+    @classmethod
+    def normalize_ai_router_default_model(cls, value: str) -> str:
+        stripped = value.strip()
+        return stripped or "intent-parser-v0"
 
     @field_validator("openai_api_key")
     @classmethod

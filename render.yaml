@@ -44,6 +44,16 @@ services:
           type: keyvalue
           name: dealhunter-staging-redis
           property: connectionString
+      - key: FEATURE_LLM_INTENT_PARSER
+        value: "false"
+      - key: LLM_INTENT_PARSER_MODE
+        value: disabled
+      - key: FEATURE_AI_ROUTER
+        value: "false"
+      - key: AI_ROUTER_MODE
+        value: disabled
+      - key: AI_ROUTER_DEFAULT_MODEL
+        value: intent-parser-v0
 
   - type: web
     name: dealhunter-staging-web

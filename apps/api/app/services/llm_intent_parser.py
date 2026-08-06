@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import urllib.error
 import urllib.request
 from collections.abc import Mapping
@@ -18,10 +19,14 @@ from app.services.llm_intent_contract import (
     LlmIntentParserInput,
     LlmParsedIntent,
 )
+from app.services.router.contract import AI_ROUTER_FALLBACK_MODEL, RouteRequest
+from app.services.router.mock_router import MockRouter
 
 MIN_LLM_INTENT_CONFIDENCE = 0.60
 LLM_INTENT_RUNTIME_PARSER_VERSION = "llm-intent-parser-v0"
 OPENAI_CHAT_COMPLETIONS_URL = "https://api.openai.com/v1/chat/completions"
+
+logger = logging.getLogger(__name__)
 
 
 class LlmIntentParserClient(Protocol):
@@ -119,13 +124,26 @@ class LlmIntentParserService:
         self,
         settings: Settings,
         client: LlmIntentParserClient | None = None,
+        router: MockRouter | None = None,
     ) -> None:
         self._settings = settings
         self._client = client
+        self._router = router or MockRouter(settings)
 
     def parse(self, raw_intent: str, *, market: str = "CA") -> LlmIntentParserResult:
         parser_mode = self._settings.llm_intent_parser_mode
         model = self._settings.openai_intent_model
+
+        if self._settings.feature_ai_router:
+            selected_model = self._route_selected_model(raw_intent)
+            logger.info("AI router selected_model=%s", selected_model)
+            if selected_model == AI_ROUTER_FALLBACK_MODEL:
+                return self._fallback(
+                    f"router selected {AI_ROUTER_FALLBACK_MODEL}",
+                    parser_mode,
+                    selected_model,
+                )
+            model = selected_model
 
         if not self._settings.feature_llm_intent_parser:
             return self._fallback("feature flag disabled", parser_mode, model)
@@ -171,6 +189,29 @@ class LlmIntentParserService:
             fallback_reason=None,
         )
 
+    def _route_selected_model(self, raw_intent: str) -> str:
+        try:
+            decision = self._router.route(
+                RouteRequest(
+                    query_text=raw_intent,
+                    intent_type="recommendation",
+                )
+            )
+            logger.info(
+                "AI router decision selected_model=%s complexity=%s reason=%s",
+                decision.selected_model,
+                decision.complexity.value,
+                decision.reason,
+            )
+            return decision.selected_model or AI_ROUTER_FALLBACK_MODEL
+        except Exception as exc:  # noqa: BLE001 - router must never break parsing
+            logger.warning(
+                "AI router failed; falling back to %s (%s)",
+                AI_ROUTER_FALLBACK_MODEL,
+                exc.__class__.__name__,
+            )
+            return AI_ROUTER_FALLBACK_MODEL
+
     @staticmethod
     def _fallback(
         reason: str,
@@ -194,7 +235,7 @@ def build_llm_intent_parser_service(settings: Settings) -> LlmIntentParserServic
         and settings.openai_api_key
     ):
         client = OpenAIIntentParserClient(settings.openai_api_key)
-    return LlmIntentParserService(settings, client)
+    return LlmIntentParserService(settings, client, router=MockRouter(settings))
 
 
 def _build_openai_chat_payload(

@@ -21,3 +21,11 @@ def test_llm_intent_parser_settings_default_to_disabled() -> None:
     assert settings.openai_api_key is None
     assert settings.openai_intent_model == "gpt-4.1-mini"
     assert settings.openai_intent_timeout_seconds == 10.0
+
+
+def test_ai_router_settings_default_to_disabled() -> None:
+    settings = Settings()
+
+    assert settings.feature_ai_router is False
+    assert settings.ai_router_mode == "disabled"
+    assert settings.ai_router_default_model == "intent-parser-v0"
