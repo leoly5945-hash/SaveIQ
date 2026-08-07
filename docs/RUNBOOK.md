@@ -218,6 +218,55 @@ curl -sS -X POST "$API_URL/admin/safety/config" \
 
 Or env kill: Sync Blueprint with `FEATURE_KILL_SWITCH=false` / `FEATURE_AUTO_TUNING=false`.
 
+## 3e. Gate 10E rollout automation (staging drill → C3 → C4 → mock)
+
+Script: `scripts/gate10e_rollout.py` · Make: `make gate10e-rollout ARGS='--phase …'`
+
+**Prerequisite:** Staging must run a Gate 10E+ image (`/admin/safety/*` and `/admin/canary/*` in OpenAPI).
+Production already has these after Gate 10E pin Sync. If staging OpenAPI lacks them, pin/Sync staging first.
+
+**Tokens (never commit):**
+
+```bash
+export STAGING_ADMIN_TOKEN=...   # Render staging ADMIN_API_TOKEN
+export PROD_ADMIN_TOKEN=...      # Render production ADMIN_API_TOKEN
+```
+
+**Phases (stop on first failure; soak clock in `artifacts/gate10e_rollout_state.json`):**
+
+| Phase | What it does |
+| --- | --- |
+| `staging_drill` | Arm safety on **staging**, trip kill switch, verify canary→0 + A/B stop, evaluate dry-run, cleanup |
+| `c3` | Prod canary **25%** (requires C2 + staging_drill; smoke; rollback on failure) |
+| `soak_c3` | Assert ≥24h since C3 (no mutation) |
+| `c4` | Prod canary **100%** after C3 soak |
+| `soak_c4` | Assert ≥24h since C4 |
+| `mock_router` | Ensure C4 + `router` feature (effective mock via canary; does **not** flip prod env flags) |
+| `rollback` | Immediate prod canary `enabled=false,percentage=0` |
+| `status` | Print state + live staging/prod snapshots |
+
+```bash
+# 1) Staging drill (required before C3)
+.venv/bin/python scripts/gate10e_rollout.py --phase staging_drill
+
+# 2) Advance to C3 (only if currently C2)
+.venv/bin/python scripts/gate10e_rollout.py --phase c3
+
+# 3) After ≥24h
+.venv/bin/python scripts/gate10e_rollout.py --phase soak_c3
+.venv/bin/python scripts/gate10e_rollout.py --phase c4
+
+# 4) After ≥24h at C4
+.venv/bin/python scripts/gate10e_rollout.py --phase soak_c4
+.venv/bin/python scripts/gate10e_rollout.py --phase mock_router
+
+# Emergency
+.venv/bin/python scripts/gate10e_rollout.py --phase rollback
+```
+
+`--soak-seconds 60` is for local testing only. Production must use default **86400**.  
+Script **refuses** to continue if production `FEATURE_KILL_SWITCH` / `FEATURE_AUTO_TUNING` env are true.
+
 ## 4. Monitoring and alerts
 
 ### Signals

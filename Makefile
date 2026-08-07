@@ -1,4 +1,4 @@
-.PHONY: recommendation-eval staging-provision-validate staging-provision-validate-template staging-seed-mock staging-smoke production-provision-validate production-smoke deploy-production security-scan gate10d-abtest-rollout
+.PHONY: recommendation-eval staging-provision-validate staging-provision-validate-template staging-seed-mock staging-smoke production-provision-validate production-smoke deploy-production security-scan gate10d-abtest-rollout gate10e-rollout
 
 PYTHON ?= python3
 
@@ -33,3 +33,9 @@ recommendation-eval:
 # Requires ADMIN_API_TOKEN. Optional: RENDER_API_KEY + RENDER_SERVICE_ID_API/WEB.
 gate10d-abtest-rollout:
 	$(PYTHON) scripts/gate10d_abtest_rollout.py
+
+# Gate 10E: staging drill → C3 → soak → C4 → soak → mock router.
+# Requires STAGING_ADMIN_TOKEN + PROD_ADMIN_TOKEN. Pass args after -- .
+# Example: make gate10e-rollout -- --phase staging_drill
+gate10e-rollout:
+	$(PYTHON) scripts/gate10e_rollout.py $(ARGS)
