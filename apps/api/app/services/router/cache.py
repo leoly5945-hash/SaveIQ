@@ -60,6 +60,19 @@ class RouterIntentCache:
         if not self._enabled or self._client is None:
             return
         try:
-            self._client.setex(key, self._ttl_seconds, json.dumps(value, sort_keys=True))
+            from app.services.router.runtime_overrides import effective_cache_ttl_seconds
+
+            ttl = effective_cache_ttl_seconds(self._ttl_seconds)
+            self._client.setex(key, ttl, json.dumps(value, sort_keys=True))
         except Exception as exc:  # noqa: BLE001
             logger.warning("AI router cache set failed (%s)", exc.__class__.__name__)
+
+    def set_ttl_seconds(self, ttl_seconds: int) -> int:
+        self._ttl_seconds = max(1, int(ttl_seconds))
+        return self._ttl_seconds
+
+    @property
+    def ttl_seconds(self) -> int:
+        from app.services.router.runtime_overrides import effective_cache_ttl_seconds
+
+        return effective_cache_ttl_seconds(self._ttl_seconds)

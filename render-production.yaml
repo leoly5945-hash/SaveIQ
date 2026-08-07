@@ -131,6 +131,12 @@ services:
         value: "false"
       - key: FEATURE_AUTO_TUNING
         value: "false"
+      - key: FEATURE_KILL_SWITCH
+        value: "false"
+      - key: AUTO_TUNE_DRY_RUN
+        value: "true"
+      - key: AUTO_TUNE_CANARY_ENABLED
+        value: "false"
       - key: CANARY_ENABLED
         value: "false"
       - key: CANARY_PERCENTAGE

@@ -94,6 +94,11 @@ class BanditRouterService:
         self._last_offline_metrics: dict[str, Any] = {}
         self._last_benchmark: dict[str, Any] = {}
         self._last_tuning: dict[str, Any] = {}
+        # Gate 10E runtime overrides (None = use settings defaults).
+        self._runtime_epsilon: float | None = None
+        self._runtime_reward_alpha: float | None = None
+        self._runtime_reward_beta: float | None = None
+        self._runtime_reward_gamma: float | None = None
 
     @property
     def agent(self) -> ContextualBanditAgent:
@@ -119,6 +124,62 @@ class BanditRouterService:
             raise ValueError("FEATURE_RLHF_ROUTER is disabled")
         self._policy = normalized  # type: ignore[assignment]
         return {"policy": self._policy, "feature_enabled": self._settings.feature_bandit_router}
+
+    def apply_runtime_hparams(
+        self,
+        *,
+        epsilon: float | None = None,
+        alpha: float | None = None,
+        beta: float | None = None,
+        gamma: float | None = None,
+    ) -> dict[str, Any]:
+        """Apply Gate 10E auto-tune overrides (epsilon + reward weights)."""
+        if epsilon is not None:
+            value = max(0.0, min(1.0, float(epsilon)))
+            self._runtime_epsilon = value
+            self._agent.epsilon = value
+            self._neural.epsilon = value
+        if alpha is not None:
+            self._runtime_reward_alpha = float(alpha)
+        if beta is not None:
+            self._runtime_reward_beta = float(beta)
+        if gamma is not None:
+            self._runtime_reward_gamma = float(gamma)
+        return self.effective_hparams()
+
+    def effective_hparams(self) -> dict[str, Any]:
+        return {
+            "epsilon": (
+                self._runtime_epsilon
+                if self._runtime_epsilon is not None
+                else self._settings.bandit_epsilon
+            ),
+            "alpha": (
+                self._runtime_reward_alpha
+                if self._runtime_reward_alpha is not None
+                else self._settings.bandit_reward_alpha
+            ),
+            "beta": (
+                self._runtime_reward_beta
+                if self._runtime_reward_beta is not None
+                else self._settings.bandit_reward_beta
+            ),
+            "gamma": (
+                self._runtime_reward_gamma
+                if self._runtime_reward_gamma is not None
+                else self._settings.bandit_reward_gamma
+            ),
+            "delta": self._settings.bandit_reward_delta,
+            "runtime_override": any(
+                v is not None
+                for v in (
+                    self._runtime_epsilon,
+                    self._runtime_reward_alpha,
+                    self._runtime_reward_beta,
+                    self._runtime_reward_gamma,
+                )
+            ),
+        }
 
     def decide(
         self,
@@ -263,16 +324,17 @@ class BanditRouterService:
         market: str | None = None,
         db: Session | None = None,
     ) -> RewardBreakdown:
+        hp = self.effective_hparams()
         reward = calculate_reward(
             confidence=confidence,
             estimated_cost_usd=estimated_cost_usd,
             latency_ms=latency_ms,
             success=success,
             user_satisfaction=user_satisfaction,
-            alpha=self._settings.bandit_reward_alpha,
-            beta=self._settings.bandit_reward_beta,
-            gamma=self._settings.bandit_reward_gamma,
-            delta=self._settings.bandit_reward_delta,
+            alpha=float(hp["alpha"]),
+            beta=float(hp["beta"]),
+            gamma=float(hp["gamma"]),
+            delta=float(hp["delta"]),
         )
         if self.enabled():
             self._agent.update(decision.feature_vector, action, reward.reward)
@@ -416,12 +478,7 @@ class BanditRouterService:
                 "bayesian_tuning": self._settings.feature_bayesian_tuning,
                 "chinese_providers": self._settings.feature_chinese_llm_providers,
             },
-            "reward_weights": {
-                "alpha": self._settings.bandit_reward_alpha,
-                "beta": self._settings.bandit_reward_beta,
-                "gamma": self._settings.bandit_reward_gamma,
-                "delta": self._settings.bandit_reward_delta,
-            },
+            "reward_weights": self.effective_hparams(),
             "log_count": self._repository.count_logs(),
             "offline_evaluation": self._last_offline_metrics,
             "bayesian_tuning": self._last_tuning,

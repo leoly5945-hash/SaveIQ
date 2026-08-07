@@ -185,5 +185,37 @@ def observe_bandit_regret(
     ).inc(max(amount, 0.0))
 
 
+KILL_SWITCH_TRIPS = Counter(
+    "kill_switch_trips_total",
+    "Kill switch trip events (Gate 10E)",
+    ["reason_class"],
+)
+AUTO_TUNE_ACTIONS = Counter(
+    "auto_tune_actions_total",
+    "Auto-tune propose/apply events (Gate 10E)",
+    ["result"],
+)
+
+
+def observe_kill_switch_trip(*, reason: str) -> None:
+    reason_class = "unknown"
+    lowered = (reason or "").lower()
+    if lowered.startswith("error_rate"):
+        reason_class = "error_rate"
+    elif lowered.startswith("latency"):
+        reason_class = "latency"
+    elif lowered.startswith("cost"):
+        reason_class = "cost"
+    elif "manual" in lowered:
+        reason_class = "manual"
+    else:
+        reason_class = "other"
+    KILL_SWITCH_TRIPS.labels(reason_class=reason_class).inc()
+
+
+def observe_auto_tune_action(*, result: str) -> None:
+    AUTO_TUNE_ACTIONS.labels(result=result or "unknown").inc()
+
+
 def render_metrics() -> tuple[bytes, str]:
     return generate_latest(), CONTENT_TYPE_LATEST

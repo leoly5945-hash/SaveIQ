@@ -164,6 +164,60 @@ curl -sS -X POST "$API_URL/admin/abtest/stop" \
   -H "X-Admin-Token: $ADMIN_API_TOKEN"
 ```
 
+## 3d. Kill switch + auto-tune (Gate 10E)
+
+**Default:** `FEATURE_KILL_SWITCH=false`, `FEATURE_AUTO_TUNING=false`, `AUTO_TUNE_DRY_RUN=true`.
+Canary auto-ramp is **off** by default (`AUTO_TUNE_CANARY_ENABLED=false`) so Gate 10C/10D ops are not overridden.
+
+| Endpoint | Purpose |
+| --- | --- |
+| `GET /admin/safety/status` | Env flags, runtime, hparams, window metrics, thresholds |
+| `POST /admin/safety/config` | Runtime arm/disarm, `manual_override`, `dry_run`, canary auto-ramp |
+| `POST /admin/safety/evaluate` | Run kill checks then auto-tune tick (`{"force_tune":true}` optional) |
+| `POST /admin/safety/kill/trip` | Manual trip / drill (`force=true` bypasses override) |
+| `POST /admin/safety/kill/disarm` | Clear trip state |
+| `POST /admin/safety/autotune/apply` | Admin override epsilon/α/β/γ/cache TTL (within caps) |
+| `POST /admin/safety/autotune/reset` | Reset hparams to env defaults |
+| `GET /admin/safety/audit` | Recent change / trip log |
+
+### Kill switch behavior
+
+When armed and window metrics breach thresholds (error rate / latency p95 / cost per minute):
+
+1. Mark `tripped` + reason
+2. Stop A/B (`stop_abtest`)
+3. Zero canary (`zero_canary`)
+4. Disable auto-tune runtime
+5. Reset bandit/cache hparams to safe env defaults
+
+`manual_override=true` blocks automatic trip and auto-tune until cleared.
+
+### Auto-tune behavior
+
+Adjusts **within caps** only: epsilon, reward α/β/γ, router cache TTL.
+Optional canary step (0–25%, step ≤5%) only if `auto_tune_canary_enabled` and **A/B is not running**.
+Never flips neural / RLHF / Chinese / `BANDIT_POLICY` (human-only).
+Default `dry_run=true` proposes + audits without applying.
+
+### Staging drill (before production enable)
+
+1. Staging: set env `FEATURE_KILL_SWITCH=true` (keep auto-tune dry-run).
+2. `POST /admin/safety/kill/trip` with `{"reason":"drill"}` → confirm A/B stopped / canary zeroed.
+3. `POST /admin/safety/kill/disarm`.
+4. Enable `FEATURE_AUTO_TUNING=true` with `AUTO_TUNE_DRY_RUN=true`; `POST /admin/safety/evaluate`.
+5. Review `/admin/safety/audit` before turning dry-run off.
+
+### Emergency override
+
+```bash
+curl -sS -X POST "$API_URL/admin/safety/config" \
+  -H "X-Admin-Token: $ADMIN_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"manual_override":true,"auto_tune_enabled":false,"kill_switch_enabled":false}'
+```
+
+Or env kill: Sync Blueprint with `FEATURE_KILL_SWITCH=false` / `FEATURE_AUTO_TUNING=false`.
+
 ## 4. Monitoring and alerts
 
 ### Signals
@@ -245,6 +299,7 @@ Keep phone/email lists outside git if sensitive. Update this table when the on-c
 - `docs/GATE_10B_CLOSEOUT.md` — Gate 10B evidence
 - `docs/GATE_10C_CLOSEOUT.md` — Gate 10C evidence
 - `docs/GATE_10D_CLOSEOUT.md` — Gate 10D evidence
+- `docs/GATE_10E_CLOSEOUT.md` — Gate 10E evidence
 - `docs/SLOS.md` — SLOs / SLIs
 - `docs/SECURITY.md` — secret and PII rules
 - `docs/STAGING_RESOURCE_REGISTER.md` — staging only (do not mix secrets)

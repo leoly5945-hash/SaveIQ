@@ -233,6 +233,27 @@ def main() -> None:
                 ),
             )
         )
+
+        safety = get_json(f"{api_url}/admin/safety/status", token)
+        runtime = safety.get("runtime") or {}
+        env = safety.get("env") or {}
+        if env.get("feature_kill_switch") is True or env.get("feature_auto_tuning") is True:
+            fail(
+                "Gate 10E safety features must remain env-disabled "
+                "(FEATURE_KILL_SWITCH=false, FEATURE_AUTO_TUNING=false) until staging drill"
+            )
+        if runtime.get("tripped") is True:
+            fail("kill switch is tripped; disarm or investigate before declaring smoke ok")
+        checks.append(
+            Check(
+                "safety_status",
+                (
+                    f"kill={env.get('feature_kill_switch')} "
+                    f"autotune={env.get('feature_auto_tuning')} "
+                    f"tripped={runtime.get('tripped')}"
+                ),
+            )
+        )
     else:
         checks.append(Check("admin_checks", "skipped=no_ADMIN_API_TOKEN"))
 

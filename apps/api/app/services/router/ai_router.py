@@ -33,6 +33,11 @@ from app.services.router.providers.mock_provider import MockProvider
 from app.services.router.providers.openai_provider import OpenAIProvider
 from app.services.router.providers.qwen_provider import QwenProvider
 from app.services.router.redis_client import create_redis_client
+from app.services.router.runtime_overrides import (
+    clear_cache_ttl_seconds,
+    effective_cache_ttl_seconds,
+    set_cache_ttl_seconds,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -67,6 +72,10 @@ class AiRouter:
             enabled=settings.ai_router_cache_enabled,
             ttl_seconds=settings.ai_router_cache_ttl_seconds,
         )
+        # Honor any Gate 10E TTL override already applied in-process.
+        override_ttl = effective_cache_ttl_seconds(settings.ai_router_cache_ttl_seconds)
+        if override_ttl != settings.ai_router_cache_ttl_seconds:
+            self._cache.set_ttl_seconds(override_ttl)
         self._providers = providers or {
             "mock": MockProvider(),
             "openai": OpenAIProvider(settings.openai_api_key),
@@ -299,7 +308,9 @@ class AiRouter:
             "mode": self._settings.ai_router_mode,
             "fallback_provider": self._settings.ai_router_fallback_provider,
             "cache_enabled": self._settings.ai_router_cache_enabled,
-            "cache_ttl_seconds": self._settings.ai_router_cache_ttl_seconds,
+            "cache_ttl_seconds": effective_cache_ttl_seconds(
+                self._settings.ai_router_cache_ttl_seconds
+            ),
             "feature_enabled": self._settings.feature_ai_router,
         }
 
@@ -634,3 +645,12 @@ class AiRouter:
 
 def build_ai_router(settings: Settings) -> AiRouter:
     return AiRouter(settings)
+
+
+def apply_runtime_cache_ttl(ttl_seconds: int) -> int:
+    """Gate 10E: set process-wide router cache TTL override."""
+    return set_cache_ttl_seconds(ttl_seconds)
+
+
+def clear_runtime_cache_ttl() -> None:
+    clear_cache_ttl_seconds()
