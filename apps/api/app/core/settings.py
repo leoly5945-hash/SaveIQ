@@ -165,6 +165,27 @@ class Settings(BaseSettings):
         default=False,
         validation_alias="FEATURE_BAYESIAN_TUNING",
     )
+    feature_auto_tuning: bool = Field(
+        default=False,
+        validation_alias="FEATURE_AUTO_TUNING",
+    )
+    # Gate 10A — rate limits (default off for local/tests; on in production Blueprint).
+    rate_limit_enabled: bool = Field(
+        default=False,
+        validation_alias="RATE_LIMIT_ENABLED",
+    )
+    rate_limit_public_per_minute: int = Field(
+        default=100,
+        validation_alias="RATE_LIMIT_PUBLIC_PER_MINUTE",
+    )
+    rate_limit_auth_per_minute: int = Field(
+        default=1000,
+        validation_alias="RATE_LIMIT_AUTH_PER_MINUTE",
+    )
+    rate_limit_admin_per_minute: int = Field(
+        default=50,
+        validation_alias="RATE_LIMIT_ADMIN_PER_MINUTE",
+    )
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

@@ -1,0 +1,169 @@
+# Render Blueprint for DealHunter production (saveiq-production).
+# Apply in the SaveIQ workspace as a separate Blueprint from staging.
+#
+# Required setup:
+# - Billing enabled (paid Postgres / Key Value / web plans)
+# - Registry credential named ghcr-saveiq
+# - Distinct secrets from staging (ADMIN_API_TOKEN, provider keys)
+#
+# Gate 10A: all AI / bandit / personalization flags remain OFF.
+# Digests match the Gate 9 staging pin until a dedicated production release re-pins them.
+
+previews:
+  generation: off
+
+services:
+  - type: web
+    name: dealhunter-production-api
+    runtime: image
+    plan: starter
+    region: oregon
+    numInstances: 1
+    autoDeployTrigger: "off"
+    image:
+      url: "ghcr.io/leoly5945-hash/saveiq-engine@sha256:9f6de983690a5b4a3c2dedf4076127cc8d1535c410c19795423d42c20ef2b1d1"
+      creds:
+        fromRegistryCreds:
+          name: ghcr-saveiq
+    dockerCommand: python -m app.server
+    healthCheckPath: /health
+    envVars:
+      - key: PORT
+        value: "10000"
+      - key: APP_NAME
+        value: DealHunter API
+      - key: ENVIRONMENT
+        value: production
+      - key: LOG_LEVEL
+        value: info
+      - key: API_CORS_ORIGINS
+        value: "https://dealhunter-production-web.onrender.com"
+      - key: ADMIN_API_TOKEN
+        sync: false
+      - key: DATABASE_URL
+        fromDatabase:
+          name: dealhunter-production-postgres
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: dealhunter-production-redis
+          property: connectionString
+      - key: RATE_LIMIT_ENABLED
+        value: "true"
+      - key: RATE_LIMIT_PUBLIC_PER_MINUTE
+        value: "100"
+      - key: RATE_LIMIT_AUTH_PER_MINUTE
+        value: "1000"
+      - key: RATE_LIMIT_ADMIN_PER_MINUTE
+        value: "50"
+      - key: FEATURE_LLM_INTENT_PARSER
+        value: "false"
+      - key: LLM_INTENT_PARSER_MODE
+        value: disabled
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: FEATURE_AI_ROUTER
+        value: "false"
+      - key: AI_ROUTER_MODE
+        value: disabled
+      - key: AI_ROUTER_DEFAULT_MODEL
+        value: intent-parser-v0
+      - key: AI_ROUTER_STRATEGY
+        value: cost_optimized
+      - key: AI_ROUTER_FALLBACK_PROVIDER
+        value: openai
+      - key: AI_ROUTER_CACHE_ENABLED
+        value: "true"
+      - key: AI_ROUTER_CACHE_TTL_SECONDS
+        value: "300"
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: FEATURE_BANDIT_ROUTER
+        value: "false"
+      - key: BANDIT_ROUTER_MODE
+        value: disabled
+      - key: BANDIT_EPSILON
+        value: "0.1"
+      - key: BANDIT_ALPHA
+        value: "0.5"
+      - key: BANDIT_MIN_SAMPLES_READY
+        value: "10"
+      - key: BANDIT_REWARD_ALPHA
+        value: "0.5"
+      - key: BANDIT_REWARD_BETA
+        value: "0.3"
+      - key: BANDIT_REWARD_GAMMA
+        value: "0.2"
+      - key: BANDIT_REWARD_DELTA
+        value: "0.0"
+      - key: FEATURE_PERSONALIZATION
+        value: "false"
+      - key: PERSONALIZATION_CACHE_ENABLED
+        value: "true"
+      - key: PERSONALIZATION_CACHE_TTL_SECONDS
+        value: "300"
+      - key: FEATURE_CHINESE_LLM_PROVIDERS
+        value: "false"
+      - key: DEEPSEEK_API_KEY
+        sync: false
+      - key: DASHSCOPE_API_KEY
+        sync: false
+      - key: BAIDU_API_KEY
+        sync: false
+      - key: BAIDU_SECRET_KEY
+        sync: false
+      - key: BANDIT_POLICY
+        value: linucb
+      - key: FEATURE_NEURAL_BANDIT
+        value: "false"
+      - key: FEATURE_RLHF_ROUTER
+        value: "false"
+      - key: FEATURE_LLM_USER_EMBEDDING
+        value: "false"
+      - key: FEATURE_BAYESIAN_TUNING
+        value: "false"
+      - key: FEATURE_AUTO_TUNING
+        value: "false"
+
+  - type: web
+    name: dealhunter-production-web
+    runtime: image
+    plan: starter
+    region: oregon
+    numInstances: 1
+    autoDeployTrigger: "off"
+    image:
+      url: "ghcr.io/leoly5945-hash/saveiq-web@sha256:7cf2997dc3e3378f1f9896e33bbf8e58d4f3f0cbe52466a8da71d0c533896a02"
+      creds:
+        fromRegistryCreds:
+          name: ghcr-saveiq
+    dockerCommand: npm run start
+    healthCheckPath: /api/health
+    envVars:
+      - key: PORT
+        value: "10000"
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_PUBLIC_API_BASE_URL
+        value: "https://dealhunter-production-api.onrender.com"
+      - key: NEXT_PUBLIC_BRAND_NAME
+        value: DealHunter
+      - key: PRODUCTION_NOINDEX
+        value: "true"
+
+  - type: keyvalue
+    name: dealhunter-production-redis
+    plan: starter
+    region: oregon
+    ipAllowList: []
+    maxmemoryPolicy: allkeys-lru
+
+databases:
+  - name: dealhunter-production-postgres
+    databaseName: dealhunter
+    user: dealhunter
+    plan: basic-256mb
+    region: oregon
+    postgresMajorVersion: 16
+    ipAllowList: []

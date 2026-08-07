@@ -5,6 +5,8 @@ on:
   push:
     branches:
       - main
+    tags:
+      - "v*"
 
 permissions:
   contents: read
@@ -37,7 +39,9 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}
           tags: |
-            type=raw,value=staging
+            type=raw,value=staging,enable=${{ github.ref_type != 'tag' }}
+            type=raw,value=production,enable=${{ github.ref_type == 'tag' }}
+            type=semver,pattern={{version}},enable=${{ github.ref_type == 'tag' }}
             type=sha,prefix=sha-
 
       - id: build
@@ -48,6 +52,15 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
+      - name: Trivy image scan
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}@${{ steps.build.outputs.digest }}
+          severity: HIGH,CRITICAL
+          exit-code: "1"
+          ignore-unfixed: true
+
       - name: Print immutable digest
         run: |
           echo "${{ matrix.image }}=ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}@${{ steps.build.outputs.digest }}"
+          echo "Pin this digest in render.yaml (staging) or render-production.yaml (production) before Blueprint sync."

@@ -287,6 +287,29 @@ For template-only validation before placeholders are replaced:
 PYTHON=.venv/bin/python make staging-provision-validate-template
 ```
 
+## Render Production Blueprint (Gate 10A)
+
+Production uses a **separate** Blueprint file: `render-production.yaml` (`saveiq-production`).
+Do not share secrets with staging. Auto-deploy is **off**; pin digests, Sync in Render, then smoke.
+
+```bash
+PYTHON=.venv/bin/python make production-provision-validate
+PYTHON=.venv/bin/python make deploy-production
+ADMIN_API_TOKEN=<production-admin-token> PYTHON=.venv/bin/python make production-smoke
+```
+
+Operator procedures (deploy, rollback, scaling, troubleshooting): [`docs/RUNBOOK.md`](docs/RUNBOOK.md).  
+Gate 10A closeout: [`docs/GATE_10A_CLOSEOUT.md`](docs/GATE_10A_CLOSEOUT.md).
+
+## Security scanning
+
+CI runs `pip-audit`, `npm audit --audit-level=high`, and Trivy (filesystem + published images).
+Locally (requires API venv / npm install):
+
+```bash
+PYTHON=.venv/bin/python make security-scan
+```
+
 ## Quality Checks
 
 From the repository root:
