@@ -207,6 +207,22 @@ def main() -> None:
         if "assignments" not in canary_stats:
             fail("canary stats missing assignments")
         checks.append(Check("canary_stats", "ok"))
+
+        abtest = get_json(f"{api_url}/admin/abtest/status", token)
+        if abtest.get("feature_enabled") is True or abtest.get("running") is True:
+            fail(
+                "A/B testing must remain disabled "
+                "(FEATURE_ABTEST_ENABLED=false / not running) until intentional Gate 10D"
+            )
+        checks.append(
+            Check(
+                "abtest_status",
+                (
+                    f"feature_enabled={abtest.get('feature_enabled')} "
+                    f"running={abtest.get('running')}"
+                ),
+            )
+        )
     else:
         checks.append(Check("admin_checks", "skipped=no_ADMIN_API_TOKEN"))
 

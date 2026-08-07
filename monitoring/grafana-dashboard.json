@@ -176,10 +176,51 @@
           "legendFormat": "canary-off rps"
         }
       ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Error rate by A/B group",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 56 },
+      "targets": [
+        {
+          "expr": "sum(rate(http_requests_total{status_code=~\"5..\",ab_group=\"control\"}[5m])) / clamp_min(sum(rate(http_requests_total{ab_group=\"control\"}[5m])), 1e-9)",
+          "legendFormat": "control"
+        },
+        {
+          "expr": "sum(rate(http_requests_total{status_code=~\"5..\",ab_group=\"treatment_a\"}[5m])) / clamp_min(sum(rate(http_requests_total{ab_group=\"treatment_a\"}[5m])), 1e-9)",
+          "legendFormat": "treatment_a"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Latency p95 by A/B group",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 56 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{ab_group=\"control\"}[5m])) by (le))",
+          "legendFormat": "control p95"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{ab_group=\"treatment_a\"}[5m])) by (le))",
+          "legendFormat": "treatment_a p95"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Request share by A/B group",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 64 },
+      "targets": [
+        {
+          "expr": "sum(rate(http_requests_total[5m])) by (ab_group)",
+          "legendFormat": "{{ab_group}}"
+        }
+      ]
     }
   ],
   "schemaVersion": 39,
-  "tags": ["saveiq", "gate-10b", "gate-10c"],
+  "tags": ["saveiq", "gate-10b", "gate-10c", "gate-10d"],
   "templating": { "list": [] },
   "time": { "from": "now-6h", "to": "now" },
   "timezone": "browser",

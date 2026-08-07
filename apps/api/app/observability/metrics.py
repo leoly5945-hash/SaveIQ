@@ -1,4 +1,4 @@
-"""Prometheus metrics for Gate 10B/10C SLIs."""
+"""Prometheus metrics for Gate 10B/10C/10D SLIs."""
 
 from __future__ import annotations
 
@@ -7,49 +7,49 @@ from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_
 HTTP_REQUESTS = Counter(
     "http_requests_total",
     "Total HTTP requests",
-    ["method", "path", "status_code", "canary"],
+    ["method", "path", "status_code", "canary", "ab_group"],
 )
 HTTP_REQUEST_DURATION = Histogram(
     "http_request_duration_seconds",
     "HTTP request latency in seconds",
-    ["method", "path", "canary"],
+    ["method", "path", "canary", "ab_group"],
     buckets=(0.05, 0.1, 0.25, 0.5, 1.0, 1.5, 2.5, 5.0, 10.0),
 )
 LLM_REQUESTS = Counter(
     "llm_requests_total",
     "LLM / router provider requests",
-    ["provider", "result", "canary"],
+    ["provider", "result", "canary", "ab_group"],
 )
 LLM_REQUEST_DURATION = Histogram(
     "llm_request_duration_seconds",
     "LLM / router provider latency in seconds",
-    ["provider", "canary"],
+    ["provider", "canary", "ab_group"],
     buckets=(0.05, 0.1, 0.25, 0.5, 1.0, 2.0, 5.0, 10.0, 30.0),
 )
 LLM_COST = Counter(
     "llm_cost_usd_total",
     "Estimated LLM cost in USD",
-    ["provider", "canary"],
+    ["provider", "canary", "ab_group"],
 )
 CACHE_EVENTS = Counter(
     "cache_events_total",
     "Router cache hit/miss events",
-    ["result", "canary"],
+    ["result", "canary", "ab_group"],
 )
 RECOMMENDATIONS = Counter(
     "recommendations_total",
     "Recommendation responses",
-    ["strategy", "canary"],
+    ["strategy", "canary", "ab_group"],
 )
 BANDIT_REGRET = Counter(
     "bandit_regret_total",
     "Accumulated bandit regret (units defined by reward scale)",
-    ["canary"],
+    ["canary", "ab_group"],
 )
 ROUTER_FALLBACKS = Counter(
     "router_fallback_total",
     "AI router fallbacks to deterministic path",
-    ["reason", "canary"],
+    ["reason", "canary", "ab_group"],
 )
 
 
@@ -60,7 +60,6 @@ def _normalize_path(path: str) -> str:
         return "/offers/{id}"
     if path.startswith("/api/"):
         return path
-    # Keep low-cardinality public routes; bucket the rest.
     known = {
         "/health",
         "/metrics",
@@ -90,6 +89,14 @@ def _canary_label(explicit: str | None = None) -> str:
     return "off"
 
 
+def _ab_group_label(explicit: str | None = None) -> str:
+    if explicit is not None:
+        return explicit or "none"
+    from app.services.abtest.context import get_ab_group
+
+    return get_ab_group() or "none"
+
+
 def observe_http_request(
     *,
     method: str,
@@ -97,18 +104,24 @@ def observe_http_request(
     status_code: int,
     duration_seconds: float,
     canary: str | None = None,
+    ab_group: str | None = None,
 ) -> None:
     route = _normalize_path(path)
-    label = _canary_label(canary)
+    canary_label = _canary_label(canary)
+    ab_label = _ab_group_label(ab_group)
     HTTP_REQUESTS.labels(
         method=method.upper(),
         path=route,
         status_code=str(status_code),
-        canary=label,
+        canary=canary_label,
+        ab_group=ab_label,
     ).inc()
-    HTTP_REQUEST_DURATION.labels(method=method.upper(), path=route, canary=label).observe(
-        max(duration_seconds, 0.0)
-    )
+    HTTP_REQUEST_DURATION.labels(
+        method=method.upper(),
+        path=route,
+        canary=canary_label,
+        ab_group=ab_label,
+    ).observe(max(duration_seconds, 0.0))
 
 
 def observe_llm_request(
@@ -118,31 +131,58 @@ def observe_llm_request(
     estimated_cost_usd: float,
     error: bool,
     canary: str | None = None,
+    ab_group: str | None = None,
 ) -> None:
     result = "error" if error else "ok"
-    label = _canary_label(canary)
-    LLM_REQUESTS.labels(provider=provider, result=result, canary=label).inc()
-    LLM_REQUEST_DURATION.labels(provider=provider, canary=label).observe(
+    canary_label = _canary_label(canary)
+    ab_label = _ab_group_label(ab_group)
+    LLM_REQUESTS.labels(
+        provider=provider, result=result, canary=canary_label, ab_group=ab_label
+    ).inc()
+    LLM_REQUEST_DURATION.labels(provider=provider, canary=canary_label, ab_group=ab_label).observe(
         max(latency_ms, 0.0) / 1000.0
     )
     if estimated_cost_usd > 0:
-        LLM_COST.labels(provider=provider, canary=label).inc(estimated_cost_usd)
+        LLM_COST.labels(provider=provider, canary=canary_label, ab_group=ab_label).inc(
+            estimated_cost_usd
+        )
 
 
-def observe_cache(*, hit: bool, canary: str | None = None) -> None:
-    CACHE_EVENTS.labels(result="hit" if hit else "miss", canary=_canary_label(canary)).inc()
+def observe_cache(*, hit: bool, canary: str | None = None, ab_group: str | None = None) -> None:
+    CACHE_EVENTS.labels(
+        result="hit" if hit else "miss",
+        canary=_canary_label(canary),
+        ab_group=_ab_group_label(ab_group),
+    ).inc()
 
 
-def observe_recommendation(*, strategy: str, canary: str | None = None) -> None:
-    RECOMMENDATIONS.labels(strategy=strategy or "unknown", canary=_canary_label(canary)).inc()
+def observe_recommendation(
+    *, strategy: str, canary: str | None = None, ab_group: str | None = None
+) -> None:
+    RECOMMENDATIONS.labels(
+        strategy=strategy or "unknown",
+        canary=_canary_label(canary),
+        ab_group=_ab_group_label(ab_group),
+    ).inc()
 
 
-def observe_router_fallback(*, reason: str, canary: str | None = None) -> None:
-    ROUTER_FALLBACKS.labels(reason=reason or "unknown", canary=_canary_label(canary)).inc()
+def observe_router_fallback(
+    *, reason: str, canary: str | None = None, ab_group: str | None = None
+) -> None:
+    ROUTER_FALLBACKS.labels(
+        reason=reason or "unknown",
+        canary=_canary_label(canary),
+        ab_group=_ab_group_label(ab_group),
+    ).inc()
 
 
-def observe_bandit_regret(amount: float = 1.0, *, canary: str | None = None) -> None:
-    BANDIT_REGRET.labels(canary=_canary_label(canary)).inc(max(amount, 0.0))
+def observe_bandit_regret(
+    amount: float = 1.0, *, canary: str | None = None, ab_group: str | None = None
+) -> None:
+    BANDIT_REGRET.labels(
+        canary=_canary_label(canary),
+        ab_group=_ab_group_label(ab_group),
+    ).inc(max(amount, 0.0))
 
 
 def render_metrics() -> tuple[bytes, str]:

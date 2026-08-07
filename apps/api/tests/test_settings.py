@@ -67,3 +67,11 @@ def test_canary_settings_default_to_disabled() -> None:
     assert settings.canary_percentage == 0
     assert settings.canary_sticky_session is True
     assert "router" in settings.canary_features
+
+
+def test_abtest_settings_default_to_disabled() -> None:
+    settings = Settings()
+
+    assert settings.feature_abtest_enabled is False
+    assert settings.abtest_config_path == "config/abtest.yaml"
+    assert settings.abtest_redis_ttl == 2592000
