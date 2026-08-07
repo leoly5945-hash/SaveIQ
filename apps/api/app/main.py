@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.routes.admin_affiliate import router as admin_affiliate_router
 from app.api.routes.admin_bandit import router as admin_bandit_router
 from app.api.routes.admin_gate9 import router as admin_gate9_router
+from app.api.routes.admin_rate_limit import router as admin_rate_limit_router
 from app.api.routes.admin_router import router as admin_router_status
 from app.api.routes.admin_users import router as admin_users_router
 from app.api.routes.bandit import router as bandit_router
@@ -14,6 +15,7 @@ from app.api.routes.recommendations import router as recommendations_router
 from app.api.routes.search import router as search_router
 from app.api.routes.user import router as user_router
 from app.core.settings import get_settings
+from app.middleware.rate_limit import RateLimitMiddleware
 
 
 def create_app() -> FastAPI:
@@ -26,6 +28,8 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    # Outer middleware runs first; rate limits apply before route handlers.
+    app.add_middleware(RateLimitMiddleware)
     app.include_router(health_router)
     app.include_router(clicks_router)
     app.include_router(search_router)
@@ -38,6 +42,7 @@ def create_app() -> FastAPI:
     app.include_router(admin_bandit_router)
     app.include_router(admin_users_router)
     app.include_router(admin_gate9_router)
+    app.include_router(admin_rate_limit_router)
     return app
 
 

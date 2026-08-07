@@ -3,7 +3,10 @@ import { NextResponse } from "next/server";
 export function proxy() {
   const response = NextResponse.next();
 
-  if (process.env.STAGING_NOINDEX === "true") {
+  if (
+    process.env.STAGING_NOINDEX === "true" ||
+    process.env.PRODUCTION_NOINDEX === "true"
+  ) {
     response.headers.set("X-Robots-Tag", "noindex, nofollow");
   }
 

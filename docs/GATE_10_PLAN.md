@@ -32,6 +32,10 @@ auto-adjustment — without turning on live AI/affiliate behavior until each sub
 - Dependency scanning in CI (required before first production traffic).
 - Runbook: deploy, migrate, rollback image digest, rotate admin token.
 
+**Status:** Implemented in-repo (`render-production.yaml`, rate limits, CI scans, `docs/RUNBOOK.md`).  
+Live Render apply + `production_smoke=ok` remain operator steps after billing/Blueprint Sync.  
+**Closeout:** `docs/GATE_10A_CLOSEOUT.md`
+
 **Exit:** production `/health` + web health green; staging remains the experiment sandbox.
 
 ### Gate 10B — Observability & SLOs

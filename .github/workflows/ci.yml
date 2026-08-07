@@ -61,3 +61,39 @@ jobs:
       - run: alembic upgrade head
       - run: pytest
       - run: python ../../scripts/evaluate_recommendations.py
+      - name: Validate Render blueprints
+        run: |
+          python ../../scripts/validate_render_blueprint.py ../../render.yaml
+          python ../../scripts/validate_render_blueprint.py ../../render-production.yaml --profile production
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Install API package for pip-audit
+        working-directory: apps/api
+        run: |
+          python -m pip install -e .
+          python -m pip install pip-audit
+      - name: pip-audit
+        working-directory: apps/api
+        run: python -m pip_audit --progress-spinner=off
+      - name: npm audit
+        run: npm audit --audit-level=high
+      - name: Trivy filesystem scan
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          severity: HIGH,CRITICAL
+          exit-code: "1"
+          ignore-unfixed: true

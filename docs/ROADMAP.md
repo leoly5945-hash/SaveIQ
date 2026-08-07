@@ -95,10 +95,10 @@
 
 ## Phase 10: Production Rollout
 
-- Gate 10A production Blueprint, digests, rate limits, dependency scanning, runbooks
+- Gate 10A production Blueprint, digests, rate limits, dependency scanning, runbooks (**closeout:** `docs/GATE_10A_CLOSEOUT.md`)
 - Gate 10B observability, SLOs, cost and fallback alerts
 - Gate 10C canary traffic (1% → 5% → 25% → 100%) with automatic rollback triggers
 - Gate 10D A/B / holdout vs rule-based baseline; offline + online policy comparison
 - Gate 10E guardrailed auto-adjustment (caps, kill switch; human-only for neural/RLHF/Chinese)
 - Gate 10F production enablement checklist before live provider keys
-- Plan: `docs/GATE_10_PLAN.md`
+- Plan: `docs/GATE_10_PLAN.md` · Runbook: `docs/RUNBOOK.md`
