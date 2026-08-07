@@ -1,0 +1,48 @@
+# Alertmanager template for SaveIQ (Gate 10B).
+# Do NOT commit real webhook URLs or SMTP passwords.
+# Set secrets via environment / sealed config in the ops cluster.
+
+global:
+  resolve_timeout: 5m
+  # smtp_smarthost: 'smtp.example.com:587'
+  # smtp_from: 'alerts@example.com'
+  # smtp_auth_username: '<SMTP_USER>'
+  # smtp_auth_password: '<SMTP_PASSWORD>'
+
+route:
+  receiver: default
+  group_by: [alertname, severity]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  routes:
+    - matchers:
+        - severity = critical
+      receiver: oncall-critical
+      continue: true
+
+receivers:
+  - name: default
+    slack_configs:
+      - api_url: "${SLACK_WEBHOOK_URL}"
+        channel: "#saveiq-alerts"
+        send_resolved: true
+        title: '{{ .Status | toUpper }}: {{ .CommonLabels.alertname }}'
+        text: >-
+          {{ range .Alerts }}
+          *{{ .Annotations.summary }}*
+          Runbook: {{ .Annotations.runbook }}
+          {{ end }}
+
+  - name: oncall-critical
+    slack_configs:
+      - api_url: "${SLACK_WEBHOOK_URL}"
+        channel: "#saveiq-oncall"
+        send_resolved: true
+    # email_configs:
+    #   - to: 'oncall@example.com'
+
+inhibit_rules:
+  - source_matchers: [severity = critical]
+    target_matchers: [severity = warning]
+    equal: [alertname]

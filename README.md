@@ -310,6 +310,15 @@ Locally (requires API venv / npm install):
 PYTHON=.venv/bin/python make security-scan
 ```
 
+## Observability (Gate 10B)
+
+- SLOs: [`docs/SLOS.md`](docs/SLOS.md)
+- API exposes Prometheus metrics at `GET /metrics` (optional `METRICS_TOKEN` via `X-Metrics-Token`)
+- Structured JSON request logs on API stdout
+- Import Grafana dashboard: [`monitoring/grafana-dashboard.json`](monitoring/grafana-dashboard.json)
+- Example Prometheus / Alertmanager configs: [`monitoring/`](monitoring/)
+- Alert playbooks: [`docs/RUNBOOK.md`](docs/RUNBOOK.md)
+
 ## Quality Checks
 
 From the repository root:

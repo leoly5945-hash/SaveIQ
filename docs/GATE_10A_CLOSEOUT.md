@@ -57,8 +57,25 @@ ADMIN_API_TOKEN=... PYTHON=.venv/bin/python make production-smoke
 - [x] Rate limits implemented and tested
 - [x] Dependency scanning in CI
 - [x] Runbook documented
-- [ ] Blueprint applied in Render workspace (operator; requires billing)
-- [ ] Live `production_smoke=ok` after first apply
+- [x] Blueprint applied in Render workspace (`saveiq-production`)
+- [x] Live `production_smoke=ok` after first apply (2026-08-07)
+
+### Live smoke evidence (2026-08-07)
+
+```text
+production_smoke=ok
+api_health=ok
+web_health=ok
+production_noindex=noindex, nofollow
+bandit_status=active=False mode=disabled
+personalization_status=enabled=False
+api_search=count=0
+ai_router_status=active=False mode=disabled
+admin_models_status=chinese=False
+rate_limit_status=enabled=True public=100 store=redis
+```
+
+Notes: `api_search=count=0` is expected on a fresh production DB (no mock seed). AI/bandit/personalization remain off; rate limit uses Redis.
 
 ## Follow-ups (Gate 10B+)
 

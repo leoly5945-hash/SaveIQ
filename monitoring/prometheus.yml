@@ -1,0 +1,29 @@
+# Example Prometheus scrape config for SaveIQ API (Gate 10B).
+# Replace targets with internal scrape addresses or Render private service names.
+
+global:
+  scrape_interval: 30s
+  evaluation_interval: 30s
+
+rule_files:
+  - alerts.yml
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ["alertmanager:9093"]
+
+scrape_configs:
+  - job_name: saveiq-api
+    metrics_path: /metrics
+    scheme: https
+    # Optional when METRICS_TOKEN is set:
+    # authorization:
+    #   type: Bearer
+    #   credentials: <METRICS_TOKEN>
+    static_configs:
+      - targets:
+          - dealhunter-production-api.onrender.com
+        labels:
+          env: production
+          service: dealhunter-api

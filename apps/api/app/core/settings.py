@@ -186,6 +186,19 @@ class Settings(BaseSettings):
         default=50,
         validation_alias="RATE_LIMIT_ADMIN_PER_MINUTE",
     )
+    # Gate 10B — observability
+    structured_logging: bool = Field(
+        default=True,
+        validation_alias="STRUCTURED_LOGGING",
+    )
+    metrics_enabled: bool = Field(
+        default=True,
+        validation_alias="METRICS_ENABLED",
+    )
+    metrics_token: str | None = Field(
+        default=None,
+        validation_alias="METRICS_TOKEN",
+    )
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
@@ -241,6 +254,7 @@ class Settings(BaseSettings):
         "dashscope_api_key",
         "baidu_api_key",
         "baidu_secret_key",
+        "metrics_token",
     )
     @classmethod
     def normalize_optional_secret(cls, value: str | None) -> str | None:
