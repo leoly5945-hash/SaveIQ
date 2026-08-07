@@ -44,6 +44,13 @@ Gate 9 integrates Chinese LLM providers and advanced router optimization modules
 Local synthetic replay is used when `bandit_logs` are empty. After staging collects logs,
 re-run `POST /admin/benchmark/run` and paste results into this closeout.
 
+## Deploy status (2026-08-07)
+
+- Merged to `main`: PR [#1](https://github.com/leoly5945-hash/SaveIQ/pull/1), image pin PR [#2](https://github.com/leoly5945-hash/SaveIQ/pull/2)
+- Staging live with Gate 9 OpenAPI paths; public status endpoints return safe defaults (off)
+- Full smoke: `staging_smoke=ok` (router/bandit/personalization/chinese off; benchmark samples=40 policies=5)
+- Full report: `docs/GATE_9_DEPLOY_REPORT.md`
+
 ## Follow-ups
 
 - Real IPS/DR offline evaluation with production propensity scores
