@@ -51,6 +51,6 @@ def configure_logging(*, structured: bool = True, log_level: str = "info") -> No
     root.setLevel(level)
 
 
-def get_logger(name: str | None = None) -> structlog.stdlib.BoundLogger:
-    logger = structlog.get_logger(name)
-    return logger  # type: ignore[no-any-return]
+def get_logger(name: str | None = None) -> logging.Logger:
+    """Return a stdlib logger wired through structlog configuration."""
+    return logging.getLogger(name or "dealhunter")
