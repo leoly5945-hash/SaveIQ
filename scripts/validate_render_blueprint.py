@@ -221,10 +221,14 @@ def validate_env(services: dict[str, dict[str, Any]], *, profile: str) -> None:
         "FEATURE_NEURAL_BANDIT",
         "FEATURE_RLHF_ROUTER",
         "FEATURE_AUTO_TUNING",
+        "FEATURE_KILL_SWITCH",
     ):
         if flag in api_env and api_env[flag].get("value") not in {None, "false"}:
             # Staging may omit FEATURE_AUTO_TUNING; production must keep listed flags false when present.
-            if profile == "production" or flag != "FEATURE_AUTO_TUNING":
+            if profile == "production" or flag not in {
+                "FEATURE_AUTO_TUNING",
+                "FEATURE_KILL_SWITCH",
+            }:
                 if api_env[flag].get("value") != "false":
                     fail(f"{flag} must be false in {profile}", profile=profile)
 
@@ -235,6 +239,7 @@ def validate_env(services: dict[str, dict[str, Any]], *, profile: str) -> None:
             "FEATURE_PERSONALIZATION",
             "FEATURE_CHINESE_LLM_PROVIDERS",
             "FEATURE_AUTO_TUNING",
+            "FEATURE_KILL_SWITCH",
             "RATE_LIMIT_ENABLED",
         ):
             if flag not in api_env:

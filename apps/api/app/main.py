@@ -8,6 +8,7 @@ from app.api.routes.admin_canary import router as admin_canary_router
 from app.api.routes.admin_gate9 import router as admin_gate9_router
 from app.api.routes.admin_rate_limit import router as admin_rate_limit_router
 from app.api.routes.admin_router import router as admin_router_status
+from app.api.routes.admin_safety import router as admin_safety_router
 from app.api.routes.admin_users import router as admin_users_router
 from app.api.routes.bandit import router as bandit_router
 from app.api.routes.clicks import router as clicks_router
@@ -60,6 +61,7 @@ def create_app() -> FastAPI:
     app.include_router(admin_rate_limit_router)
     app.include_router(admin_canary_router)
     app.include_router(admin_abtest_router)
+    app.include_router(admin_safety_router)
     return app
 
 

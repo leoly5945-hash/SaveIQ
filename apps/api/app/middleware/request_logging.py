@@ -59,6 +59,17 @@ class RequestLoggingMiddleware:
                     duration_seconds=duration_s,
                 )
             if request.url.path not in SKIP_DETAILED_PATHS:
+                try:
+                    from app.services.safety.service import build_safety_service
+
+                    safety = build_safety_service(settings)
+                    safety.record_request(
+                        status_code=status_code,
+                        latency_ms=duration_s * 1000.0,
+                    )
+                    safety.maybe_background_tick()
+                except Exception:  # noqa: BLE001
+                    pass
                 log = structlog.get_logger("http")
                 anonymous = request.headers.get("x-anonymous-user-id")
                 log.info(

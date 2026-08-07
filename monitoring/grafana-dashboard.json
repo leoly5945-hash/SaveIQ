@@ -217,10 +217,32 @@
           "legendFormat": "{{ab_group}}"
         }
       ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Kill switch trips (Gate 10E)",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 72 },
+      "targets": [
+        {
+          "expr": "sum(increase(kill_switch_trips_total[1h])) by (reason_class)",
+          "legendFormat": "{{reason_class}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Auto-tune actions (Gate 10E)",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 72 },
+      "targets": [
+        {
+          "expr": "sum(increase(auto_tune_actions_total[1h])) by (result)",
+          "legendFormat": "{{result}}"
+        }
+      ]
     }
   ],
   "schemaVersion": 39,
-  "tags": ["saveiq", "gate-10b", "gate-10c", "gate-10d"],
+  "tags": ["saveiq", "gate-10b", "gate-10c", "gate-10d", "gate-10e"],
   "templating": { "list": [] },
   "time": { "from": "now-6h", "to": "now" },
   "timezone": "browser",

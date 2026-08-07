@@ -169,6 +169,71 @@ class Settings(BaseSettings):
         default=False,
         validation_alias="FEATURE_AUTO_TUNING",
     )
+    # Gate 10E — kill switch + guardrailed auto-tune (default off).
+    feature_kill_switch: bool = Field(
+        default=False,
+        validation_alias="FEATURE_KILL_SWITCH",
+    )
+    kill_switch_window_seconds: int = Field(
+        default=300,
+        validation_alias="KILL_SWITCH_WINDOW_SECONDS",
+    )
+    kill_switch_min_samples: int = Field(
+        default=50,
+        validation_alias="KILL_SWITCH_MIN_SAMPLES",
+    )
+    kill_switch_error_rate_threshold: float = Field(
+        default=0.05,
+        validation_alias="KILL_SWITCH_ERROR_RATE_THRESHOLD",
+    )
+    kill_switch_latency_p95_ms: float = Field(
+        default=2000.0,
+        validation_alias="KILL_SWITCH_LATENCY_P95_MS",
+    )
+    kill_switch_cost_usd_per_min: float = Field(
+        default=1.0,
+        validation_alias="KILL_SWITCH_COST_USD_PER_MIN",
+    )
+    auto_tune_dry_run: bool = Field(
+        default=True,
+        validation_alias="AUTO_TUNE_DRY_RUN",
+    )
+    auto_tune_interval_seconds: int = Field(
+        default=300,
+        validation_alias="AUTO_TUNE_INTERVAL_SECONDS",
+    )
+    auto_tune_min_samples: int = Field(
+        default=100,
+        validation_alias="AUTO_TUNE_MIN_SAMPLES",
+    )
+    auto_tune_canary_enabled: bool = Field(
+        default=False,
+        validation_alias="AUTO_TUNE_CANARY_ENABLED",
+    )
+    auto_tune_canary_max_pct: int = Field(
+        default=25,
+        validation_alias="AUTO_TUNE_CANARY_MAX_PCT",
+    )
+    auto_tune_canary_step_pct: int = Field(
+        default=5,
+        validation_alias="AUTO_TUNE_CANARY_STEP_PCT",
+    )
+    auto_tune_epsilon_min: float = Field(
+        default=0.01,
+        validation_alias="AUTO_TUNE_EPSILON_MIN",
+    )
+    auto_tune_epsilon_max: float = Field(
+        default=0.4,
+        validation_alias="AUTO_TUNE_EPSILON_MAX",
+    )
+    auto_tune_cache_ttl_min: int = Field(
+        default=60,
+        validation_alias="AUTO_TUNE_CACHE_TTL_MIN",
+    )
+    auto_tune_cache_ttl_max: int = Field(
+        default=900,
+        validation_alias="AUTO_TUNE_CACHE_TTL_MAX",
+    )
     # Gate 10A — rate limits (default off for local/tests; on in production Blueprint).
     rate_limit_enabled: bool = Field(
         default=False,
