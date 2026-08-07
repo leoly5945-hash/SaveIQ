@@ -132,6 +132,7 @@ class ABTestService:
 
     def stop(self) -> dict[str, Any]:
         self._runtime["running"] = False
+        self._runtime["feature_enabled"] = False
         name = self.active_experiment_name()
         experiments = self._file_config.get("experiments") or {}
         if name and isinstance(experiments.get(name), dict):
@@ -267,18 +268,38 @@ class ABTestService:
         c_fail = max(c_exp - c_conv, 0)
         t_fail = max(t_exp - t_conv, 0)
         table = [[c_conv, c_fail], [t_conv, t_fail]]
-        if c_exp == 0 or t_exp == 0 or sum(sum(row) for row in table) == 0:
+        # Degenerate tables (e.g. all conversions=0 from exposure-only traffic)
+        # make chi2 undefined — return a structured error instead of raising.
+        if (
+            c_exp == 0
+            or t_exp == 0
+            or sum(sum(row) for row in table) == 0
+            or (c_conv + t_conv) == 0
+            or (c_fail + t_fail) == 0
+        ):
             return {
                 "experiment": stats["experiment"],
                 "metric": metric,
                 "control": control_name,
                 "treatment": treatment_name,
                 "table": table,
-                "error": "insufficient data",
+                "error": "insufficient or degenerate conversion table",
                 "significant": False,
                 "p_value": None,
             }
-        chi2, p_value, dof, expected = chi2_contingency(table)
+        try:
+            chi2, p_value, dof, expected = chi2_contingency(table)
+        except ValueError as exc:
+            return {
+                "experiment": stats["experiment"],
+                "metric": metric,
+                "control": control_name,
+                "treatment": treatment_name,
+                "table": table,
+                "error": f"chi2_unavailable: {exc}",
+                "significant": False,
+                "p_value": None,
+            }
         alpha = 0.05
         return {
             "experiment": stats["experiment"],

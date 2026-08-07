@@ -70,6 +70,23 @@ def test_get_config_returns_group_overrides() -> None:
     assert "feature_ai_router" in payload["config"]
 
 
+def test_significance_handles_zero_conversions() -> None:
+    settings = Settings(
+        FEATURE_ABTEST_ENABLED="true",
+        ABTEST_CONFIG_PATH=str(FIXTURE_YAML),
+    )
+    service = ABTestService(settings, redis_client=None)
+    service.start()
+    for _ in range(10):
+        service.log_exposure("c", "control", converted=False)
+    for _ in range(12):
+        service.log_exposure("t", "treatment_a", converted=False)
+    result = service.calculate_significance(metric="conversions")
+    assert result["significant"] is False
+    assert result.get("error")
+    assert result.get("p_value") is None
+
+
 def test_exposure_and_significance() -> None:
     settings = Settings(
         FEATURE_ABTEST_ENABLED="true",
@@ -182,6 +199,7 @@ def test_admin_abtest_lifecycle(monkeypatch) -> None:  # type: ignore[no-untyped
     stopped = client.post("/admin/abtest/stop", headers=headers)
     assert stopped.status_code == 200
     assert stopped.json()["running"] is False
+    assert stopped.json()["feature_enabled"] is False
 
     reset_abtest_service_for_tests()
     get_settings.cache_clear()

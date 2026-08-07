@@ -151,11 +151,27 @@ def snapshot_canary(api_url: str, token: str) -> dict[str, Any]:
 
 def assert_abtest_off(api_url: str, token: str) -> None:
     status = http_json(f"{api_url}/admin/abtest/status", token=token)
-    if status.get("feature_enabled") is True or status.get("running") is True:
+    if status.get("running") is True:
         raise RolloutError(
-            "A/B must be off before smoke/enable gate "
+            "A/B must be stopped before smoke/enable gate "
             f"(feature_enabled={status.get('feature_enabled')} running={status.get('running')})"
         )
+    # Leftover feature_enabled=true after a prior start/stop is safe only when not running;
+    # clear it so smoke and the next start begin from a clean baseline.
+    if status.get("feature_enabled") is True:
+        log("==> Clearing leftover FEATURE_ABTEST runtime flag (running=false)")
+        cleared = http_json(
+            f"{api_url}/admin/abtest/config",
+            method="POST",
+            token=token,
+            body={"feature_enabled": False, "running": False},
+        )
+        log(f"abtest_cleared={json.dumps(cleared, sort_keys=True)}")
+        if cleared.get("feature_enabled") is True or cleared.get("running") is True:
+            raise RolloutError(
+                "failed to clear A/B flag before smoke "
+                f"(feature_enabled={cleared.get('feature_enabled')} running={cleared.get('running')})"
+            )
 
 
 def stop_abtest(api_url: str, token: str) -> None:
@@ -257,15 +273,32 @@ def decide(stats: dict[str, Any], significance: dict[str, Any]) -> tuple[str, st
             f"insufficient exposures control={c_exp} treatment={t_exp}",
         )
 
-    if significance.get("error"):
-        return "continue_hold", f"significance error: {significance.get('error')}"
+    c_rate = float(control.get("conversion_rate") or 0.0)
+    t_rate = float(treatment.get("conversion_rate") or 0.0)
+    c_conv = int(control.get("conversions") or 0)
+    t_conv = int(treatment.get("conversions") or 0)
+
+    # Exposure-only probes (no conversion events) cannot run chi2 — treat as hold
+    # if assignment looks roughly balanced.
+    if significance.get("error") or (c_conv + t_conv) == 0:
+        total = c_exp + t_exp
+        share = abs(c_exp - t_exp) / max(total, 1)
+        if share > 0.35:
+            return (
+                "stop_rollback",
+                f"skewed assignment control={c_exp} treatment={t_exp}",
+            )
+        return (
+            "continue_hold",
+            (
+                f"assignment ok control={c_exp} treatment={t_exp}; "
+                f"no conversion events yet ({significance.get('error') or 'conversions=0'})"
+            ),
+        )
 
     p_value = significance.get("p_value")
     significant = bool(significance.get("significant"))
-    c_rate = float(control.get("conversion_rate") or 0.0)
-    t_rate = float(treatment.get("conversion_rate") or 0.0)
 
-    # Without product conversion instrumentation, exposures≈requests; conversion may be 0.
     # Guardrail: if treatment conversion much worse when data exists, stop.
     if significant and t_rate + 0.05 < c_rate:
         return "stop_rollback", f"treatment worse (p={p_value}, c={c_rate}, t={t_rate})"
@@ -637,10 +670,20 @@ def main() -> int:
         # Prefer dedicated stats via status payload
         if not isinstance(stats, dict):
             stats = {"groups": {}}
-        significance = http_json(
-            f"{api_url}/admin/abtest/significance?{urllib.parse.urlencode({'experiment': EXPERIMENT, 'metric': 'conversions'})}",
-            token=token,
+        sig_url = (
+            f"{api_url}/admin/abtest/significance?"
+            f"{urllib.parse.urlencode({'experiment': EXPERIMENT, 'metric': 'conversions'})}"
         )
+        try:
+            significance = http_json(sig_url, token=token)
+        except RolloutError as exc:
+            # Older images may 500 on zero-conversion chi2; continue with stats-only decide.
+            log(f"significance_request_failed={exc}")
+            significance = {
+                "error": str(exc),
+                "significant": False,
+                "p_value": None,
+            }
         metric_counts = metrics_snapshot(api_url)
         log(f"abtest_stats={json.dumps(stats, sort_keys=True)}")
         log(f"abtest_significance={json.dumps(significance, sort_keys=True)}")
