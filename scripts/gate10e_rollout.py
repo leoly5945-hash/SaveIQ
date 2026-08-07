@@ -234,6 +234,14 @@ def remaining_soak(started_at: float | None, soak_seconds: int) -> float:
     return max(0.0, float(soak_seconds) - elapsed)
 
 
+def canary_percentage(payload: dict[str, Any]) -> int:
+    """Parse canary percentage; treat missing as -1 (unknown)."""
+    raw = payload.get("percentage")
+    if raw is None:
+        return -1
+    return int(raw)
+
+
 def assert_health(api_url: str) -> None:
     data = http_json(f"{api_url}/health", expected=200)
     if data.get("status") != "ok":
@@ -460,7 +468,8 @@ def phase_staging_drill(
         raise RolloutError(f"expected kill trip; got {trip}")
 
     canary_after_trip = get_canary(staging_api, token)
-    if int(canary_after_trip.get("percentage") or -1) != 0:
+    # Note: do not use `percentage or -1` — 0 is a valid success value.
+    if canary_percentage(canary_after_trip) != 0:
         raise RolloutError(f"kill trip did not zero canary: {canary_after_trip}")
     ab_after = get_abtest(staging_api, token)
     if ab_after.get("running") is True:
@@ -590,7 +599,7 @@ def phase_c3(
             percentage=25,
             features=CANARY_FEATURES,
         )
-        if int(after.get("percentage") or -1) != 25 or not after.get("enabled"):
+        if canary_percentage(after) != 25 or not after.get("enabled"):
             raise RolloutError(f"failed to set C3: {after}")
         production_smoke(repo_root, prod_api, prod_web, token)
         assert_prod_safety_env_off(prod_api, token)
@@ -702,7 +711,7 @@ def phase_c4(
             percentage=100,
             features=CANARY_FEATURES,
         )
-        if int(after.get("percentage") or -1) != 100:
+        if canary_percentage(after) != 100:
             raise RolloutError(f"failed to set C4: {after}")
         production_smoke(repo_root, prod_api, prod_web, token)
         assert_prod_safety_env_off(prod_api, token)
