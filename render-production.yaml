@@ -21,7 +21,7 @@ services:
     numInstances: 1
     autoDeployTrigger: "off"
     image:
-      url: "ghcr.io/leoly5945-hash/saveiq-engine@sha256:c7434d96c2615d0de1a61875ac895b653be37e06edc04f74d7457f5bfc93770a"
+      url: "ghcr.io/leoly5945-hash/saveiq-engine@sha256:3c44d3a00715d62d435aaaa7703628032a572e8b35276dd8d9c6aa3301f6e629"
       creds:
         fromRegistryCreds:
           name: ghcr-saveiq
@@ -134,7 +134,7 @@ services:
     numInstances: 1
     autoDeployTrigger: "off"
     image:
-      url: "ghcr.io/leoly5945-hash/saveiq-web@sha256:7cf2997dc3e3378f1f9896e33bbf8e58d4f3f0cbe52466a8da71d0c533896a02"
+      url: "ghcr.io/leoly5945-hash/saveiq-web@sha256:ab8393c5677c8079bd367b42e10302642a9aeafec69041ad9ff6c197bb864aee"
       creds:
         fromRegistryCreds:
           name: ghcr-saveiq
@@ -150,6 +150,8 @@ services:
       - key: NEXT_PUBLIC_BRAND_NAME
         value: DealHunter
       - key: PRODUCTION_NOINDEX
+        value: "true"
+      - key: STAGING_NOINDEX
         value: "true"
 
   - type: keyvalue
