@@ -96,7 +96,9 @@ def record_click(db: Session, payload: ClickTrackingInput) -> ClickTrackingResul
 
     if anonymous_user_id:
         settings = get_settings()
-        if settings.feature_personalization:
+        from app.services.canary.effective import is_feature_active
+
+        if is_feature_active("personalization", settings=settings):
             category = None
             product = listing.canonical_product
             if product is not None and product.category is not None:

@@ -97,7 +97,7 @@
 
 - Gate 10A production Blueprint, digests, rate limits, dependency scanning, runbooks (**closeout:** `docs/GATE_10A_CLOSEOUT.md`)
 - Gate 10B observability, SLOs, Prometheus `/metrics`, structured logs, alert rules (**closeout:** `docs/GATE_10B_CLOSEOUT.md`)
-- Gate 10C canary traffic (1% → 5% → 25% → 100%) with automatic rollback triggers
+- Gate 10C canary traffic (1% → 5% → 25% → 100%) with sticky cohort + admin controls (**closeout:** `docs/GATE_10C_CLOSEOUT.md`)
 - Gate 10D A/B / holdout vs rule-based baseline; offline + online policy comparison
 - Gate 10E guardrailed auto-adjustment (caps, kill switch; human-only for neural/RLHF/Chinese)
 - Gate 10F production enablement checklist before live provider keys

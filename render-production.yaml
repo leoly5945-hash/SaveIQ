@@ -131,6 +131,14 @@ services:
         value: "false"
       - key: FEATURE_AUTO_TUNING
         value: "false"
+      - key: CANARY_ENABLED
+        value: "false"
+      - key: CANARY_PERCENTAGE
+        value: "0"
+      - key: CANARY_FEATURES
+        value: router,bandit,personalization,llm_cn
+      - key: CANARY_STICKY_SESSION
+        value: "true"
 
   - type: web
     name: dealhunter-production-web

@@ -112,10 +112,74 @@
           "legendFormat": "{{reason}}"
         }
       ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Error rate canary vs control",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 40 },
+      "targets": [
+        {
+          "expr": "sum(rate(http_requests_total{status_code=~\"5..\",canary=\"true\"}[5m])) / clamp_min(sum(rate(http_requests_total{canary=\"true\"}[5m])), 1e-9)",
+          "legendFormat": "canary"
+        },
+        {
+          "expr": "sum(rate(http_requests_total{status_code=~\"5..\",canary=\"false\"}[5m])) / clamp_min(sum(rate(http_requests_total{canary=\"false\"}[5m])), 1e-9)",
+          "legendFormat": "control"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Latency p95 canary vs control",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 40 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{canary=\"true\"}[5m])) by (le))",
+          "legendFormat": "canary p95"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{canary=\"false\"}[5m])) by (le))",
+          "legendFormat": "control p95"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "LLM cost canary vs control (USD/s)",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 48 },
+      "targets": [
+        {
+          "expr": "sum(rate(llm_cost_usd_total{canary=\"true\"}[5m]))",
+          "legendFormat": "canary"
+        },
+        {
+          "expr": "sum(rate(llm_cost_usd_total{canary=\"false\"}[5m]))",
+          "legendFormat": "control"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Request share canary vs control",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 48 },
+      "targets": [
+        {
+          "expr": "sum(rate(http_requests_total{canary=\"true\"}[5m]))",
+          "legendFormat": "canary rps"
+        },
+        {
+          "expr": "sum(rate(http_requests_total{canary=\"false\"}[5m]))",
+          "legendFormat": "control rps"
+        },
+        {
+          "expr": "sum(rate(http_requests_total{canary=\"off\"}[5m]))",
+          "legendFormat": "canary-off rps"
+        }
+      ]
     }
   ],
   "schemaVersion": 39,
-  "tags": ["saveiq", "gate-10b"],
+  "tags": ["saveiq", "gate-10b", "gate-10c"],
   "templating": { "list": [] },
   "time": { "from": "now-6h", "to": "now" },
   "timezone": "browser",

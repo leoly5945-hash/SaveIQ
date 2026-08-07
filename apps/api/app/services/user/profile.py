@@ -90,7 +90,9 @@ class UserProfileService:
         self._session_factory = session_factory
 
     def enabled(self) -> bool:
-        return self._settings.feature_personalization
+        from app.services.canary.effective import is_feature_active
+
+        return is_feature_active("personalization", settings=self._settings)
 
     def get_profile(
         self,

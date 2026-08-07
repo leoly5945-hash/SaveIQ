@@ -58,3 +58,12 @@ def test_personalization_settings_default_to_disabled() -> None:
     assert settings.feature_personalization is False
     assert settings.personalization_cache_enabled is True
     assert settings.bandit_reward_delta == 0.0
+
+
+def test_canary_settings_default_to_disabled() -> None:
+    settings = Settings()
+
+    assert settings.canary_enabled is False
+    assert settings.canary_percentage == 0
+    assert settings.canary_sticky_session is True
+    assert "router" in settings.canary_features

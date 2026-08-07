@@ -333,7 +333,9 @@ def recommend_offers(
 
     profile = None
     personalized = False
-    if settings.feature_personalization and user_id:
+    from app.services.canary.effective import is_feature_active
+
+    if is_feature_active("personalization", settings=settings) and user_id:
         profile_service = build_user_profile_service(settings)
         profile = profile_service.get_profile(user_id, db=db, create_if_missing=True)
         if profile is not None and profile.personalization_active:

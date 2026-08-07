@@ -190,6 +190,23 @@ def main() -> None:
                 ),
             )
         )
+
+        canary = get_json(f"{api_url}/admin/canary/status", token)
+        if canary.get("enabled") is True or int(canary.get("percentage") or 0) > 0:
+            fail(
+                "canary must remain disabled (enabled=false, percentage=0) "
+                "until an intentional Gate 10C phase"
+            )
+        checks.append(
+            Check(
+                "canary_status",
+                f"enabled={canary.get('enabled')} percentage={canary.get('percentage')}",
+            )
+        )
+        canary_stats = get_json(f"{api_url}/admin/canary/stats", token)
+        if "assignments" not in canary_stats:
+            fail("canary stats missing assignments")
+        checks.append(Check("canary_stats", "ok"))
     else:
         checks.append(Check("admin_checks", "skipped=no_ADMIN_API_TOKEN"))
 
