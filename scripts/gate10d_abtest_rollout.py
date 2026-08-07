@@ -151,11 +151,27 @@ def snapshot_canary(api_url: str, token: str) -> dict[str, Any]:
 
 def assert_abtest_off(api_url: str, token: str) -> None:
     status = http_json(f"{api_url}/admin/abtest/status", token=token)
-    if status.get("feature_enabled") is True or status.get("running") is True:
+    if status.get("running") is True:
         raise RolloutError(
-            "A/B must be off before smoke/enable gate "
+            "A/B must be stopped before smoke/enable gate "
             f"(feature_enabled={status.get('feature_enabled')} running={status.get('running')})"
         )
+    # Leftover feature_enabled=true after a prior start/stop is safe only when not running;
+    # clear it so smoke and the next start begin from a clean baseline.
+    if status.get("feature_enabled") is True:
+        log("==> Clearing leftover FEATURE_ABTEST runtime flag (running=false)")
+        cleared = http_json(
+            f"{api_url}/admin/abtest/config",
+            method="POST",
+            token=token,
+            body={"feature_enabled": False, "running": False},
+        )
+        log(f"abtest_cleared={json.dumps(cleared, sort_keys=True)}")
+        if cleared.get("feature_enabled") is True or cleared.get("running") is True:
+            raise RolloutError(
+                "failed to clear A/B flag before smoke "
+                f"(feature_enabled={cleared.get('feature_enabled')} running={cleared.get('running')})"
+            )
 
 
 def stop_abtest(api_url: str, token: str) -> None:

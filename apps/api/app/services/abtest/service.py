@@ -132,6 +132,7 @@ class ABTestService:
 
     def stop(self) -> dict[str, Any]:
         self._runtime["running"] = False
+        self._runtime["feature_enabled"] = False
         name = self.active_experiment_name()
         experiments = self._file_config.get("experiments") or {}
         if name and isinstance(experiments.get(name), dict):

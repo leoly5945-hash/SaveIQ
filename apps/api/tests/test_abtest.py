@@ -199,6 +199,7 @@ def test_admin_abtest_lifecycle(monkeypatch) -> None:  # type: ignore[no-untyped
     stopped = client.post("/admin/abtest/stop", headers=headers)
     assert stopped.status_code == 200
     assert stopped.json()["running"] is False
+    assert stopped.json()["feature_enabled"] is False
 
     reset_abtest_service_for_tests()
     get_settings.cache_clear()
