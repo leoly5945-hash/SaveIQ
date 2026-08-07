@@ -199,6 +199,23 @@ class Settings(BaseSettings):
         default=None,
         validation_alias="METRICS_TOKEN",
     )
+    # Gate 10C — canary (default off; runtime override via /admin/canary/config)
+    canary_enabled: bool = Field(
+        default=False,
+        validation_alias="CANARY_ENABLED",
+    )
+    canary_percentage: int = Field(
+        default=0,
+        validation_alias="CANARY_PERCENTAGE",
+    )
+    canary_features: str = Field(
+        default="router,bandit,personalization,llm_cn",
+        validation_alias="CANARY_FEATURES",
+    )
+    canary_sticky_session: bool = Field(
+        default=True,
+        validation_alias="CANARY_STICKY_SESSION",
+    )
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

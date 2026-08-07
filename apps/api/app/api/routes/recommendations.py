@@ -10,6 +10,7 @@ from app.core.settings import Settings, get_settings
 from app.db.session import get_db
 from app.models import RecommendationFeedbackRating
 from app.observability.metrics import observe_recommendation
+from app.services.canary.effective import is_feature_active
 from app.services.llm_intent_parser import build_llm_intent_parser_service
 from app.services.recommendation_feedback import record_recommendation_feedback
 from app.services.recommendations import recommend_offers
@@ -126,7 +127,7 @@ def recommend_products(
         request.intent,
         request.limit,
         llm_intent_parser=build_llm_intent_parser_service(settings),
-        user_id=user_id if settings.feature_personalization else None,
+        user_id=user_id if is_feature_active("personalization", settings=settings) else None,
         market=request.market,
     )
     observe_recommendation(strategy=str(result["strategy"]))
@@ -167,7 +168,7 @@ def submit_recommendation_feedback(
             detail="Recommendation trace or offer was not found for feedback.",
         )
     user_id = request.anonymous_user_id or x_anonymous_user_id
-    if settings.feature_personalization and user_id:
+    if is_feature_active("personalization", settings=settings) and user_id:
         try:
             normalized = normalize_anonymous_user_id(user_id)
         except ValueError as exc:

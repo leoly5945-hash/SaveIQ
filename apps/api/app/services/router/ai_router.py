@@ -80,7 +80,7 @@ class AiRouter:
     def route(self, request: RouteRequest) -> RouterDecision:
         """Compatibility helper used by Gate 6A-style callers."""
         complexity = classify_complexity(request.query_text)
-        if not self._settings.feature_ai_router or self._settings.ai_router_mode == "disabled":
+        if not self._router_active():
             return RouterDecision(
                 selected_model=self._settings.ai_router_default_model or AI_ROUTER_FALLBACK_MODEL,
                 selected_provider="none",
@@ -105,7 +105,7 @@ class AiRouter:
 
     def execute(self, request: RouteRequest) -> RouterExecutionResult:
         complexity = classify_complexity(request.query_text)
-        if not self._settings.feature_ai_router or self._settings.ai_router_mode == "disabled":
+        if not self._router_active():
             decision = self.route(request)
             return RouterExecutionResult(
                 decision=decision,
@@ -254,6 +254,8 @@ class AiRouter:
         )
 
     def status(self) -> dict[str, Any]:
+        # Global status stays env-flag based so production smoke can assert flags off
+        # while canary may still enable features for a sticky cohort.
         live_ready = self._settings.feature_ai_router and self._settings.ai_router_mode == "live"
         configured = {name: provider.is_configured() for name, provider in self._providers.items()}
         return {
@@ -283,6 +285,8 @@ class AiRouter:
             "cache_enabled": self._cache.enabled,
             "fallback_provider": self._settings.ai_router_fallback_provider,
             "bandit": self._bandit.public_status(),
+            "request_router_active": self._router_active(),
+            "request_chinese_active": self._chinese_active(),
         }
 
     def metrics_snapshot(self) -> dict[str, Any]:
@@ -312,11 +316,11 @@ class AiRouter:
         return self._settings.ai_router_strategy
 
     def _select_providers(self, complexity: IntentComplexity) -> tuple[str, str | None]:
-        if self._settings.ai_router_mode == "mock":
+        if self._effective_mode() == "mock":
             return "mock", None
 
         strategy = self._active_strategy()
-        chinese = self._settings.feature_chinese_llm_providers
+        chinese = self._chinese_active()
         if strategy == "quality_optimized":
             if complexity == IntentComplexity.COMPLEX:
                 primary = "qwen" if chinese else "anthropic"
@@ -360,8 +364,10 @@ class AiRouter:
         available = [name for name, provider in self._providers.items() if provider.is_configured()]
         if not available:
             available = [rule_action]
+        from app.services.canary.effective import is_feature_active
+
         personalization_features: dict[str, float] = {}
-        if self._settings.feature_personalization and request.user_id:
+        if is_feature_active("personalization", settings=self._settings) and request.user_id:
             try:
                 from app.services.user.profile import build_user_profile_service
 
@@ -413,10 +419,23 @@ class AiRouter:
 
     def _provider_ready(self, name: str) -> bool:
         chinese = {"deepseek", "qwen", "ernie"}
-        if name in chinese and not self._settings.feature_chinese_llm_providers:
+        if name in chinese and not self._chinese_active():
             return False
         provider = self._providers.get(name)
         return provider is not None and provider.is_configured()
+
+    def _effective_mode(self) -> str:
+        from app.services.canary.effective import effective_ai_router_mode
+
+        return effective_ai_router_mode(self._settings)
+
+    def _router_active(self) -> bool:
+        return self._effective_mode() in {"mock", "live"}
+
+    def _chinese_active(self) -> bool:
+        from app.services.canary.effective import is_feature_active
+
+        return is_feature_active("llm_cn", settings=self._settings)
 
     def _model_for_provider(self, provider: str) -> str:
         if provider == "openai":

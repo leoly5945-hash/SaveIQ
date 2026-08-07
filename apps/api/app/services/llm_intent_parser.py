@@ -145,7 +145,10 @@ class LlmIntentParserService:
         parser_mode = self._settings.llm_intent_parser_mode
         model = self._settings.openai_intent_model
 
-        if self._settings.feature_ai_router and self._settings.ai_router_mode in {"mock", "live"}:
+        from app.services.canary.effective import effective_ai_router_mode
+
+        router_mode = effective_ai_router_mode(self._settings)
+        if router_mode in {"mock", "live"}:
             try:
                 execution = self._ai_router.execute(
                     RouteRequest(
@@ -180,13 +183,13 @@ class LlmIntentParserService:
                 )
             return LlmIntentParserResult(
                 parsed_intent=execution.parsed_intent,
-                parser_mode=f"router:{self._settings.ai_router_mode}",
+                parser_mode=f"router:{router_mode}",
                 model=execution.decision.selected_model,
                 fallback_required=False,
                 fallback_reason=None,
             )
 
-        if self._settings.feature_ai_router:
+        if router_mode != "disabled":
             selected_model = self._route_selected_model(raw_intent, user_id=user_id)
             logger.info("AI router selected_model=%s", selected_model)
             if selected_model == AI_ROUTER_FALLBACK_MODEL:

@@ -11,11 +11,13 @@ from app.core.settings import get_settings
 from app.db.base import Base
 from app.db.session import get_db
 from app.main import create_app
+from app.services.canary.service import reset_canary_service_for_tests
 from app.services.rate_limit import reset_rate_limiter_for_tests
 
 
 def _client() -> TestClient:
     reset_rate_limiter_for_tests()
+    reset_canary_service_for_tests()
     get_settings.cache_clear()
     engine = create_engine(
         "sqlite+pysqlite:///:memory:",

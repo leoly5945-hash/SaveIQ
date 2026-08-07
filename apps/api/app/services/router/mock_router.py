@@ -6,6 +6,7 @@ Gate 6B production flow uses ``AiRouter`` in ``ai_router.py``.
 from __future__ import annotations
 
 from app.core.settings import Settings
+from app.services.canary.effective import effective_ai_router_mode, is_feature_active
 from app.services.router.contract import (
     AI_ROUTER_FALLBACK_MODEL,
     IntentComplexity,
@@ -25,7 +26,10 @@ class MockRouter:
         default_model = self._settings.ai_router_default_model or AI_ROUTER_FALLBACK_MODEL
         complexity = classify_complexity(request.query_text)
 
-        if not self._settings.feature_ai_router or self._settings.ai_router_mode == "disabled":
+        if (
+            not is_feature_active("router", settings=self._settings)
+            or effective_ai_router_mode(self._settings) == "disabled"
+        ):
             return RouterDecision(
                 selected_model=default_model,
                 selected_provider="none",

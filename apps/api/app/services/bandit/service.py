@@ -100,10 +100,11 @@ class BanditRouterService:
         return self._agent
 
     def enabled(self) -> bool:
-        return self._settings.feature_bandit_router and self._settings.bandit_router_mode in {
-            "logging",
-            "active",
-        }
+        from app.services.canary.effective import effective_bandit_mode, is_feature_active
+
+        if not is_feature_active("bandit", settings=self._settings):
+            return False
+        return effective_bandit_mode(self._settings) in {"logging", "active"}
 
     def active_policy(self) -> PolicyName:
         return self._policy

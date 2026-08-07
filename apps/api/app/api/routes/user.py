@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.core.settings import Settings, get_settings
 from app.db.session import get_db
+from app.services.canary.effective import is_feature_active
 from app.services.llm_intent_parser import build_llm_intent_parser_service
 from app.services.recommendations import recommend_offers
 from app.services.user.identity import normalize_anonymous_user_id
@@ -82,7 +83,7 @@ def get_user_profile(
     db: DbSession,
     settings: AppSettings,
 ) -> UserProfileResponse:
-    if not settings.feature_personalization:
+    if not is_feature_active("personalization", settings=settings):
         raise HTTPException(
             status_code=503,
             detail="Personalization is disabled (FEATURE_PERSONALIZATION=false).",
@@ -105,7 +106,7 @@ def set_user_opt_out(
     db: DbSession,
     settings: AppSettings,
 ) -> UserProfileResponse:
-    if not settings.feature_personalization:
+    if not is_feature_active("personalization", settings=settings):
         raise HTTPException(
             status_code=503,
             detail="Personalization is disabled (FEATURE_PERSONALIZATION=false).",
@@ -127,7 +128,7 @@ def submit_user_feedback(
     db: DbSession,
     settings: AppSettings,
 ) -> UserFeedbackResponse:
-    if not settings.feature_personalization:
+    if not is_feature_active("personalization", settings=settings):
         raise HTTPException(
             status_code=503,
             detail="Personalization is disabled (FEATURE_PERSONALIZATION=false).",
@@ -161,12 +162,13 @@ def personalized_recommendations(
     settings: AppSettings,
 ) -> dict[str, Any]:
     """Personalized recommendations; falls back to rule-based when flag/opt-out."""
+    personalization_on = is_feature_active("personalization", settings=settings)
     result = recommend_offers(
         db,
         payload.intent,
         payload.limit,
         llm_intent_parser=build_llm_intent_parser_service(settings),
-        user_id=user_id if settings.feature_personalization else None,
+        user_id=user_id if personalization_on else None,
         market=payload.market,
     )
     return {
@@ -179,6 +181,6 @@ def personalized_recommendations(
         "count": len(result["results"]),
         "recommendations": result["results"],
         "evaluation_trace": result["trace"],
-        "personalized": settings.feature_personalization,
+        "personalized": personalization_on,
         "anonymous_user_id": user_id,
     }

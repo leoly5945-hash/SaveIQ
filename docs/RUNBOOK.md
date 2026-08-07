@@ -1,4 +1,4 @@
-# Production Runbook (Gate 10A / 10B)
+# Production Runbook (Gate 10A / 10B / 10C)
 
 Environment: **production** (`saveiq-production`)  
 Blueprint: `render-production.yaml`  
@@ -58,7 +58,78 @@ Do **not** force-push `main` unless explicitly approved.
 | Postgres | `basic-256mb` | Connection errors, storage pressure |
 | Redis / Key Value | `starter` | Evictions hurting rate-limit/cache |
 
-Change `numInstances` or plans in `render-production.yaml`, validate, Sync Blueprint. Prefer vertical plan upgrades before multi-instance until sticky sessions / cache strategy are reviewed (Gate 10C).
+Change `numInstances` or plans in `render-production.yaml`, validate, Sync Blueprint. Prefer vertical plan upgrades before multi-instance; canary sticky assignment is Redis-backed (`CANARY_STICKY_SESSION`).
+
+## 3b. Canary rollout (Gate 10C)
+
+**Default:** `CANARY_ENABLED=false`, `CANARY_PERCENTAGE=0`. Global AI flags stay `false`.
+Runtime overrides (no redeploy):
+
+| Endpoint | Purpose |
+| --- | --- |
+| `GET /admin/canary/status` | Current enabled / percentage / features / sticky |
+| `POST /admin/canary/config` | Set `enabled`, `percentage` (0–100), `features`, `sticky_session` |
+| `GET /admin/canary/stats` | Assignment counters + monitoring notes |
+
+Features: `router`, `bandit`, `personalization`, `llm_cn`.
+Assignment: sticky hash of `user_id` (or IP) per feature; Redis TTL 24h when sticky is on.
+Prometheus label `canary=true|false|off` on HTTP/LLM/cost metrics for cohort comparison.
+
+### Phases
+
+| Phase | Percentage | Minimum soak |
+| --- | --- | --- |
+| C0 | 0% | baseline (canary off) |
+| C1 | 1% | ≥ 24h |
+| C2 | 5% | ≥ 24h |
+| C3 | 25% | ≥ 24h |
+| C4 | 100% | then consider global `FEATURE_*=true` |
+
+Example advance to 1%:
+
+```bash
+curl -sS -X POST "$API_URL/admin/canary/config" \
+  -H "X-Admin-Token: $ADMIN_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"enabled":true,"percentage":1,"features":["router","bandit","personalization","llm_cn"]}'
+```
+
+Prefer starting with `["router"]` only, then add bandit / personalization / `llm_cn` in later phases.
+
+### Rollback criteria (immediate)
+
+Rollback if **canary vs control** (Grafana panels) shows any of:
+
+- Error rate (5xx) increase **> 1 absolute percentage point**
+- Latency p95 increase **> 20%**
+- Estimated LLM cost increase **> 50%** (when live providers are used)
+
+Also rollback on smoke failure, unexpected provider spend, or security incident.
+
+### Rollback procedure
+
+```bash
+curl -sS -X POST "$API_URL/admin/canary/config" \
+  -H "X-Admin-Token: $ADMIN_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"enabled":false,"percentage":0}'
+```
+
+Confirm:
+
+```bash
+curl -sS "$API_URL/admin/canary/status" -H "X-Admin-Token: $ADMIN_API_TOKEN"
+PYTHON=.venv/bin/python make production-smoke
+```
+
+Env kill-switch (requires Render Sync): set `CANARY_ENABLED=false` and `CANARY_PERCENTAGE=0`.
+Runtime Redis override still wins until cleared — prefer admin POST above for instant disable.
+
+### Monitoring during canary
+
+- Grafana: Error rate / Latency p95 / LLM cost **canary vs control**
+- `/admin/canary/stats` assignment counts
+- Keep global feature flags false until C4 is stable
 
 ## 4. Monitoring and alerts
 
@@ -139,6 +210,7 @@ Keep phone/email lists outside git if sensitive. Update this table when the on-c
 - `docs/GATE_10_PLAN.md` — full rollout plan (10A–10F)
 - `docs/GATE_10A_CLOSEOUT.md` — Gate 10A evidence
 - `docs/GATE_10B_CLOSEOUT.md` — Gate 10B evidence
+- `docs/GATE_10C_CLOSEOUT.md` — Gate 10C evidence
 - `docs/SLOS.md` — SLOs / SLIs
 - `docs/SECURITY.md` — secret and PII rules
 - `docs/STAGING_RESOURCE_REGISTER.md` — staging only (do not mix secrets)
