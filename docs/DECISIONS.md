@@ -241,3 +241,52 @@ explicitly ready through feature flag, mode, and secret presence checks. The end
 versions, guardrails, readiness booleans, and required enablement steps, but never returns API keys,
 admin tokens, prompts, raw model responses, scraping output, or affiliate payloads. Staging smoke
 checks the API endpoint and web proxy before validating recommendation behavior.
+
+## 2026-08-06: Gate 6A Introduces Mock-Only AI Router
+
+Status: Accepted
+
+Model selection before intent parsing is introduced as a mock-only router behind
+`FEATURE_AI_ROUTER=false` by default. Allowed modes are `disabled` and `mock`. The mock router never
+calls OpenAI, never requires an API key, and only exposes `intent-parser-v0`. When enabled, selecting
+the fallback model forces the existing deterministic parser path. Router failures also fall back to
+`intent-parser-v0`, so recommendation behavior remains safe if the router misbehaves.
+
+## 2026-08-06: Gate 6B Adds Provider Router With Cache And Cost Logs
+
+Status: Accepted
+
+The AI router gains OpenAI, Anthropic, and Mock providers behind `FEATURE_AI_ROUTER` and
+`AI_ROUTER_MODE=disabled|mock|live`. Live calls require env-managed API keys. Redis caches
+parsed intents by query hash. Cost/token metrics are logged and exposed on admin metrics endpoints
+without automatic budget enforcement. Runtime strategy may switch between `cost_optimized` and
+`quality_optimized` via `/admin/router/config` without accepting secrets.
+
+## 2026-08-06: Gate 7 Adds Logging-First Contextual Bandit
+
+Status: Accepted
+
+Provider selection can be optimized by a LinUCB contextual bandit behind
+`FEATURE_BANDIT_ROUTER=false` and `BANDIT_ROUTER_MODE=disabled|logging|active`. Logging mode
+never changes live routing. Active mode applies only after enough rewarded samples. Decisions
+persist to `bandit_logs` for offline training. Reward is a heuristic mix of quality, cost, and
+latency with no budget hard-stop. Design details live in `docs/BANDIT_DESIGN.md`.
+
+## 2026-08-06: Gate 8 Adds Anonymous Personalization
+
+Status: Accepted
+
+Personalization is gated by `FEATURE_PERSONALIZATION=false`. Identity uses opaque anonymized
+IDs only (no email/phone). Profiles support opt-out. Bandit context may include user embedding
+and engagement features; recommendations may apply a category boost. Missing/failed profile
+loads always fall back to the non-personalized path.
+
+## 2026-08-06: Gate 9 Adds Chinese Providers And Advanced Policies Safely
+
+Status: Accepted
+
+DeepSeek/Qwen/ERNIE adapters and neural/RLHF/Bayesian tooling are introduced behind explicit
+feature flags that default to false. Chinese providers cannot be selected unless
+`FEATURE_CHINESE_LLM_PROVIDERS=true` and keys are present. Advanced policies refuse activation
+without their flags. Admin model status exposes key booleans only. Benchmarks may run on
+synthetic data when logs are empty.

@@ -18,6 +18,7 @@ class ClickRequest(BaseModel):
     offer_id: int = Field(ge=1)
     target_type: str = Field(max_length=40)
     referrer: str | None = Field(default=None, max_length=2048)
+    anonymous_user_id: str | None = Field(default=None, max_length=64)
 
 
 class ClickResponse(BaseModel):
@@ -28,6 +29,7 @@ class ClickResponse(BaseModel):
     provider_source: str
     source_record_id: str
     market: str
+    anonymous_user_id: str | None = None
 
 
 @router.post("", response_model=ClickResponse, status_code=201)
@@ -35,6 +37,7 @@ def create_click(
     db: DbSession,
     payload: ClickRequest,
     user_agent: Annotated[str | None, Header(alias="user-agent")] = None,
+    x_anonymous_user_id: Annotated[str | None, Header(alias="X-Anonymous-User-Id")] = None,
 ) -> ClickResponse:
     try:
         result = record_click(
@@ -44,6 +47,7 @@ def create_click(
                 target_type=payload.target_type,
                 referrer=payload.referrer,
                 user_agent=user_agent,
+                anonymous_user_id=payload.anonymous_user_id or x_anonymous_user_id,
             ),
         )
     except ValueError as exc:

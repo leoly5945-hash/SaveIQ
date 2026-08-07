@@ -6,7 +6,10 @@ from typing import TypedDict
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.settings import get_settings
 from app.models import AffiliateClickEvent, ClickTargetType, MerchantListing, Offer, RecordStatus
+from app.services.user.identity import normalize_anonymous_user_id
+from app.services.user.profile import build_user_profile_service
 
 
 @dataclass(frozen=True)
@@ -15,6 +18,7 @@ class ClickTrackingInput:
     target_type: str
     referrer: str | None = None
     user_agent: str | None = None
+    anonymous_user_id: str | None = None
 
 
 class ClickTrackingResult(TypedDict):
@@ -25,6 +29,7 @@ class ClickTrackingResult(TypedDict):
     provider_source: str
     source_record_id: str
     market: str
+    anonymous_user_id: str | None
 
 
 def _normalize_optional(value: str | None, max_length: int) -> str | None:
@@ -65,6 +70,13 @@ def record_click(db: Session, payload: ClickTrackingInput) -> ClickTrackingResul
     if target_url is None:
         return None
 
+    anonymous_user_id: str | None = None
+    if payload.anonymous_user_id:
+        try:
+            anonymous_user_id = normalize_anonymous_user_id(payload.anonymous_user_id)
+        except ValueError as exc:
+            raise ValueError(str(exc)) from exc
+
     event = AffiliateClickEvent(
         offer_id=offer.id,
         merchant_id=listing.merchant_id,
@@ -76,10 +88,28 @@ def record_click(db: Session, payload: ClickTrackingInput) -> ClickTrackingResul
         market=offer.market,
         user_agent=_normalize_optional(payload.user_agent, 512),
         referrer=_normalize_optional(payload.referrer, 2048),
+        anonymous_user_id=anonymous_user_id,
     )
     db.add(event)
     db.commit()
     db.refresh(event)
+
+    if anonymous_user_id:
+        settings = get_settings()
+        if settings.feature_personalization:
+            category = None
+            product = listing.canonical_product
+            if product is not None and product.category is not None:
+                category = product.category.name
+            build_user_profile_service(settings).record_event(
+                anonymous_user_id,
+                event_type="click",
+                offer_id=offer.id,
+                category=category,
+                metadata={"target_type": target_type},
+                db=db,
+            )
+
     return {
         "id": event.id,
         "offer_id": event.offer_id,
@@ -88,4 +118,5 @@ def record_click(db: Session, payload: ClickTrackingInput) -> ClickTrackingResul
         "provider_source": event.provider_source,
         "source_record_id": event.source_record_id,
         "market": event.market,
+        "anonymous_user_id": event.anonymous_user_id,
     }

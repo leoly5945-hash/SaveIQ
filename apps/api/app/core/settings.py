@@ -37,6 +37,134 @@ class Settings(BaseSettings):
         default=10.0,
         validation_alias="OPENAI_INTENT_TIMEOUT_SECONDS",
     )
+    anthropic_api_key: str | None = Field(default=None, validation_alias="ANTHROPIC_API_KEY")
+    anthropic_intent_model: str = Field(
+        default="claude-3-5-haiku-latest",
+        validation_alias="ANTHROPIC_INTENT_MODEL",
+    )
+    anthropic_intent_timeout_seconds: float = Field(
+        default=10.0,
+        validation_alias="ANTHROPIC_INTENT_TIMEOUT_SECONDS",
+    )
+    feature_ai_router: bool = Field(
+        default=False,
+        validation_alias="FEATURE_AI_ROUTER",
+    )
+    ai_router_mode: Literal["disabled", "mock", "live"] = Field(
+        default="disabled",
+        validation_alias="AI_ROUTER_MODE",
+    )
+    ai_router_default_model: str = Field(
+        default="intent-parser-v0",
+        validation_alias="AI_ROUTER_DEFAULT_MODEL",
+    )
+    ai_router_strategy: Literal["cost_optimized", "quality_optimized"] = Field(
+        default="cost_optimized",
+        validation_alias="AI_ROUTER_STRATEGY",
+    )
+    ai_router_fallback_provider: Literal[
+        "openai",
+        "anthropic",
+        "mock",
+        "deepseek",
+        "qwen",
+        "ernie",
+        "none",
+    ] = Field(
+        default="openai",
+        validation_alias="AI_ROUTER_FALLBACK_PROVIDER",
+    )
+    ai_router_cache_enabled: bool = Field(
+        default=True,
+        validation_alias="AI_ROUTER_CACHE_ENABLED",
+    )
+    ai_router_cache_ttl_seconds: int = Field(
+        default=300,
+        validation_alias="AI_ROUTER_CACHE_TTL_SECONDS",
+    )
+    feature_bandit_router: bool = Field(
+        default=False,
+        validation_alias="FEATURE_BANDIT_ROUTER",
+    )
+    bandit_router_mode: Literal["disabled", "logging", "active"] = Field(
+        default="disabled",
+        validation_alias="BANDIT_ROUTER_MODE",
+    )
+    bandit_epsilon: float = Field(default=0.1, validation_alias="BANDIT_EPSILON")
+    bandit_alpha: float = Field(default=0.5, validation_alias="BANDIT_ALPHA")
+    bandit_min_samples_ready: int = Field(
+        default=10,
+        validation_alias="BANDIT_MIN_SAMPLES_READY",
+    )
+    bandit_reward_alpha: float = Field(default=0.5, validation_alias="BANDIT_REWARD_ALPHA")
+    bandit_reward_beta: float = Field(default=0.3, validation_alias="BANDIT_REWARD_BETA")
+    bandit_reward_gamma: float = Field(default=0.2, validation_alias="BANDIT_REWARD_GAMMA")
+    bandit_reward_delta: float = Field(default=0.0, validation_alias="BANDIT_REWARD_DELTA")
+    feature_personalization: bool = Field(
+        default=False,
+        validation_alias="FEATURE_PERSONALIZATION",
+    )
+    personalization_cache_enabled: bool = Field(
+        default=True,
+        validation_alias="PERSONALIZATION_CACHE_ENABLED",
+    )
+    personalization_cache_ttl_seconds: int = Field(
+        default=300,
+        validation_alias="PERSONALIZATION_CACHE_TTL_SECONDS",
+    )
+    # Gate 9 — Chinese providers + advanced optimization (all default off/safe).
+    feature_chinese_llm_providers: bool = Field(
+        default=False,
+        validation_alias="FEATURE_CHINESE_LLM_PROVIDERS",
+    )
+    deepseek_api_key: str | None = Field(default=None, validation_alias="DEEPSEEK_API_KEY")
+    deepseek_intent_model: str = Field(
+        default="deepseek-chat",
+        validation_alias="DEEPSEEK_INTENT_MODEL",
+    )
+    deepseek_intent_timeout_seconds: float = Field(
+        default=10.0,
+        validation_alias="DEEPSEEK_INTENT_TIMEOUT_SECONDS",
+    )
+    dashscope_api_key: str | None = Field(default=None, validation_alias="DASHSCOPE_API_KEY")
+    qwen_intent_model: str = Field(
+        default="qwen-plus",
+        validation_alias="QWEN_INTENT_MODEL",
+    )
+    qwen_intent_timeout_seconds: float = Field(
+        default=10.0,
+        validation_alias="QWEN_INTENT_TIMEOUT_SECONDS",
+    )
+    baidu_api_key: str | None = Field(default=None, validation_alias="BAIDU_API_KEY")
+    baidu_secret_key: str | None = Field(default=None, validation_alias="BAIDU_SECRET_KEY")
+    ernie_intent_model: str = Field(
+        default="ernie-speed-128k",
+        validation_alias="ERNIE_INTENT_MODEL",
+    )
+    ernie_intent_timeout_seconds: float = Field(
+        default=10.0,
+        validation_alias="ERNIE_INTENT_TIMEOUT_SECONDS",
+    )
+    bandit_policy: Literal["rule", "linucb", "neural", "rlhf"] = Field(
+        default="linucb",
+        validation_alias="BANDIT_POLICY",
+    )
+    feature_neural_bandit: bool = Field(
+        default=False,
+        validation_alias="FEATURE_NEURAL_BANDIT",
+    )
+    feature_rlhf_router: bool = Field(
+        default=False,
+        validation_alias="FEATURE_RLHF_ROUTER",
+    )
+    feature_llm_user_embedding: bool = Field(
+        default=False,
+        validation_alias="FEATURE_LLM_USER_EMBEDDING",
+    )
+    feature_bayesian_tuning: bool = Field(
+        default=False,
+        validation_alias="FEATURE_BAYESIAN_TUNING",
+    )
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
@@ -54,9 +182,47 @@ class Settings(BaseSettings):
     def normalize_llm_intent_parser_mode(cls, value: str) -> str:
         return value.lower()
 
-    @field_validator("openai_api_key")
+    @field_validator("ai_router_mode")
     @classmethod
-    def normalize_openai_api_key(cls, value: str | None) -> str | None:
+    def normalize_ai_router_mode(cls, value: str) -> str:
+        return value.lower()
+
+    @field_validator("ai_router_strategy")
+    @classmethod
+    def normalize_ai_router_strategy(cls, value: str) -> str:
+        return value.lower()
+
+    @field_validator("ai_router_fallback_provider")
+    @classmethod
+    def normalize_ai_router_fallback_provider(cls, value: str) -> str:
+        return value.lower()
+
+    @field_validator("bandit_router_mode")
+    @classmethod
+    def normalize_bandit_router_mode(cls, value: str) -> str:
+        return value.lower()
+
+    @field_validator("bandit_policy")
+    @classmethod
+    def normalize_bandit_policy(cls, value: str) -> str:
+        return value.lower()
+
+    @field_validator("ai_router_default_model")
+    @classmethod
+    def normalize_ai_router_default_model(cls, value: str) -> str:
+        stripped = value.strip()
+        return stripped or "intent-parser-v0"
+
+    @field_validator(
+        "openai_api_key",
+        "anthropic_api_key",
+        "deepseek_api_key",
+        "dashscope_api_key",
+        "baidu_api_key",
+        "baidu_secret_key",
+    )
+    @classmethod
+    def normalize_optional_secret(cls, value: str | None) -> str | None:
         if value is None:
             return None
         stripped = value.strip()

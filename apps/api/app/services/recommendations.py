@@ -285,9 +285,21 @@ def recommend_offers(
     raw_intent: str,
     limit: int = DEFAULT_RECOMMENDATION_LIMIT,
     llm_intent_parser: LlmIntentParserService | None = None,
+    *,
+    user_id: str | None = None,
+    market: str = "CA",
 ) -> RecommendationResult:
+    from app.core.settings import get_settings
+    from app.services.user.profile import build_user_profile_service
+    from app.services.user.rerank import apply_personalization_boost
+
     bounded_limit = max(1, min(limit, MAX_RECOMMENDATION_LIMIT))
-    llm_parser_result = llm_intent_parser.parse(raw_intent) if llm_intent_parser else None
+    settings = get_settings()
+    llm_parser_result = (
+        llm_intent_parser.parse(raw_intent, market=market, user_id=user_id)
+        if llm_intent_parser
+        else None
+    )
     if (
         llm_parser_result is not None
         and not llm_parser_result.fallback_required
@@ -318,8 +330,33 @@ def recommend_offers(
         }
         for row in search_results
     ]
-    strategy = RECOMMENDATION_STRATEGY
-    trace = []
+
+    profile = None
+    personalized = False
+    if settings.feature_personalization and user_id:
+        profile_service = build_user_profile_service(settings)
+        profile = profile_service.get_profile(user_id, db=db, create_if_missing=True)
+        if profile is not None and profile.personalization_active:
+            results = apply_personalization_boost(results, profile)
+            personalized = True
+            profile_service.record_event(
+                user_id,
+                event_type="query",
+                query_text=raw_intent,
+                metadata={"result_count": len(results)},
+                db=db,
+            )
+            profile_service.record_event(
+                user_id,
+                event_type="session",
+                metadata={"source": "recommendations"},
+                db=db,
+            )
+
+    strategy = (
+        f"{RECOMMENDATION_STRATEGY}+personalized" if personalized else RECOMMENDATION_STRATEGY
+    )
+    trace: list[RecommendationTraceStep] = []
     if llm_parser_result is not None:
         trace.append(_trace_llm_intent_parser(llm_parser_result))
     trace.extend(
@@ -329,6 +366,15 @@ def recommend_offers(
             _trace_ranking(intent, len(search_results)),
         ]
     )
+    if personalized:
+        trace.append(
+            {
+                "step": "personalization",
+                "input": user_id or "",
+                "output": "category_boost",
+                "notes": list((profile.preferred_categories if profile else [])[:5]),
+            }
+        )
     trace_event = RecommendationTraceEvent(
         strategy=strategy,
         rule_version=RECOMMENDATION_RULE_VERSION,

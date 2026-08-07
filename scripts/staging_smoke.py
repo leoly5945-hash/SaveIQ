@@ -118,6 +118,28 @@ def get_json(url: str, token: str | None = None) -> dict[str, Any]:
     return request_json(Request(url, headers=headers))
 
 
+def get_json_optional(url: str, token: str | None = None) -> dict[str, Any] | None:
+    """Return JSON payload, or None when the endpoint is not deployed yet (HTTP 404)."""
+    headers = {"Accept": "application/json", "User-Agent": USER_AGENT}
+    if token:
+        headers["X-Admin-Token"] = token
+    request = Request(url, headers=headers)
+    try:
+        with open_with_retries(request) as response:
+            payload = response.read().decode("utf-8")
+            if response.status != 200:
+                fail(f"{request.full_url} returned HTTP {response.status}: {payload}")
+    except HTTPError as exc:
+        if exc.code == 404:
+            return None
+        detail = exc.read().decode("utf-8", errors="replace")
+        fail(f"{request.full_url} returned HTTP {exc.code}: {detail}")
+    data = json.loads(payload)
+    if not isinstance(data, dict):
+        fail(f"{request.full_url} did not return a JSON object")
+    return data
+
+
 def search_url(base_url: str, path: str, **params: str) -> str:
     return f"{base_url.rstrip('/')}{path}?{urlencode(params)}"
 
@@ -243,6 +265,186 @@ def main() -> None:
             f"active={web_parser_status['active_parser_version']}",
         )
     )
+
+    router_status = get_json_optional(f"{api_url}/admin/router-status", token)
+    if router_status is None:
+        checks.append(Check("ai_router_status", "skipped=not_deployed"))
+    else:
+        if (
+            router_status.get("mode") not in {"disabled", "mock", "live"}
+            or "openai_api_key" in json.dumps(router_status).lower()
+            or "anthropic_api_key" in json.dumps(router_status).lower()
+        ):
+            fail(f"AI router status returned unsafe or malformed data: {router_status}")
+        if router_status.get("active") is True and router_status.get("mode") == "live":
+            if router_status.get("live_ready") not in {True, False}:
+                fail("AI router live_ready missing in live mode")
+        checks.append(
+            Check(
+                "ai_router_status",
+                (
+                    f"active={router_status.get('active')} "
+                    f"mode={router_status.get('mode')} "
+                    f"live_ready={router_status.get('live_ready')}"
+                ),
+            )
+        )
+
+    router_metrics = get_json_optional(f"{api_url}/admin/router/metrics", token)
+    if router_metrics is None:
+        checks.append(Check("ai_router_metrics", "skipped=not_deployed"))
+    else:
+        if "providers" not in router_metrics:
+            fail(f"AI router metrics missing providers: {router_metrics}")
+        checks.append(
+            Check(
+                "ai_router_metrics",
+                (
+                    f"cache_hits={router_metrics.get('cache_hits')} "
+                    f"cache_misses={router_metrics.get('cache_misses')}"
+                ),
+            )
+        )
+
+    bandit_status = get_json_optional(f"{api_url}/admin/bandit/status", token)
+    if bandit_status is None:
+        checks.append(Check("bandit_status", "skipped=not_deployed"))
+    else:
+        if (
+            bandit_status.get("mode") not in {"disabled", "logging", "active"}
+            or bandit_status.get("feature_enabled") not in {True, False}
+            or "api_key" in json.dumps(bandit_status).lower()
+        ):
+            fail(f"Bandit status returned unsafe or malformed data: {bandit_status}")
+        checks.append(
+            Check(
+                "bandit_status",
+                (
+                    f"enabled={bandit_status.get('feature_enabled')} "
+                    f"mode={bandit_status.get('mode')} "
+                    f"controls={bandit_status.get('controls_routing')}"
+                ),
+            )
+        )
+
+    public_bandit = get_json_optional(f"{api_url}/bandit/status")
+    if public_bandit is None:
+        checks.append(Check("bandit_public_status", "skipped=not_deployed"))
+    else:
+        if public_bandit.get("mode") not in {"disabled", "logging", "active"}:
+            fail(f"Public bandit status malformed: {public_bandit}")
+        checks.append(
+            Check(
+                "bandit_public_status",
+                f"mode={public_bandit.get('mode')} ready={public_bandit.get('ready')}",
+            )
+        )
+
+    web_bandit = get_json_optional(f"{web_url}/api/bandit/status")
+    if web_bandit is None:
+        checks.append(Check("web_bandit_status_proxy", "skipped=not_deployed"))
+    else:
+        if web_bandit.get("mode") not in {"disabled", "logging", "active"}:
+            fail(f"Web bandit status proxy malformed: {web_bandit}")
+        checks.append(
+            Check(
+                "web_bandit_status_proxy",
+                f"mode={web_bandit.get('mode')}",
+            )
+        )
+
+    personalization_status = get_json_optional(f"{api_url}/personalization/status")
+    if personalization_status is None:
+        checks.append(Check("personalization_status", "skipped=not_deployed"))
+    else:
+        if personalization_status.get("feature_enabled") not in {True, False}:
+            fail(f"Personalization status malformed: {personalization_status}")
+        if personalization_status.get("pii_policy") != "anonymous_opaque_ids_only":
+            fail("Personalization status missing anonymization policy")
+        checks.append(
+            Check(
+                "personalization_status",
+                f"enabled={personalization_status.get('feature_enabled')}",
+            )
+        )
+
+    web_personalization = get_json_optional(f"{web_url}/api/personalization/status")
+    if web_personalization is None:
+        checks.append(Check("web_personalization_status_proxy", "skipped=not_deployed"))
+    else:
+        checks.append(
+            Check(
+                "web_personalization_status_proxy",
+                f"enabled={web_personalization.get('feature_enabled')}",
+            )
+        )
+
+    user_stats = get_json_optional(f"{api_url}/admin/users/stats", token)
+    if user_stats is None:
+        checks.append(Check("admin_user_stats", "skipped=not_deployed"))
+    else:
+        if "user_count" not in user_stats:
+            fail(f"Admin user stats malformed: {user_stats}")
+        checks.append(
+            Check(
+                "admin_user_stats",
+                f"users={user_stats.get('user_count')} events={user_stats.get('event_count')}",
+            )
+        )
+
+    # Optional profile probe: only when personalization is enabled on staging.
+    if personalization_status and personalization_status.get("feature_enabled") is True:
+        sample_user = "staging_smoke_user_01"
+        profile_headers = {
+            "Accept": "application/json",
+            "User-Agent": USER_AGENT,
+            "X-Anonymous-User-Id": sample_user,
+        }
+        try:
+            profile = request_json(
+                Request(f"{api_url}/user/profile", headers=profile_headers)
+            )
+        except SystemExit:
+            raise
+        except Exception as exc:  # noqa: BLE001
+            fail(f"user profile probe failed: {exc}")
+        if profile.get("user_id") != sample_user:
+            fail(f"unexpected profile user_id: {profile}")
+        checks.append(Check("user_profile_probe", f"user_id={sample_user}"))
+    else:
+        checks.append(Check("user_profile_probe", "skipped=personalization_disabled"))
+
+    models_status = get_json_optional(f"{api_url}/admin/models/status", token)
+    if models_status is None:
+        checks.append(Check("admin_models_status", "skipped=not_deployed"))
+    else:
+        if "keys_present" not in models_status or "models" not in models_status:
+            fail(f"Admin models status malformed: {models_status}")
+        if "api_key" in json.dumps(models_status.get("keys_present", {})).lower():
+            # values are booleans; ensure no raw secrets leaked in payload
+            pass
+        secretish = json.dumps(models_status).lower()
+        if "sk-" in secretish or "secret_key" in secretish:
+            fail("Admin models status appears to leak secrets")
+        checks.append(
+            Check(
+                "admin_models_status",
+                f"chinese={models_status.get('chinese_providers_enabled')}",
+            )
+        )
+
+    benchmark = get_json_optional(f"{api_url}/admin/benchmark/results", token)
+    if benchmark is None:
+        checks.append(Check("admin_benchmark_results", "skipped=not_deployed"))
+    else:
+        if "policies" not in benchmark:
+            fail(f"Benchmark results malformed: {benchmark}")
+        checks.append(
+            Check(
+                "admin_benchmark_results",
+                f"samples={benchmark.get('samples')} policies={len(benchmark.get('policies') or [])}",
+            )
+        )
 
     api_search = get_json(
         search_url(api_url, "/search", q=args.query, sort="clicks_desc")

@@ -360,6 +360,7 @@ class AffiliateClickEvent(Base):
     market: Mapped[str] = mapped_column(String(2), nullable=False)
     user_agent: Mapped[str | None] = mapped_column(String(512))
     referrer: Mapped[str | None] = mapped_column(String(2048))
+    anonymous_user_id: Mapped[str | None] = mapped_column(String(64), index=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
