@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.routes.admin_abtest import router as admin_abtest_router
 from app.api.routes.admin_affiliate import router as admin_affiliate_router
 from app.api.routes.admin_bandit import router as admin_bandit_router
 from app.api.routes.admin_canary import router as admin_canary_router
@@ -18,6 +19,7 @@ from app.api.routes.search import router as search_router
 from app.api.routes.user import router as user_router
 from app.core.logging import configure_logging
 from app.core.settings import get_settings
+from app.middleware.abtest import ABTestMiddleware
 from app.middleware.canary import CanaryMiddleware
 from app.middleware.rate_limit import RateLimitMiddleware
 from app.middleware.request_logging import RequestLoggingMiddleware
@@ -37,9 +39,10 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
-    # Last added = outermost. Canary must wrap logging so cohort labels survive metrics.
+    # Last added = outermost. Cohort middlewares wrap logging so labels survive metrics.
     app.add_middleware(RateLimitMiddleware)
     app.add_middleware(RequestLoggingMiddleware)
+    app.add_middleware(ABTestMiddleware)
     app.add_middleware(CanaryMiddleware)
     app.include_router(health_router)
     app.include_router(metrics_router)
@@ -56,6 +59,7 @@ def create_app() -> FastAPI:
     app.include_router(admin_gate9_router)
     app.include_router(admin_rate_limit_router)
     app.include_router(admin_canary_router)
+    app.include_router(admin_abtest_router)
     return app
 
 

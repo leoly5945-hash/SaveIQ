@@ -1,4 +1,4 @@
-.PHONY: recommendation-eval staging-provision-validate staging-provision-validate-template staging-seed-mock staging-smoke production-provision-validate production-smoke deploy-production security-scan
+.PHONY: recommendation-eval staging-provision-validate staging-provision-validate-template staging-seed-mock staging-smoke production-provision-validate production-smoke deploy-production security-scan gate10d-abtest-rollout
 
 PYTHON ?= python3
 
@@ -28,3 +28,8 @@ security-scan:
 
 recommendation-eval:
 	$(PYTHON) scripts/evaluate_recommendations.py
+
+# Gate 10D: merge/publish/pin/deploy/smoke/A-B probe (never mutates canary).
+# Requires ADMIN_API_TOKEN. Optional: RENDER_API_KEY + RENDER_SERVICE_ID_API/WEB.
+gate10d-abtest-rollout:
+	$(PYTHON) scripts/gate10d_abtest_rollout.py

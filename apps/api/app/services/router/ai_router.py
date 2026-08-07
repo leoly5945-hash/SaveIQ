@@ -287,6 +287,7 @@ class AiRouter:
             "bandit": self._bandit.public_status(),
             "request_router_active": self._router_active(),
             "request_chinese_active": self._chinese_active(),
+            "abtest": self._ab_group_config(),
         }
 
     def metrics_snapshot(self) -> dict[str, Any]:
@@ -436,6 +437,13 @@ class AiRouter:
         from app.services.canary.effective import is_feature_active
 
         return is_feature_active("llm_cn", settings=self._settings)
+
+    def _ab_group_config(self) -> dict[str, object]:
+        """Expose active A/B overrides for status/debug (Gate 10D)."""
+        from app.services.abtest.context import get_ab_group, get_ab_overrides
+
+        overrides = get_ab_overrides() or {}
+        return {"group": get_ab_group(), "overrides": overrides}
 
     def _model_for_provider(self, provider: str) -> str:
         if provider == "openai":

@@ -1,4 +1,4 @@
-"""Resolve effective feature enablement under canary (Gate 10C)."""
+"""Resolve effective feature enablement under canary / A/B (Gate 10C/10D)."""
 
 from __future__ import annotations
 
@@ -13,6 +13,25 @@ FEATURE_TO_SETTING = {
     "llm_cn": "feature_chinese_llm_providers",
 }
 
+AB_OVERRIDE_KEYS = {
+    "router": "feature_ai_router",
+    "bandit": "feature_bandit_router",
+    "personalization": "feature_personalization",
+    "llm_cn": "feature_chinese_llm_providers",
+}
+
+
+def _ab_override_bool(feature: str) -> bool | None:
+    from app.services.abtest.context import get_ab_overrides
+
+    overrides = get_ab_overrides()
+    if not overrides:
+        return None
+    key = AB_OVERRIDE_KEYS.get(feature)
+    if key is None or key not in overrides:
+        return None
+    return bool(overrides[key])
+
 
 def is_feature_active(
     feature: str,
@@ -22,10 +41,12 @@ def is_feature_active(
 ) -> bool:
     """Return whether a feature is active for the current (or given) identity.
 
-    When canary is disabled: use global FEATURE_* flags.
-    When canary is enabled: only the canary cohort for listed features gets them
-    (global FEATURE_* may still force-on for everyone).
+    Precedence: A/B group overrides → canary cohort → global FEATURE_* flags.
     """
+    ab = _ab_override_bool(feature)
+    if ab is not None:
+        return ab
+
     cfg = settings or get_settings()
     global_on = bool(getattr(cfg, FEATURE_TO_SETTING.get(feature, ""), False))
     service = build_canary_service(cfg)
@@ -42,8 +63,15 @@ def is_feature_active(
 
 
 def effective_ai_router_mode(settings: Settings | None = None) -> str:
-    """When canary enables router but mode is disabled, prefer safe mock mode."""
+    """Resolve router mode with A/B overrides, then canary, then settings."""
+    from app.services.abtest.context import get_ab_overrides
+
     cfg = settings or get_settings()
+    overrides = get_ab_overrides() or {}
+    if "ai_router_mode" in overrides:
+        mode = str(overrides["ai_router_mode"]).lower()
+        if mode in {"disabled", "mock", "live"}:
+            return mode
     if is_feature_active("router", settings=cfg):
         if cfg.ai_router_mode == "disabled":
             return "mock"

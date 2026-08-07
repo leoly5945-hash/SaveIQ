@@ -1,0 +1,36 @@
+# Gate 10D — A/B / holdout experiment definitions (default inactive).
+# Enable via FEATURE_ABTEST_ENABLED=true and POST /admin/abtest/start.
+
+active_experiment: router_holdout_v1
+
+experiments:
+  router_holdout_v1:
+    enabled: false
+    description: >
+      Holdout control (rule-based) vs treatment_a (AI router mock path).
+      Treatment B (bandit/personalization) is reserved for a later experiment.
+    traffic_percent: 100
+    groups:
+      control:
+        percent: 50
+        config:
+          feature_ai_router: false
+          ai_router_mode: disabled
+          feature_bandit_router: false
+          feature_personalization: false
+      treatment_a:
+        percent: 50
+        config:
+          feature_ai_router: true
+          ai_router_mode: mock
+          feature_bandit_router: false
+          feature_personalization: false
+    primary_metrics:
+      - exposures
+      - conversions
+      - fallback_rate
+      - latency_ms
+      - cost_usd
+    secondary_metrics:
+      - helpful_rate
+      - opt_out_rate

@@ -139,6 +139,12 @@ services:
         value: router,bandit,personalization,llm_cn
       - key: CANARY_STICKY_SESSION
         value: "true"
+      - key: FEATURE_ABTEST_ENABLED
+        value: "false"
+      - key: ABTEST_CONFIG_PATH
+        value: config/abtest.yaml
+      - key: ABTEST_REDIS_TTL
+        value: "2592000"
 
   - type: web
     name: dealhunter-production-web

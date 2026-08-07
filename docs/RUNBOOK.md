@@ -1,4 +1,4 @@
-# Production Runbook (Gate 10A / 10B / 10C)
+# Production Runbook (Gate 10A / 10B / 10C / 10D)
 
 Environment: **production** (`saveiq-production`)  
 Blueprint: `render-production.yaml`  
@@ -131,6 +131,39 @@ Runtime Redis override still wins until cleared — prefer admin POST above for 
 - `/admin/canary/stats` assignment counts
 - Keep global feature flags false until C4 is stable
 
+## 3c. A/B testing (Gate 10D)
+
+**Default:** `FEATURE_ABTEST_ENABLED=false`, experiment not running.
+Config file: `config/abtest.yaml` (control vs `treatment_a` router mock holdout).
+
+| Endpoint | Purpose |
+| --- | --- |
+| `GET /admin/abtest/status` | Feature flag, running, active experiment, stats |
+| `POST /admin/abtest/start` | Enable + start (`{"experiment":"router_holdout_v1"}`) |
+| `POST /admin/abtest/stop` | Stop assignment (kill switch) |
+| `POST /admin/abtest/config` | Runtime tweaks / reload YAML |
+| `GET /admin/abtest/significance` | Chi-square on conversion contingency |
+
+Sticky assignment: `md5(experiment:user_id)` → Redis key `abtest:{experiment}:{user_id}` (TTL 30d).
+Client headers: `X-User-ID` (preferred) or `X-Anonymous-User-Id`.
+Response: `X-AB-Group`, `X-AB-Experiment`.
+Prometheus label `ab_group` on HTTP/LLM metrics.
+
+### Safe enablement order
+
+1. Canary at a stable stage (e.g. C2) **or** canary off — do not stack risky live LLM + A/B without a plan.
+2. Confirm smoke with A/B **off**.
+3. `POST /admin/abtest/start` with `router_holdout_v1` (treatment uses **mock** router by default).
+4. Monitor Grafana **ab_group** panels + `/admin/abtest/significance`.
+5. Stop via `POST /admin/abtest/stop` or set `FEATURE_ABTEST_ENABLED=false` + Sync.
+
+### Rollback
+
+```bash
+curl -sS -X POST "$API_URL/admin/abtest/stop" \
+  -H "X-Admin-Token: $ADMIN_API_TOKEN"
+```
+
 ## 4. Monitoring and alerts
 
 ### Signals
@@ -211,6 +244,7 @@ Keep phone/email lists outside git if sensitive. Update this table when the on-c
 - `docs/GATE_10A_CLOSEOUT.md` — Gate 10A evidence
 - `docs/GATE_10B_CLOSEOUT.md` — Gate 10B evidence
 - `docs/GATE_10C_CLOSEOUT.md` — Gate 10C evidence
+- `docs/GATE_10D_CLOSEOUT.md` — Gate 10D evidence
 - `docs/SLOS.md` — SLOs / SLIs
 - `docs/SECURITY.md` — secret and PII rules
 - `docs/STAGING_RESOURCE_REGISTER.md` — staging only (do not mix secrets)

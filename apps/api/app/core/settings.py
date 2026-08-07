@@ -216,6 +216,19 @@ class Settings(BaseSettings):
         default=True,
         validation_alias="CANARY_STICKY_SESSION",
     )
+    # Gate 10D — A/B testing (default off)
+    feature_abtest_enabled: bool = Field(
+        default=False,
+        validation_alias="FEATURE_ABTEST_ENABLED",
+    )
+    abtest_config_path: str = Field(
+        default="config/abtest.yaml",
+        validation_alias="ABTEST_CONFIG_PATH",
+    )
+    abtest_redis_ttl: int = Field(
+        default=2592000,
+        validation_alias="ABTEST_REDIS_TTL",
+    )
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
