@@ -13,6 +13,15 @@ def test_legacy_postgres_url_uses_psycopg_driver() -> None:
     assert settings.database_url == "postgresql+psycopg://user:pass@example.com:5432/app"
 
 
+def test_render_database_url_adds_sslmode() -> None:
+    settings = Settings(
+        DATABASE_URL=("postgresql://user:pass@dpg-xxx-a.oregon-postgres.render.com/dealhunter")
+    )
+
+    assert settings.database_url.startswith("postgresql+psycopg://")
+    assert "sslmode=require" in settings.database_url
+
+
 def test_llm_intent_parser_settings_default_to_disabled() -> None:
     settings = Settings(OPENAI_API_KEY="  ")
 
