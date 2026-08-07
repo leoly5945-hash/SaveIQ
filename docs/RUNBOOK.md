@@ -1,8 +1,9 @@
-# Production Runbook (Gate 10A)
+# Production Runbook (Gate 10A / 10B)
 
 Environment: **production** (`saveiq-production`)  
 Blueprint: `render-production.yaml`  
 Staging remains the experiment sandbox (`render.yaml`).
+SLOs: `docs/SLOS.md` · Alert rules: `monitoring/alerts.yml`
 
 ## 1. Deploy procedure
 
@@ -61,13 +62,55 @@ Change `numInstances` or plans in `render-production.yaml`, validate, Sync Bluep
 
 ## 4. Monitoring and alerts
 
-Gate 10B will formalize SLOs. For 10A, watch at minimum:
+### Signals
 
 - Render service metrics: CPU, memory, instance health, deploy failures
 - `/health` and `/api/health` uptime
+- `GET /metrics` — Prometheus SLIs (optional `X-Metrics-Token` if `METRICS_TOKEN` set)
+- Structured JSON logs on API stdout (`request_id`, `duration_ms`, `status_code`)
 - `GET /admin/rate-limit/status` (enabled, store=redis preferred)
-- `GET /admin/router-status`, `/bandit/status`, `/personalization/status` — must stay inactive/disabled
-- Application logs for 429 bursts, Redis disconnects, migration errors
+- `GET /admin/router-status`, `/bandit/status`, `/personalization/status` — must stay inactive until canary
+- Grafana: import `monitoring/grafana-dashboard.json`
+- Prometheus scrape example: `monitoring/prometheus.yml`
+- Alertmanager Slack/email template: `monitoring/alertmanager.yml` (set `SLACK_WEBHOOK_URL` outside git)
+
+### Alert playbooks
+
+#### HighErrorRate {#higherrorrate}
+
+- **Meaning:** 5xx ratio exceeded threshold.
+- **Check:** Render API logs for Tracebacks; `/metrics` `http_requests_total{status_code="5.."}`; recent deploy.
+- **Actions:** Rollback image digest if deploy-correlated; disable AI flags; verify Postgres/Redis; scale if OOM/CPU.
+
+#### HighLatency {#highlatency}
+
+- **Meaning:** p95 on `/search` or `/recommendations` > 1.5s sustained.
+- **Check:** DB slow queries / connection pool; Redis latency; cold start after idle; LLM provider if flags on.
+- **Actions:** Warm instance; scale `numInstances`/plan; disable live LLM; fall back to rule-based path.
+
+#### LLMProviderDown {#llmproviderdown}
+
+- **Meaning:** Provider error rate > 10% while AI router is live.
+- **Check:** `/admin/router-status`, `/admin/router/metrics`; provider status pages; API keys validity (never paste keys).
+- **Actions:** Set `FEATURE_AI_ROUTER=false` or `AI_ROUTER_MODE=disabled`; switch fallback provider; rotate key if auth errors.
+
+#### HighCost {#highcost}
+
+- **Meaning:** Estimated LLM spend > $10/hour.
+- **Check:** `llm_cost_usd_total` by provider; cache hit rate; unexpected traffic.
+- **Actions:** Disable live providers; tighten cache TTL; reduce traffic / rate limits; investigate abuse (429s).
+
+#### CacheMissHigh {#cachemisshigh}
+
+- **Meaning:** Router cache hit rate < 50% with meaningful traffic.
+- **Check:** Redis health; `AI_ROUTER_CACHE_ENABLED`; TTL too low; key churn from unique queries.
+- **Actions:** Fix Redis; raise TTL carefully; confirm cache enabled.
+
+#### BanditRegretHigh {#banditregrethigh}
+
+- **Meaning:** Regret counter rising quickly (when bandit active).
+- **Check:** `/admin/bandit/status`, policy, sample counts; confirm not controlling routing unexpectedly.
+- **Actions:** Set `BANDIT_ROUTER_MODE=logging` or `disabled`; keep `FEATURE_BANDIT_ROUTER=false` until Gate 10C/D.
 
 ## 5. Common troubleshooting
 
@@ -95,5 +138,7 @@ Keep phone/email lists outside git if sensitive. Update this table when the on-c
 
 - `docs/GATE_10_PLAN.md` — full rollout plan (10A–10F)
 - `docs/GATE_10A_CLOSEOUT.md` — Gate 10A evidence
+- `docs/GATE_10B_CLOSEOUT.md` — Gate 10B evidence
+- `docs/SLOS.md` — SLOs / SLIs
 - `docs/SECURITY.md` — secret and PII rules
 - `docs/STAGING_RESOURCE_REGISTER.md` — staging only (do not mix secrets)

@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.core.settings import Settings, get_settings
 from app.db.session import get_db
 from app.models import RecommendationFeedbackRating
+from app.observability.metrics import observe_recommendation
 from app.services.llm_intent_parser import build_llm_intent_parser_service
 from app.services.recommendation_feedback import record_recommendation_feedback
 from app.services.recommendations import recommend_offers
@@ -128,6 +129,7 @@ def recommend_products(
         user_id=user_id if settings.feature_personalization else None,
         market=request.market,
     )
+    observe_recommendation(strategy=str(result["strategy"]))
     return RecommendationResponse(
         intent=RecommendationIntentResponse(**result["intent"].__dict__),
         strategy=result["strategy"],

@@ -92,6 +92,21 @@ class RouterMetrics:
                 self._store.hincrby(METRICS_KEY, "cache_hits", 1)
             else:
                 self._store.hincrby(METRICS_KEY, "cache_misses", 1)
+            try:
+                from app.observability.metrics import observe_cache, observe_llm_request
+
+                observe_llm_request(
+                    provider=provider,
+                    latency_ms=latency_ms,
+                    estimated_cost_usd=estimated_cost_usd,
+                    error=error,
+                )
+                observe_cache(hit=cache_hit)
+            except Exception as prom_exc:  # noqa: BLE001
+                logger.warning(
+                    "Prometheus router bridge failed (%s)",
+                    prom_exc.__class__.__name__,
+                )
         except Exception as exc:  # noqa: BLE001
             logger.warning("AI router metrics record failed (%s)", exc.__class__.__name__)
 

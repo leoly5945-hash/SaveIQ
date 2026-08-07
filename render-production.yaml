@@ -57,6 +57,12 @@ services:
         value: "1000"
       - key: RATE_LIMIT_ADMIN_PER_MINUTE
         value: "50"
+      - key: STRUCTURED_LOGGING
+        value: "true"
+      - key: METRICS_ENABLED
+        value: "true"
+      - key: METRICS_TOKEN
+        sync: false
       - key: FEATURE_LLM_INTENT_PARSER
         value: "false"
       - key: LLM_INTENT_PARSER_MODE

@@ -1,0 +1,93 @@
+# Prometheus alerting rules for SaveIQ / DealHunter (Gate 10B).
+# Load with Prometheus `rule_files` or convert for Grafana/Datadog as needed.
+
+groups:
+  - name: saveiq-api
+    rules:
+      - alert: HighErrorRate
+        expr: |
+          (
+            sum(rate(http_requests_total{status_code=~"5.."}[5m]))
+            /
+            clamp_min(sum(rate(http_requests_total[5m])), 1e-9)
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "API 5xx rate > 5% for 5m"
+          runbook: "docs/RUNBOOK.md#higherrorrate"
+
+      - alert: ElevatedErrorRate
+        expr: |
+          (
+            sum(rate(http_requests_total{status_code=~"5.."}[5m]))
+            /
+            clamp_min(sum(rate(http_requests_total[5m])), 1e-9)
+          ) > 0.01
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "API 5xx rate > 1% for 10m"
+          runbook: "docs/RUNBOOK.md#higherrorrate"
+
+      - alert: HighLatency
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum(rate(http_request_duration_seconds_bucket{path=~"/search|/recommendations"}[5m])) by (le, path)
+          ) > 1.5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "p95 latency > 1.5s on search/recommendations"
+          runbook: "docs/RUNBOOK.md#highlatency"
+
+      - alert: LLMProviderDown
+        expr: |
+          (
+            sum(rate(llm_requests_total{result="error"}[2m])) by (provider)
+            /
+            clamp_min(sum(rate(llm_requests_total[2m])) by (provider), 1e-9)
+          ) > 0.10
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "LLM provider error rate > 10%"
+          runbook: "docs/RUNBOOK.md#llmproviderdown"
+
+      - alert: HighCost
+        expr: sum(rate(llm_cost_usd_total[1h])) * 3600 > 10
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Estimated LLM cost > $10/hour"
+          runbook: "docs/RUNBOOK.md#highcost"
+
+      - alert: CacheMissHigh
+        expr: |
+          (
+            sum(rate(cache_events_total{result="hit"}[10m]))
+            /
+            clamp_min(sum(rate(cache_events_total[10m])), 1e-9)
+          ) < 0.50
+          and sum(rate(cache_events_total[10m])) > 0.01
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Router cache hit rate < 50%"
+          runbook: "docs/RUNBOOK.md#cachemisshigh"
+
+      - alert: BanditRegretHigh
+        expr: increase(bandit_regret_total[30m]) > 50
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Bandit regret rising quickly"
+          runbook: "docs/RUNBOOK.md#banditregrethigh"

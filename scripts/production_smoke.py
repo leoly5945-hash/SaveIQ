@@ -83,6 +83,18 @@ def get_headers(url: str) -> dict[str, str]:
         return {k.lower(): v for k, v in response.headers.items()}
 
 
+def get_text(url: str, token: str | None = None) -> str:
+    headers = {"Accept": "text/plain", "User-Agent": USER_AGENT}
+    metrics_token = os.environ.get("METRICS_TOKEN")
+    if metrics_token:
+        headers["X-Metrics-Token"] = metrics_token
+    if token:
+        headers["X-Admin-Token"] = token
+    request = Request(url, headers=headers)
+    with open_with_retries(request) as response:
+        return response.read().decode("utf-8", errors="replace")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--api-url", default=os.environ.get("API_URL", DEFAULT_API_URL))
@@ -140,6 +152,13 @@ def main() -> None:
     if not isinstance(search.get("count"), int):
         fail("search returned malformed payload")
     checks.append(Check("api_search", f"count={search['count']}"))
+
+    metrics_body = get_text(f"{api_url}/metrics", token)
+    if "http_requests_total" not in metrics_body:
+        fail("Prometheus /metrics missing http_requests_total")
+    if "http_request_duration_seconds" not in metrics_body:
+        fail("Prometheus /metrics missing http_request_duration_seconds")
+    checks.append(Check("prometheus_metrics", "http_requests_total+duration"))
 
     if token:
         router = get_json(f"{api_url}/admin/router-status", token)

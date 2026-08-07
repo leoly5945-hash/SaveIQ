@@ -55,6 +55,10 @@ Instrument and alert on:
 Dashboards: router cache hit rate, provider mix, bandit policy, personalization opt-out rate,
 benchmark sample growth. Admin metrics endpoints already exist; wire to Render/logs or metrics sink.
 
+**Status:** Implemented in-repo (structured logs, `/metrics`, `docs/SLOS.md`, `monitoring/*`, runbook playbooks).  
+Operator still wires Prometheus/Grafana/Alertmanager + Slack webhook secrets outside git.  
+**Closeout:** `docs/GATE_10B_CLOSEOUT.md`
+
 **Exit:** alerts fire in a staged drill; on-call knows rollback switches.
 
 ### Gate 10C — Canary deploy

@@ -11,7 +11,7 @@ from app.core.settings import get_settings
 from app.services.rate_limit import Bucket, get_rate_limiter
 from app.services.user.identity import normalize_anonymous_user_id
 
-EXEMPT_PATHS = frozenset({"/health", "/docs", "/openapi.json", "/redoc"})
+EXEMPT_PATHS = frozenset({"/health", "/metrics", "/docs", "/openapi.json", "/redoc"})
 
 
 def classify_bucket(path: str, anonymous_user_id: str | None) -> tuple[Bucket, str]:

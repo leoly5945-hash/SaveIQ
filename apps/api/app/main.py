@@ -10,16 +10,23 @@ from app.api.routes.admin_users import router as admin_users_router
 from app.api.routes.bandit import router as bandit_router
 from app.api.routes.clicks import router as clicks_router
 from app.api.routes.health import router as health_router
+from app.api.routes.metrics import router as metrics_router
 from app.api.routes.personalization import router as personalization_router
 from app.api.routes.recommendations import router as recommendations_router
 from app.api.routes.search import router as search_router
 from app.api.routes.user import router as user_router
+from app.core.logging import configure_logging
 from app.core.settings import get_settings
 from app.middleware.rate_limit import RateLimitMiddleware
+from app.middleware.request_logging import RequestLoggingMiddleware
 
 
 def create_app() -> FastAPI:
     settings = get_settings()
+    configure_logging(
+        structured=settings.structured_logging,
+        log_level=settings.log_level,
+    )
     app = FastAPI(title=settings.app_name, version=settings.app_version)
     app.add_middleware(
         CORSMiddleware,
@@ -28,9 +35,11 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
-    # Outer middleware runs first; rate limits apply before route handlers.
+    # Last added = outermost. Request logging wraps rate limiting.
     app.add_middleware(RateLimitMiddleware)
+    app.add_middleware(RequestLoggingMiddleware)
     app.include_router(health_router)
+    app.include_router(metrics_router)
     app.include_router(clicks_router)
     app.include_router(search_router)
     app.include_router(recommendations_router)
