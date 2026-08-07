@@ -328,8 +328,7 @@ class AiRouter:
 
         configured_primary = primary if self._provider_ready(primary) else None
         if configured_primary is None:
-            if self._provider_ready("mock") and self._settings.ai_router_mode == "mock":
-                return "mock", None
+            # Mode is live here (mock returns earlier). Prefer any configured provider.
             candidates = (
                 "deepseek",
                 "qwen",
