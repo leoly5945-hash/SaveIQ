@@ -6,8 +6,8 @@
 # - Registry credential named ghcr-saveiq
 # - Distinct secrets from staging (ADMIN_API_TOKEN, provider keys)
 #
-# Gate 10A: all AI / bandit / personalization flags remain OFF.
-# Digests match the Gate 9 staging pin until a dedicated production release re-pins them.
+# Gate 10A/10C: all AI / bandit / personalization flags remain OFF by default.
+# Digests pinned to Gate 10C publish (sha-188879e); canary stays at 0% until intentional C1.
 
 previews:
   generation: off
@@ -21,7 +21,7 @@ services:
     numInstances: 1
     autoDeployTrigger: "off"
     image:
-      url: "ghcr.io/leoly5945-hash/saveiq-engine@sha256:b30913cafb3076133535051a7f9135f186ed447a9e41fcb0cc209b165e2a2193"
+      url: "ghcr.io/leoly5945-hash/saveiq-engine@sha256:00f68fd2109d6c8be3fbaa9843bfdd5c581f6f7f905f8631c72d76b6b8631d13"
       creds:
         fromRegistryCreds:
           name: ghcr-saveiq
@@ -148,7 +148,7 @@ services:
     numInstances: 1
     autoDeployTrigger: "off"
     image:
-      url: "ghcr.io/leoly5945-hash/saveiq-web@sha256:170390d3944aa108c40784a614b69f4c24bd9cbbc52e08fda9dcdab436a9f031"
+      url: "ghcr.io/leoly5945-hash/saveiq-web@sha256:12687f97a3a044639940c78bb25999837c6ce22436ede0f9f495a67b70037fec"
       creds:
         fromRegistryCreds:
           name: ghcr-saveiq
