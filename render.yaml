@@ -16,7 +16,7 @@ services:
     plan: free
     region: oregon
     image:
-      url: "ghcr.io/leoly5945-hash/saveiq-engine@sha256:9f6de983690a5b4a3c2dedf4076127cc8d1535c410c19795423d42c20ef2b1d1"
+      url: "ghcr.io/leoly5945-hash/saveiq-engine@sha256:5ba5bebe0f41cc71684b27fcccec136a846f4f7f3ed5b59edead4b63f77345de"
       creds:
         fromRegistryCreds:
           name: ghcr-saveiq
@@ -108,6 +108,22 @@ services:
         value: "false"
       - key: FEATURE_BAYESIAN_TUNING
         value: "false"
+      - key: FEATURE_AUTO_TUNING
+        value: "false"
+      - key: FEATURE_KILL_SWITCH
+        value: "false"
+      - key: AUTO_TUNE_DRY_RUN
+        value: "true"
+      - key: FEATURE_ABTEST_ENABLED
+        value: "false"
+      - key: CANARY_ENABLED
+        value: "false"
+      - key: CANARY_PERCENTAGE
+        value: "0"
+      - key: CANARY_FEATURES
+        value: router,bandit,personalization,llm_cn
+      - key: CANARY_STICKY_SESSION
+        value: "true"
 
   - type: web
     name: dealhunter-staging-web
@@ -115,7 +131,7 @@ services:
     plan: free
     region: oregon
     image:
-      url: "ghcr.io/leoly5945-hash/saveiq-web@sha256:7cf2997dc3e3378f1f9896e33bbf8e58d4f3f0cbe52466a8da71d0c533896a02"
+      url: "ghcr.io/leoly5945-hash/saveiq-web@sha256:363f14422b21f388ec164e31951242d60457f6387eed5548998431d809751abd"
       creds:
         fromRegistryCreds:
           name: ghcr-saveiq
