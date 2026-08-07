@@ -104,9 +104,7 @@ def apply_autotune_hparams(body: SafetyHParamsRequest, settings: AppSettings) ->
         beta=current.beta if body.beta is None else body.beta,
         gamma=current.gamma if body.gamma is None else body.gamma,
         cache_ttl_seconds=(
-            current.cache_ttl_seconds
-            if body.cache_ttl_seconds is None
-            else body.cache_ttl_seconds
+            current.cache_ttl_seconds if body.cache_ttl_seconds is None else body.cache_ttl_seconds
         ),
     )
     try:

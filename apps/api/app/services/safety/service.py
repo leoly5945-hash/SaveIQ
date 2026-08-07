@@ -128,9 +128,7 @@ class SafetyService:
                         trip_at=data.get("trip_at"),
                         last_evaluate_at=data.get("last_evaluate_at"),
                         last_tune_at=data.get("last_tune_at"),
-                        actions_on_trip=list(
-                            data.get("actions_on_trip") or base.actions_on_trip
-                        ),
+                        actions_on_trip=list(data.get("actions_on_trip") or base.actions_on_trip),
                     )
             except Exception as exc:  # noqa: BLE001
                 logger.warning("Safety config read failed (%s)", exc.__class__.__name__)
@@ -172,9 +170,7 @@ class SafetyService:
             "config_update",
             {
                 "updates": {
-                    k: updates[k]
-                    for k in updates
-                    if k in allowed and updates[k] is not None
+                    k: updates[k] for k in updates if k in allowed and updates[k] is not None
                 }
             },
         )
@@ -610,9 +606,7 @@ class SafetyService:
             if action == "zero_canary":
                 from app.services.canary.service import build_canary_service
 
-                cfg = build_canary_service(self._settings).set_config(
-                    enabled=False, percentage=0
-                )
+                cfg = build_canary_service(self._settings).set_config(enabled=False, percentage=0)
                 return {
                     "ok": True,
                     "canary": {"enabled": cfg.enabled, "percentage": cfg.percentage},
