@@ -7,13 +7,20 @@ cd "$ROOT"
 
 PYTHON="${PYTHON:-python3}"
 
-echo "==> Python dependency audit (pip-audit)"
+echo "==> Python dependency audit (pip-audit on runtime deps)"
 "$PYTHON" -m pip install -q pip-audit
-(
-  cd apps/api
-  "$PYTHON" -m pip install -q -e .
-  "$PYTHON" -m pip_audit --progress-spinner=off
+"$PYTHON" - <<'PY'
+from pathlib import Path
+import tomllib
+
+data = tomllib.loads(Path("apps/api/pyproject.toml").read_text(encoding="utf-8"))
+Path("apps/api/requirements-audit.txt").write_text(
+    "\n".join(data["project"]["dependencies"]) + "\n",
+    encoding="utf-8",
 )
+PY
+"$PYTHON" -m pip_audit -r apps/api/requirements-audit.txt --progress-spinner=off
+rm -f apps/api/requirements-audit.txt
 
 echo "==> Node dependency audit (npm audit)"
 npm audit --audit-level=high
