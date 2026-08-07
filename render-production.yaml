@@ -7,7 +7,7 @@
 # - Distinct secrets from staging (ADMIN_API_TOKEN, provider keys)
 #
 # Gate 10A/10C: all AI / bandit / personalization flags remain OFF by default.
-# Digests pinned to Gate 10D publish (sha-5dc484c); FEATURE_ABTEST_ENABLED stays false until intentional start.
+# Digests pinned to Gate 10D significance fix (sha-5d9d564); FEATURE_ABTEST_ENABLED stays false until intentional start.
 
 previews:
   generation: off
@@ -21,7 +21,7 @@ services:
     numInstances: 1
     autoDeployTrigger: "off"
     image:
-      url: "ghcr.io/leoly5945-hash/saveiq-engine@sha256:a158e2f7ab8da7d9eb8fe19a86217c7e6454dc6941ca2b74bb2569485198f209"
+      url: "ghcr.io/leoly5945-hash/saveiq-engine@sha256:5bce9579730b085e828c125b039b712e79de2ab8e88093bf65db2f9575f106b2"
       creds:
         fromRegistryCreds:
           name: ghcr-saveiq
@@ -154,7 +154,7 @@ services:
     numInstances: 1
     autoDeployTrigger: "off"
     image:
-      url: "ghcr.io/leoly5945-hash/saveiq-web@sha256:6f11ff35535717f6ae1440755f30f3fa8faffcce5fa7a5e8eb3e0b58991c9bfa"
+      url: "ghcr.io/leoly5945-hash/saveiq-web@sha256:21d736fd445354a9ca6357f353b563b422ef64ee7f91f88270f7f563e9650b61"
       creds:
         fromRegistryCreds:
           name: ghcr-saveiq
