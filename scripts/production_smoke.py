@@ -104,6 +104,14 @@ def main() -> None:
         action="store_true",
         help="Fail if ADMIN_API_TOKEN is missing (default: skip admin checks).",
     )
+    parser.add_argument(
+        "--allow-active-canary",
+        action="store_true",
+        help=(
+            "Do not fail when canary is enabled/percentage>0 "
+            "(use during intentional Gate 10C phases while validating other surfaces)."
+        ),
+    )
     args = parser.parse_args()
     api_url = args.api_url.rstrip("/")
     web_url = args.web_url.rstrip("/")
@@ -192,10 +200,12 @@ def main() -> None:
         )
 
         canary = get_json(f"{api_url}/admin/canary/status", token)
-        if canary.get("enabled") is True or int(canary.get("percentage") or 0) > 0:
+        canary_on = canary.get("enabled") is True or int(canary.get("percentage") or 0) > 0
+        if canary_on and not args.allow_active_canary:
             fail(
                 "canary must remain disabled (enabled=false, percentage=0) "
-                "until an intentional Gate 10C phase"
+                "until an intentional Gate 10C phase "
+                "(or pass --allow-active-canary)"
             )
         checks.append(
             Check(

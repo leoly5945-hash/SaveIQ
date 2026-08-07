@@ -9,7 +9,7 @@ import threading
 from pathlib import Path
 from typing import Any
 
-import yaml  # type: ignore[import-untyped]
+import yaml  # type: ignore[import-untyped,unused-ignore]
 
 from app.core.settings import Settings
 
@@ -236,7 +236,7 @@ class ABTestService:
         metric: str = "conversions",
     ) -> dict[str, Any]:
         """Chi-square test on control vs first treatment for binary metric counts."""
-        from scipy.stats import chi2_contingency  # type: ignore[import-untyped]
+        from scipy.stats import chi2_contingency  # type: ignore[import-untyped,unused-ignore]
 
         stats = self.get_stats(experiment_name)
         groups = stats["groups"]
