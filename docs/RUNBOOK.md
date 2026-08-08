@@ -267,6 +267,31 @@ export PROD_ADMIN_TOKEN=...      # Render production ADMIN_API_TOKEN
 `--soak-seconds 60` is for local testing only. Production must use default **86400**.  
 Script **refuses** to continue if production `FEATURE_KILL_SWITCH` / `FEATURE_AUTO_TUNING` env are true.
 
+### Background auto-rollout daemon
+
+Script: `scripts/gate10e_auto_rollout.py` (polls soak monitor, advances phases, writes report).
+
+```bash
+export PROD_ADMIN_TOKEN=...
+
+# Check remaining soak
+.venv/bin/python scripts/gate10e_auto_rollout.py --status
+
+# Run in background (no --force; rollback on breach)
+nohup .venv/bin/python scripts/gate10e_auto_rollout.py --daemon \
+  > artifacts/gate10e_auto_rollout.log 2>&1 &
+echo $! > artifacts/gate10e_auto_rollout.pid
+
+# After C4 soak, auto-run mock_router (optional)
+# add --auto-mock
+
+# Stop
+kill "$(cat artifacts/gate10e_auto_rollout.pid)"
+```
+
+Artifacts: `artifacts/gate10e_auto_rollout.log`, `artifacts/gate10e_auto_rollout_state.json`,  
+report: `docs/GATE_10E_ROLLOUT_REPORT.md`.
+
 ## 4. Monitoring and alerts
 
 ### Signals
