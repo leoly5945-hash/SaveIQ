@@ -1,4 +1,4 @@
-.PHONY: recommendation-eval staging-provision-validate staging-provision-validate-template staging-seed-mock staging-smoke production-provision-validate production-smoke deploy-production security-scan gate10d-abtest-rollout gate10e-rollout
+.PHONY: recommendation-eval staging-provision-validate staging-provision-validate-template staging-seed-mock staging-smoke production-provision-validate production-smoke deploy-production security-scan gate10d-abtest-rollout gate10e-rollout gate10e-auto-rollout
 
 PYTHON ?= python3
 
@@ -39,3 +39,10 @@ gate10d-abtest-rollout:
 # Example: make gate10e-rollout -- --phase staging_drill
 gate10e-rollout:
 	$(PYTHON) scripts/gate10e_rollout.py $(ARGS)
+
+# Gate 10E background auto-rollout (waits C3 soak → C4 → C4 soak).
+# Requires PROD_ADMIN_TOKEN.
+#   make gate10e-auto-rollout ARGS='--status'
+#   make gate10e-auto-rollout ARGS='--daemon'
+gate10e-auto-rollout:
+	$(PYTHON) scripts/gate10e_auto_rollout.py $(ARGS)
