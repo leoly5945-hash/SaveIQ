@@ -108,8 +108,9 @@ def main() -> None:
         "--allow-active-canary",
         action="store_true",
         help=(
-            "Do not fail when canary is enabled/percentage>0 "
-            "(use during intentional Gate 10C phases while validating other surfaces)."
+            "Do not fail when canary is enabled/percentage>0, and allow "
+            "canary-effective bandit/router/personalization (logging/mock only; "
+            "still fail on controls_routing or live router)."
         ),
     )
     args = parser.parse_args()
@@ -137,17 +138,24 @@ def main() -> None:
     checks.append(Check("production_noindex", robots or "present"))
 
     bandit = get_json(f"{api_url}/bandit/status")
-    if bandit.get("active") is True or bandit.get("controls_routing") is True:
+    # At canary >0%, sticky cohort can enable bandit logging (active=true, mode=logging)
+    # without global FEATURE_BANDIT_ROUTER. At C4 (100%) every request is canary.
+    if bandit.get("controls_routing") is True:
+        fail(
+            "bandit must not control routing in production until intentionally enabled"
+        )
+    if not args.allow_active_canary and bandit.get("active") is True:
         fail("bandit must remain inactive/disabled in production Gate 10A")
     checks.append(
         Check(
             "bandit_status",
-            f"active={bandit.get('active')} mode={bandit.get('mode')}",
+            f"active={bandit.get('active')} mode={bandit.get('mode')} "
+            f"controls_routing={bandit.get('controls_routing')}",
         )
     )
 
     personalization = get_json(f"{api_url}/personalization/status")
-    if personalization.get("feature_enabled") is True:
+    if personalization.get("feature_enabled") is True and not args.allow_active_canary:
         fail("personalization must remain disabled in production Gate 10A")
     checks.append(
         Check(
@@ -170,7 +178,11 @@ def main() -> None:
 
     if token:
         router = get_json(f"{api_url}/admin/router-status", token)
-        if router.get("active") is True:
+        router_mode = str(router.get("mode") or "").lower()
+        # Canary effective path may set active=true with mode=mock while global flag stays false.
+        if router_mode == "live":
+            fail("AI router must not be live in production until intentionally enabled")
+        if router.get("active") is True and not args.allow_active_canary:
             fail("AI router must remain inactive in production Gate 10A")
         checks.append(
             Check(
@@ -200,7 +212,9 @@ def main() -> None:
         )
 
         canary = get_json(f"{api_url}/admin/canary/status", token)
-        canary_on = canary.get("enabled") is True or int(canary.get("percentage") or 0) > 0
+        canary_on = (
+            canary.get("enabled") is True or int(canary.get("percentage") or 0) > 0
+        )
         if canary_on and not args.allow_active_canary:
             fail(
                 "canary must remain disabled (enabled=false, percentage=0) "
@@ -237,13 +251,18 @@ def main() -> None:
         safety = get_json(f"{api_url}/admin/safety/status", token)
         runtime = safety.get("runtime") or {}
         env = safety.get("env") or {}
-        if env.get("feature_kill_switch") is True or env.get("feature_auto_tuning") is True:
+        if (
+            env.get("feature_kill_switch") is True
+            or env.get("feature_auto_tuning") is True
+        ):
             fail(
                 "Gate 10E safety features must remain env-disabled "
                 "(FEATURE_KILL_SWITCH=false, FEATURE_AUTO_TUNING=false) until staging drill"
             )
         if runtime.get("tripped") is True:
-            fail("kill switch is tripped; disarm or investigate before declaring smoke ok")
+            fail(
+                "kill switch is tripped; disarm or investigate before declaring smoke ok"
+            )
         checks.append(
             Check(
                 "safety_status",
