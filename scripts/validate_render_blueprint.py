@@ -214,7 +214,6 @@ def validate_env(services: dict[str, dict[str, Any]], *, profile: str) -> None:
         )
 
     for flag in (
-        "FEATURE_AI_ROUTER",
         "FEATURE_BANDIT_ROUTER",
         "FEATURE_PERSONALIZATION",
         "FEATURE_CHINESE_LLM_PROVIDERS",
@@ -232,6 +231,20 @@ def validate_env(services: dict[str, dict[str, Any]], *, profile: str) -> None:
                 if api_env[flag].get("value") != "false":
                     fail(f"{flag} must be false in {profile}", profile=profile)
 
+    # Gate 10F: FEATURE_AI_ROUTER may be true only with AI_ROUTER_MODE=mock (never live here).
+    ai_router = (api_env.get("FEATURE_AI_ROUTER") or {}).get("value")
+    ai_mode = str((api_env.get("AI_ROUTER_MODE") or {}).get("value") or "").lower()
+    if ai_router not in {None, "false", "true"}:
+        fail("FEATURE_AI_ROUTER must be false|true", profile=profile)
+    if ai_router == "true" and ai_mode != "mock":
+        fail(
+            "FEATURE_AI_ROUTER=true requires AI_ROUTER_MODE=mock "
+            "(live enablement is a separate checklist)",
+            profile=profile,
+        )
+    if profile != "production" and ai_router not in {None, "false"} and ai_mode == "live":
+        fail("staging must not set AI_ROUTER_MODE=live", profile=profile)
+
     if profile == "production":
         for flag in (
             "FEATURE_AI_ROUTER",
@@ -244,6 +257,8 @@ def validate_env(services: dict[str, dict[str, Any]], *, profile: str) -> None:
         ):
             if flag not in api_env:
                 fail(f"production API must set {flag}", profile=profile)
+        if "AI_ROUTER_MODE" not in api_env:
+            fail("production API must set AI_ROUTER_MODE", profile=profile)
         if api_env.get("RATE_LIMIT_ENABLED", {}).get("value") != "true":
             fail("production RATE_LIMIT_ENABLED must be true", profile=profile)
         if web_env.get("PRODUCTION_NOINDEX", {}).get("value") != "true":
