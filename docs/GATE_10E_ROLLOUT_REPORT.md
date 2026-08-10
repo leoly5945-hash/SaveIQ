@@ -13,16 +13,16 @@ Automation: `scripts/gate10e_rollout.py`, `scripts/gate10e_auto_rollout.py`
 | C4 soak (≥24h) | **PASS** | Elapsed **27h21m** ≥ 24h |
 | Mock router (canary-effective) | **PASS** | `canary=100%` + `router` feature → mock path |
 | Prod `FEATURE_KILL_SWITCH` / `FEATURE_AUTO_TUNING` | **OFF** | Unchanged |
-| Global `FEATURE_AI_ROUTER` env flip | **PASS** | PR #22 merged + Render Sync; `active=True mode=mock` |
+| Global `FEATURE_AI_ROUTER` env flip | **PASS** | PR #22 → mock; PR #25 → **live** + Chinese |
 
 ## Final production posture
 
 - Canary: **enabled=true, percentage=100**
 - Features: `router`, `bandit`, `personalization`, `llm_cn`
-- AI router global status: **`active=True mode=mock`** (live providers OFF)
+- AI router global status: **`active=True mode=live`**, Chinese LLM **ON** (DeepSeek)
 - A/B: off
 - Kill switch / auto-tune env: false, not tripped
-- Live AI providers / Chinese LLM: not enabled
+- Live AI providers: **enabled** (Chinese / DeepSeek)
 
 ## Timeline (high level)
 

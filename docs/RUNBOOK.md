@@ -371,6 +371,35 @@ ADMIN_API_TOKEN=... .venv/bin/python scripts/production_smoke.py \
 
 **Rollback:** Blueprint `AI_ROUTER_MODE=mock` + `FEATURE_CHINESE_LLM_PROVIDERS=false`, Sync, smoke with Gate 10F flags.
 
+## 3h. Gate 10H — Neural / RLHF evaluation (human-only)
+
+Checklist: `docs/GATE_10H_NEURAL_RLHF_CHECKLIST.md`
+
+**Do not enable** until live (Gate 10G) is stable ≥24h and the checklist is signed off.
+
+| Flag | Meaning |
+| --- | --- |
+| `FEATURE_NEURAL_BANDIT` | Allow neural bandit agent |
+| `FEATURE_RLHF_ROUTER` | Allow RLHF policy agent |
+| `BANDIT_POLICY` | `rule` \| `linucb` \| `neural` \| `rlhf` (prod default `linucb`) |
+
+```bash
+export PROD_ADMIN_TOKEN=...
+# After Blueprint enables a flag + Render Sync:
+curl -sS -X POST -H "X-Admin-Token: $PROD_ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"policy":"neural"}' \
+  "$API_URL/admin/bandit/switch_policy"
+
+# Surgical rollback (preferred over disabling AI router):
+curl -sS -X POST -H "X-Admin-Token: $PROD_ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"policy":"linucb"}' \
+  "$API_URL/admin/bandit/switch_policy"
+```
+
+Auto-tune must **never** flip these flags. Next after 10H: Gate 10I kill switch, Gate 10J auto-tune.
+
 ## 4. Monitoring and alerts
 
 ### Signals
