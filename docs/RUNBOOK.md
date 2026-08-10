@@ -334,6 +334,43 @@ State-only check (no live API): add `--skip-live-checks` (not recommended for ap
 
 **Rollback:** set Blueprint `FEATURE_AI_ROUTER=false` and `AI_ROUTER_MODE=disabled` (or previous values), Sync Render, re-smoke.
 
+## 3g. Gate 10G — live providers / Chinese LLM
+
+Script: `scripts/gate10g_live_providers.py` · Make: `make gate10g-live-providers ARGS='…'`
+
+**Goal:** After Gate 10F mock is verified, evaluate readiness then optionally flip:
+
+- `AI_ROUTER_MODE=mock` → `live`
+- `FEATURE_CHINESE_LLM_PROVIDERS=false` → `true`
+
+Kill switch / auto-tune stay **OFF**. API keys stay in Render (`sync: false`) — the script never writes secrets.
+
+```bash
+export PROD_ADMIN_TOKEN=...
+
+# 1) Prerequisites (10E/10F + live canary/safety/router)
+make gate10g-live-providers ARGS='--check'
+
+# 2) Readiness report → artifacts/gate10g_evaluation.json
+make gate10g-live-providers ARGS='--evaluate'
+
+# 3) Preview Blueprint edits
+make gate10g-live-providers ARGS='--dry-run'
+
+# 4) Apply locally (all confirms required)
+make gate10g-live-providers ARGS='--apply --confirm-live --confirm-chinese --ack-tos --ack-pii --ack-cost-budget --ack-keys-in-render'
+
+# 5) Commit → PR → merge → Render Sync
+
+# 6) Post-Sync smoke
+ADMIN_API_TOKEN=... .venv/bin/python scripts/production_smoke.py \
+  --allow-active-canary --allow-live-router --allow-chinese-providers --require-admin
+```
+
+**Blockers for apply:** missing Chinese keys in Render, incomplete 10E/10F, canary≠100%, kill/autotune ON.
+
+**Rollback:** Blueprint `AI_ROUTER_MODE=mock` + `FEATURE_CHINESE_LLM_PROVIDERS=false`, Sync, smoke with Gate 10F flags.
+
 ## 4. Monitoring and alerts
 
 ### Signals

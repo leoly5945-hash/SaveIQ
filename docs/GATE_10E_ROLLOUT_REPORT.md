@@ -70,3 +70,20 @@ Gate 10F **complete**: global mock router ON in production (PR #22 + Sync + smok
 
 **Done.** Live providers remain **disabled** until a separate live-enablement checklist.
 
+## Gate 10G — live providers / Chinese LLM
+
+| Field | Value |
+| --- | --- |
+| Timestamp (UTC) | 2026-08-10T08:46:44.413581+00:00 |
+| FEATURE_AI_ROUTER | `true` |
+| AI_ROUTER_MODE | `live` |
+| FEATURE_CHINESE_LLM_PROVIDERS | `true` |
+| FEATURE_KILL_SWITCH | `false` |
+| FEATURE_AUTO_TUNING | `false` |
+| Dry-run | False |
+| Prerequisites | force=true, 10e drill=True c4=100=True soak=28h20m>=24h00m mock=True, 10f_state_flip=True status=blueprint_updated, live_checks=skipped, apply_skip_live=true |
+
+**Next ops:** commit Blueprint → PR → merge → Render Sync →  
+`production_smoke.py --allow-active-canary --allow-live-router --allow-chinese-providers --require-admin`  
+Confirm `/admin/router-status` mode=live + chinese enabled; keys_present for at least one Chinese provider.
+

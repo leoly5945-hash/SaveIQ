@@ -1,4 +1,4 @@
-.PHONY: recommendation-eval staging-provision-validate staging-provision-validate-template staging-seed-mock staging-smoke production-provision-validate production-smoke deploy-production security-scan gate10d-abtest-rollout gate10e-rollout gate10e-auto-rollout gate10f-flip-router
+.PHONY: recommendation-eval staging-provision-validate staging-provision-validate-template staging-seed-mock staging-smoke production-provision-validate production-smoke deploy-production security-scan gate10d-abtest-rollout gate10e-rollout gate10e-auto-rollout gate10f-flip-router gate10g-live-providers
 
 PYTHON ?= python3
 
@@ -53,3 +53,11 @@ gate10e-auto-rollout:
 #   make gate10f-flip-router ARGS='--apply'
 gate10f-flip-router:
 	$(PYTHON) scripts/gate10f_flip_router.py $(ARGS)
+
+# Gate 10G: evaluate / enable live AI router + Chinese LLM providers.
+#   make gate10g-live-providers ARGS='--check'
+#   make gate10g-live-providers ARGS='--evaluate'
+#   make gate10g-live-providers ARGS='--dry-run'
+#   make gate10g-live-providers ARGS='--apply --confirm-live --confirm-chinese --ack-tos --ack-pii --ack-cost-budget --ack-keys-in-render'
+gate10g-live-providers:
+	$(PYTHON) scripts/gate10g_live_providers.py $(ARGS)

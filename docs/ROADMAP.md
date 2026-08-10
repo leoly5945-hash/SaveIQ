@@ -100,5 +100,6 @@
 - Gate 10C canary traffic (1% → 5% → 25% → 100%) with sticky cohort + admin controls (**closeout:** `docs/GATE_10C_CLOSEOUT.md`)
 - Gate 10D A/B / holdout vs rule-based baseline (**closeout:** `docs/GATE_10D_CLOSEOUT.md`)
 - Gate 10E guardrailed auto-adjustment (caps, kill switch; human-only for neural/RLHF/Chinese) (**closeout:** `docs/GATE_10E_CLOSEOUT.md`)
-- Gate 10F production enablement checklist before live provider keys
+- Gate 10F production enablement checklist before live provider keys (**closeout:** `docs/GATE_10F_CLOSEOUT.md`)
+- Gate 10G live providers / Chinese LLM evaluate+enable (`scripts/gate10g_live_providers.py`, **closeout:** `docs/GATE_10G_CLOSEOUT.md`)
 - Plan: `docs/GATE_10_PLAN.md` · Runbook: `docs/RUNBOOK.md`

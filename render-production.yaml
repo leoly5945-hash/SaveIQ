@@ -72,7 +72,7 @@ services:
       - key: FEATURE_AI_ROUTER
         value: "true"
       - key: AI_ROUTER_MODE
-        value: mock
+        value: live
       - key: AI_ROUTER_DEFAULT_MODEL
         value: intent-parser-v0
       - key: AI_ROUTER_STRATEGY
@@ -110,7 +110,7 @@ services:
       - key: PERSONALIZATION_CACHE_TTL_SECONDS
         value: "300"
       - key: FEATURE_CHINESE_LLM_PROVIDERS
-        value: "false"
+        value: "true"
       - key: DEEPSEEK_API_KEY
         sync: false
       - key: DASHSCOPE_API_KEY
