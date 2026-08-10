@@ -51,7 +51,8 @@ Automation: `scripts/gate10e_rollout.py`, `scripts/gate10e_auto_rollout.py`
 ## Exit
 
 Gate 10E **rollout path complete** for canary C4 + mock-via-canary.  
-Gate 10F **complete**: global mock router ON in production (PR #22 + Sync + smoke).
+Gate 10F **complete**: global mock router ON (PR #22).  
+Gate 10G **complete**: live router + Chinese LLM ON (PR #25 + Sync + smoke).
 
 ## Gate 10F — global AI router flip (mock)
 
@@ -60,7 +61,7 @@ Gate 10F **complete**: global mock router ON in production (PR #22 + Sync + smok
 | Blueprint apply (UTC) | 2026-08-10T08:11:11.392132+00:00 |
 | PR | [#22](https://github.com/leoly5945-hash/SaveIQ/pull/22) merged |
 | FEATURE_AI_ROUTER | `true` |
-| AI_ROUTER_MODE | `mock` |
+| AI_ROUTER_MODE | `mock` (superseded by Gate 10G) |
 | FEATURE_KILL_SWITCH | `false` |
 | FEATURE_AUTO_TUNING | `false` |
 | Post-Sync smoke | `production_smoke=ok` |
@@ -68,22 +69,24 @@ Gate 10F **complete**: global mock router ON in production (PR #22 + Sync + smok
 | Chinese LLM | `False` |
 | Safety | `kill=False autotune=False tripped=False` |
 
-**Done.** Live providers remain **disabled** until a separate live-enablement checklist.
+**Done** (then advanced to Gate 10G live).
 
 ## Gate 10G — live providers / Chinese LLM
 
 | Field | Value |
 | --- | --- |
-| Timestamp (UTC) | 2026-08-10T08:46:44.413581+00:00 |
+| Blueprint apply (UTC) | 2026-08-10T08:46:44.413581+00:00 |
+| PR | [#25](https://github.com/leoly5945-hash/SaveIQ/pull/25) merged |
 | FEATURE_AI_ROUTER | `true` |
 | AI_ROUTER_MODE | `live` |
 | FEATURE_CHINESE_LLM_PROVIDERS | `true` |
 | FEATURE_KILL_SWITCH | `false` |
 | FEATURE_AUTO_TUNING | `false` |
-| Dry-run | False |
-| Prerequisites | force=true, 10e drill=True c4=100=True soak=28h20m>=24h00m mock=True, 10f_state_flip=True status=blueprint_updated, live_checks=skipped, apply_skip_live=true |
+| Provider key | DeepSeek present in Render |
+| Post-Sync smoke | `production_smoke=ok` |
+| Live verify | `ai_router_status=active=True mode=live` |
+| Chinese LLM | `True` |
+| Safety | `kill=False autotune=False tripped=False` |
 
-**Next ops:** commit Blueprint → PR → merge → Render Sync →  
-`production_smoke.py --allow-active-canary --allow-live-router --allow-chinese-providers --require-admin`  
-Confirm `/admin/router-status` mode=live + chinese enabled; keys_present for at least one Chinese provider.
+**Done.** Neural/RLHF and kill/autotune enablement remain separate checklists.
 
