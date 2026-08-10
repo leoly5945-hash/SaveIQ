@@ -110,8 +110,18 @@ def main() -> None:
         help=(
             "Do not fail when canary is enabled/percentage>0, and allow "
             "canary-effective bandit/router/personalization (logging/mock only; "
-            "still fail on controls_routing or live router)."
+            "still fail on controls_routing or live router unless --allow-live-router)."
         ),
+    )
+    parser.add_argument(
+        "--allow-live-router",
+        action="store_true",
+        help="Gate 10G: allow AI router mode=live (still requires intentional enablement).",
+    )
+    parser.add_argument(
+        "--allow-chinese-providers",
+        action="store_true",
+        help="Gate 10G: allow chinese_providers_enabled=true.",
     )
     args = parser.parse_args()
     api_url = args.api_url.rstrip("/")
@@ -180,14 +190,16 @@ def main() -> None:
         router = get_json(f"{api_url}/admin/router-status", token)
         router_mode = str(router.get("mode") or "").lower()
         # Canary-effective or Gate 10F global mock may show active=true with mode=mock.
-        if router_mode == "live":
+        if router_mode == "live" and not args.allow_live_router:
             fail("AI router must not be live in production until intentionally enabled")
         if (
             router.get("active") is True
-            and router_mode != "mock"
+            and router_mode not in {"mock", "live"}
             and not args.allow_active_canary
         ):
             fail("AI router must remain inactive in production Gate 10A")
+        if router.get("active") is True and router_mode == "live" and not args.allow_live_router:
+            fail("AI router live mode requires --allow-live-router")
         checks.append(
             Check(
                 "ai_router_status",
@@ -197,7 +209,7 @@ def main() -> None:
 
         models = get_json(f"{api_url}/admin/models/status", token)
         chinese = models.get("chinese_providers_enabled")
-        if chinese is True:
+        if chinese is True and not args.allow_chinese_providers:
             fail("Chinese LLM providers must remain disabled in production Gate 10A")
         checks.append(Check("admin_models_status", f"chinese={chinese}"))
 

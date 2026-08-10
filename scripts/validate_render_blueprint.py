@@ -172,7 +172,12 @@ def validate_services(
         )
 
 
-def validate_env(services: dict[str, dict[str, Any]], *, profile: str) -> None:
+def validate_env(
+    services: dict[str, dict[str, Any]],
+    *,
+    profile: str,
+    allow_live_ai: bool = False,
+) -> None:
     api_name = PROFILES[profile]["api"]
     web_name = PROFILES[profile]["web"]
     api_env = env_map(services[api_name], profile=profile)
@@ -216,7 +221,6 @@ def validate_env(services: dict[str, dict[str, Any]], *, profile: str) -> None:
     for flag in (
         "FEATURE_BANDIT_ROUTER",
         "FEATURE_PERSONALIZATION",
-        "FEATURE_CHINESE_LLM_PROVIDERS",
         "FEATURE_NEURAL_BANDIT",
         "FEATURE_RLHF_ROUTER",
         "FEATURE_AUTO_TUNING",
@@ -231,19 +235,45 @@ def validate_env(services: dict[str, dict[str, Any]], *, profile: str) -> None:
                 if api_env[flag].get("value") != "false":
                     fail(f"{flag} must be false in {profile}", profile=profile)
 
-    # Gate 10F: FEATURE_AI_ROUTER may be true only with AI_ROUTER_MODE=mock (never live here).
+    # Gate 10F/10G: FEATURE_AI_ROUTER=true with mode mock|live.
+    # Chinese providers only with live. Staging stays mock unless --allow-live-ai.
     ai_router = (api_env.get("FEATURE_AI_ROUTER") or {}).get("value")
     ai_mode = str((api_env.get("AI_ROUTER_MODE") or {}).get("value") or "").lower()
+    chinese = (api_env.get("FEATURE_CHINESE_LLM_PROVIDERS") or {}).get("value")
     if ai_router not in {None, "false", "true"}:
         fail("FEATURE_AI_ROUTER must be false|true", profile=profile)
-    if ai_router == "true" and ai_mode != "mock":
-        fail(
-            "FEATURE_AI_ROUTER=true requires AI_ROUTER_MODE=mock "
-            "(live enablement is a separate checklist)",
-            profile=profile,
-        )
-    if profile != "production" and ai_router not in {None, "false"} and ai_mode == "live":
-        fail("staging must not set AI_ROUTER_MODE=live", profile=profile)
+    if chinese not in {None, "false", "true"}:
+        fail("FEATURE_CHINESE_LLM_PROVIDERS must be false|true", profile=profile)
+
+    allow_live = allow_live_ai or profile == "production"
+    if allow_live:
+        if ai_router == "true" and ai_mode not in {"mock", "live", "disabled"}:
+            fail(
+                "FEATURE_AI_ROUTER=true requires AI_ROUTER_MODE=mock|live|disabled",
+                profile=profile,
+            )
+        if ai_mode == "live" and ai_router != "true":
+            fail("AI_ROUTER_MODE=live requires FEATURE_AI_ROUTER=true", profile=profile)
+        if chinese == "true" and ai_mode != "live":
+            fail(
+                "FEATURE_CHINESE_LLM_PROVIDERS=true requires AI_ROUTER_MODE=live",
+                profile=profile,
+            )
+    else:
+        if ai_router == "true" and ai_mode not in {"mock", "disabled"}:
+            fail(
+                "FEATURE_AI_ROUTER=true requires AI_ROUTER_MODE=mock "
+                "(pass --allow-live-ai for live enablement)",
+                profile=profile,
+            )
+        if chinese not in {None, "false"}:
+            fail(
+                "FEATURE_CHINESE_LLM_PROVIDERS must be false "
+                "(pass --allow-live-ai for Gate 10G)",
+                profile=profile,
+            )
+        if ai_mode == "live":
+            fail("staging must not set AI_ROUTER_MODE=live", profile=profile)
 
     if profile == "production":
         for flag in (
@@ -315,6 +345,11 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Blueprint profile (default: detect from filename)",
     )
+    parser.add_argument(
+        "--allow-live-ai",
+        action="store_true",
+        help="Gate 10G: allow AI_ROUTER_MODE=live and FEATURE_CHINESE_LLM_PROVIDERS=true",
+    )
     return parser.parse_args()
 
 
@@ -335,7 +370,7 @@ def main() -> None:
         profile=profile,
         allow_placeholders=args.allow_placeholders,
     )
-    validate_env(services, profile=profile)
+    validate_env(services, profile=profile, allow_live_ai=args.allow_live_ai)
     validate_database(data, profile=profile)
 
     if args.allow_placeholders:
