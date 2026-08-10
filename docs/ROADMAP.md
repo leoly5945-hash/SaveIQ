@@ -102,4 +102,5 @@
 - Gate 10E guardrailed auto-adjustment (caps, kill switch; human-only for neural/RLHF/Chinese) (**closeout:** `docs/GATE_10E_CLOSEOUT.md`)
 - Gate 10F production enablement checklist before live provider keys (**closeout:** `docs/GATE_10F_CLOSEOUT.md`)
 - Gate 10G live providers / Chinese LLM evaluate+enable (`scripts/gate10g_live_providers.py`, **closeout:** `docs/GATE_10G_CLOSEOUT.md`)
+- Gate 10H Neural / RLHF evaluation checklist (**pending:** `docs/GATE_10H_NEURAL_RLHF_CHECKLIST.md`)
 - Plan: `docs/GATE_10_PLAN.md` · Runbook: `docs/RUNBOOK.md`
