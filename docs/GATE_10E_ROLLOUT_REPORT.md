@@ -51,22 +51,22 @@ Automation: `scripts/gate10e_rollout.py`, `scripts/gate10e_auto_rollout.py`
 ## Exit
 
 Gate 10E **rollout path complete** for canary C4 + mock-via-canary.  
-Gate 10F Blueprint update applied locally — **awaiting PR merge + Render Sync**.
+Gate 10F **complete**: global mock router ON in production (PR #22 + Sync + smoke).
 
 ## Gate 10F — global AI router flip (mock)
 
 | Field | Value |
 | --- | --- |
-| Timestamp (UTC) | 2026-08-10T08:11:11.392132+00:00 |
+| Blueprint apply (UTC) | 2026-08-10T08:11:11.392132+00:00 |
+| PR | [#22](https://github.com/leoly5945-hash/SaveIQ/pull/22) merged |
 | FEATURE_AI_ROUTER | `true` |
 | AI_ROUTER_MODE | `mock` |
 | FEATURE_KILL_SWITCH | `false` |
 | FEATURE_AUTO_TUNING | `false` |
-| Dry-run | False |
-| Prerequisites | staging_drill=pass, c4_soak=pass elapsed=27h44m, mock_router=pass, live_checks=skipped |
+| Post-Sync smoke | `production_smoke=ok` |
+| Live verify | `ai_router_status=active=True mode=mock` |
+| Chinese LLM | `False` |
+| Safety | `kill=False autotune=False tripped=False` |
 
-**Next ops:** commit Blueprint → PR → merge → Render Sync `saveiq-production` →  
-`production_smoke.py --allow-active-canary --require-admin` → confirm `/admin/router-status` mode=mock.
-
-Live providers remain **disabled** until a separate Gate 10F live checklist.
+**Done.** Live providers remain **disabled** until a separate live-enablement checklist.
 
