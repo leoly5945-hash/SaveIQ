@@ -179,10 +179,14 @@ def main() -> None:
     if token:
         router = get_json(f"{api_url}/admin/router-status", token)
         router_mode = str(router.get("mode") or "").lower()
-        # Canary effective path may set active=true with mode=mock while global flag stays false.
+        # Canary-effective or Gate 10F global mock may show active=true with mode=mock.
         if router_mode == "live":
             fail("AI router must not be live in production until intentionally enabled")
-        if router.get("active") is True and not args.allow_active_canary:
+        if (
+            router.get("active") is True
+            and router_mode != "mock"
+            and not args.allow_active_canary
+        ):
             fail("AI router must remain inactive in production Gate 10A")
         checks.append(
             Check(

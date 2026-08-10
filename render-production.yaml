@@ -70,9 +70,9 @@ services:
       - key: OPENAI_API_KEY
         sync: false
       - key: FEATURE_AI_ROUTER
-        value: "false"
+        value: "true"
       - key: AI_ROUTER_MODE
-        value: disabled
+        value: mock
       - key: AI_ROUTER_DEFAULT_MODEL
         value: intent-parser-v0
       - key: AI_ROUTER_STRATEGY

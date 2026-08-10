@@ -1,4 +1,4 @@
-.PHONY: recommendation-eval staging-provision-validate staging-provision-validate-template staging-seed-mock staging-smoke production-provision-validate production-smoke deploy-production security-scan gate10d-abtest-rollout gate10e-rollout gate10e-auto-rollout
+.PHONY: recommendation-eval staging-provision-validate staging-provision-validate-template staging-seed-mock staging-smoke production-provision-validate production-smoke deploy-production security-scan gate10d-abtest-rollout gate10e-rollout gate10e-auto-rollout gate10f-flip-router
 
 PYTHON ?= python3
 
@@ -46,3 +46,10 @@ gate10e-rollout:
 #   make gate10e-auto-rollout ARGS='--daemon'
 gate10e-auto-rollout:
 	$(PYTHON) scripts/gate10e_auto_rollout.py $(ARGS)
+
+# Gate 10F: flip FEATURE_AI_ROUTER=true with AI_ROUTER_MODE=mock (Blueprint edit).
+#   make gate10f-flip-router ARGS='--check'
+#   make gate10f-flip-router ARGS='--dry-run'
+#   make gate10f-flip-router ARGS='--apply'
+gate10f-flip-router:
+	$(PYTHON) scripts/gate10f_flip_router.py $(ARGS)

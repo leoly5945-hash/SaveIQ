@@ -292,6 +292,48 @@ kill "$(cat artifacts/gate10e_auto_rollout.pid)"
 Artifacts: `artifacts/gate10e_auto_rollout.log`, `artifacts/gate10e_auto_rollout_state.json`,  
 report: `docs/GATE_10E_ROLLOUT_REPORT.md`.
 
+## 3f. Gate 10F — global `FEATURE_AI_ROUTER` flip (mock only)
+
+Script: `scripts/gate10f_flip_router.py` · Make: `make gate10f-flip-router ARGS='…'`
+
+**Goal:** Flip production Blueprint `FEATURE_AI_ROUTER=false` → `true` with `AI_ROUTER_MODE=mock`.  
+Does **not** enable live LLM providers, kill switch, or auto-tuning.
+
+**Prerequisites (Gate 10E complete):**
+
+- `artifacts/gate10e_rollout_state.json`: `c4_percentage=100`, C4 soak ≥24h, `mock_router_ready_at` set
+- Live canary enabled at **100%** with `router` feature
+- Production kill/autotune env **OFF**, kill not tripped
+- Router mode is **not** already `live`
+
+```bash
+export PROD_ADMIN_TOKEN=...   # for live prerequisite checks
+
+# 1) Verify prerequisites (state + live API)
+make gate10f-flip-router ARGS='--check'
+
+# 2) Preview Blueprint edits (no write)
+make gate10f-flip-router ARGS='--dry-run'
+
+# 3) Write local Blueprint + update state/report
+make gate10f-flip-router ARGS='--apply'
+
+# 4) Commit → PR → merge → Render Dashboard → saveiq-production → Sync
+
+# 5) Post-Sync smoke (mock/active allowed; live still fails)
+ADMIN_API_TOKEN=... .venv/bin/python scripts/production_smoke.py \
+  --allow-active-canary --require-admin
+
+# 6) Confirm
+curl -sH "X-Admin-Token: $PROD_ADMIN_TOKEN" \
+  "$API_URL/admin/router-status"   # expect active + mode=mock
+```
+
+State-only check (no live API): add `--skip-live-checks` (not recommended for apply).  
+`--force` skips all prerequisite checks — ops emergency only.
+
+**Rollback:** set Blueprint `FEATURE_AI_ROUTER=false` and `AI_ROUTER_MODE=disabled` (or previous values), Sync Render, re-smoke.
+
 ## 4. Monitoring and alerts
 
 ### Signals
