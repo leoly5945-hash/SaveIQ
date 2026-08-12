@@ -177,6 +177,7 @@ def validate_env(
     *,
     profile: str,
     allow_live_ai: bool = False,
+    allow_neural_bandit: bool = False,
 ) -> None:
     api_name = PROFILES[profile]["api"]
     web_name = PROFILES[profile]["web"]
@@ -227,6 +228,8 @@ def validate_env(
         "FEATURE_KILL_SWITCH",
     ):
         if flag in api_env and api_env[flag].get("value") not in {None, "false"}:
+            if flag == "FEATURE_NEURAL_BANDIT" and allow_neural_bandit:
+                continue
             # Staging may omit FEATURE_AUTO_TUNING; production must keep listed flags false when present.
             if profile == "production" or flag not in {
                 "FEATURE_AUTO_TUNING",
@@ -234,6 +237,17 @@ def validate_env(
             }:
                 if api_env[flag].get("value") != "false":
                     fail(f"{flag} must be false in {profile}", profile=profile)
+
+    if allow_neural_bandit:
+        neural = (api_env.get("FEATURE_NEURAL_BANDIT") or {}).get("value")
+        if neural not in {None, "false", "true"}:
+            fail("FEATURE_NEURAL_BANDIT must be false|true", profile=profile)
+        rlhf = (api_env.get("FEATURE_RLHF_ROUTER") or {}).get("value")
+        if rlhf not in {None, "false"}:
+            fail(
+                "FEATURE_RLHF_ROUTER must stay false during Gate 10H neural staging",
+                profile=profile,
+            )
 
     # Gate 10F/10G: FEATURE_AI_ROUTER=true with mode mock|live.
     # Chinese providers only with live. Staging stays mock unless --allow-live-ai.
@@ -350,6 +364,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Gate 10G: allow AI_ROUTER_MODE=live and FEATURE_CHINESE_LLM_PROVIDERS=true",
     )
+    parser.add_argument(
+        "--allow-neural-bandit",
+        action="store_true",
+        help="Gate 10H: allow FEATURE_NEURAL_BANDIT=true (RLHF stays false)",
+    )
     return parser.parse_args()
 
 
@@ -370,7 +389,12 @@ def main() -> None:
         profile=profile,
         allow_placeholders=args.allow_placeholders,
     )
-    validate_env(services, profile=profile, allow_live_ai=args.allow_live_ai)
+    validate_env(
+        services,
+        profile=profile,
+        allow_live_ai=args.allow_live_ai,
+        allow_neural_bandit=args.allow_neural_bandit,
+    )
     validate_database(data, profile=profile)
 
     if args.allow_placeholders:

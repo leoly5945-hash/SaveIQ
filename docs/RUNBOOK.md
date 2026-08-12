@@ -398,6 +398,22 @@ curl -sS -X POST -H "X-Admin-Token: $PROD_ADMIN_TOKEN" \
   "$API_URL/admin/bandit/switch_policy"
 ```
 
+### Staging Neural evaluation script
+
+Script: `scripts/gate10h_staging_neural.py` · Make: `make gate10h-staging-neural ARGS='…'`
+
+```bash
+export STAGING_ADMIN_TOKEN=...
+export PROD_ADMIN_TOKEN=...   # Gate 10G stability prereq
+
+make gate10h-staging-neural ARGS='--stage check'
+make gate10h-staging-neural ARGS='--stage setup --dry-run'
+make gate10h-staging-neural ARGS='--stage setup'          # edits render.yaml
+# → PR / Render Sync staging, wait flags.neural=true
+make gate10h-staging-neural ARGS='--stage evaluate --assume-synced --report'
+make gate10h-staging-neural ARGS='--stage cleanup'        # policy=linucb + flag false
+```
+
 Auto-tune must **never** flip these flags. Next after 10H: Gate 10I kill switch, Gate 10J auto-tune.
 
 ## 4. Monitoring and alerts
