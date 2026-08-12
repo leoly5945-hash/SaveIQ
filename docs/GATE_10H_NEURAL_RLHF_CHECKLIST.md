@@ -1,32 +1,33 @@
 # Gate 10H: Neural / RLHF Evaluation Checklist
 
 Generated: 2026-08-10  
-Status: PENDING (do not enable in production until all gates below pass)
+Updated: 2026-08-11 (post-10G stability recheck)  
+Status: PENDING — prerequisites mostly met; **do not enable** neural/RLHF in production until evaluation + staging drill pass
 
 This gate is **human-only**. Auto-tune (Gate 10E/10J) must never flip neural/RLHF or `BANDIT_POLICY`.
 
-## Current production baseline (post Gate 10G)
+## Current production baseline (rechecked 2026-08-11)
 
-| Flag | Value |
+| Flag / signal | Value |
 | --- | --- |
-| `FEATURE_AI_ROUTER` | `true` |
-| `AI_ROUTER_MODE` | `live` |
-| `FEATURE_CHINESE_LLM_PROVIDERS` | `true` (DeepSeek) |
-| `BANDIT_POLICY` | `linucb` |
-| `FEATURE_NEURAL_BANDIT` | `false` |
-| `FEATURE_RLHF_ROUTER` | `false` |
-| `FEATURE_KILL_SWITCH` / `FEATURE_AUTO_TUNING` | `false` |
-| Canary | enabled 100% |
+| `FEATURE_AI_ROUTER` / mode | `active=True`, **`live`** |
+| Chinese LLM | **ON** (`chinese=True`; DeepSeek configured) |
+| `BANDIT_POLICY` / public bandit | `linucb`; `controls_routing=False` |
+| `FEATURE_NEURAL_BANDIT` | `false` (`neural.ready=false`, `sample_count=0`) |
+| `FEATURE_RLHF_ROUTER` | `false` (`rlhf.ready=false`, `sample_count=0`) |
+| Kill / autotune | **OFF**, not tripped |
+| Canary | enabled **100%** |
+| Smoke | `production_smoke=ok` (live + chinese allow flags) |
 
 ## Prerequisites
 
 - [x] Gate 10E complete (C4 soak ≥24h, mock_router=ok) — see `docs/GATE_10E_ROLLOUT_REPORT.md`
 - [x] Gate 10F complete (`FEATURE_AI_ROUTER=true`, mode=mock) — superseded by 10G
 - [x] Gate 10G complete (`mode=live`, Chinese LLM ON, DeepSeek key present)
-- [ ] Live providers stable for ≥ **24h** after Gate 10G Sync (error/latency/cost within budget)
-- [ ] Provider/router error rate within Gate 10 plan budgets (target: LLM/provider errors **&lt; 5%** of live calls; HTTP 5xx stay healthy)
-- [ ] Latency within baseline + **10%** (p95 `/search` / `/recommendations` vs pre-10G window)
-- [ ] Kill switch / auto-tune still **OFF** (unchanged)
+- [x] Live providers stable for ≥ **24h** after Gate 10G Sync (recheck 2026-08-11: smoke ok, live+chinese, no kill trip)
+- [ ] Provider/router error rate within Gate 10 plan budgets (target: LLM/provider errors **&lt; 5%** of live calls; HTTP 5xx stay healthy) — **needs metrics review window** (`/metrics` LLM series still sparse)
+- [ ] Latency within baseline + **10%** (p95 `/search` / `/recommendations` vs pre-10G window) — **needs baseline compare**
+- [x] Kill switch / auto-tune still **OFF** (unchanged) — confirmed `/admin/safety/status`
 - [ ] Staging drill: neural + RLHF policy switch works with flags on, falls back when not ready
 
 ## Feature flags (repo truth)
@@ -98,33 +99,31 @@ Do **not** invent one-shot traffic scripts until they exist. Preferred path:
 ### Operator commands (sketch)
 
 ```bash
+export STAGING_ADMIN_TOKEN=...
 export PROD_ADMIN_TOKEN=...
-export ADMIN_API_TOKEN="$PROD_ADMIN_TOKEN"
-API_URL=https://dealhunter-production-api.onrender.com
 
-# Status (before enable)
-curl -sS -H "X-Admin-Token: $PROD_ADMIN_TOKEN" "$API_URL/admin/bandit/status"
-curl -sS -H "X-Admin-Token: $PROD_ADMIN_TOKEN" "$API_URL/admin/router-status"
+# Automated staging path (preferred)
+make gate10h-staging-neural ARGS='--stage check'
+make gate10h-staging-neural ARGS='--stage setup'            # FEATURE_NEURAL_BANDIT=true in render.yaml
+# Sync staging Blueprint on Render, then:
+make gate10h-staging-neural ARGS='--stage evaluate --assume-synced --report'
+make gate10h-staging-neural ARGS='--stage cleanup'
 
-# After Blueprint enables FEATURE_NEURAL_BANDIT=true + Sync:
-curl -sS -X POST -H "X-Admin-Token: $PROD_ADMIN_TOKEN" \
+# Manual policy switch (after flag enabled + Sync)
+curl -sS -X POST -H "X-Admin-Token: $STAGING_ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"policy":"neural"}' \
-  "$API_URL/admin/bandit/switch_policy"
+  "https://dealhunter-staging-api.onrender.com/admin/bandit/switch_policy"
 
 # Rollback policy without disabling AI router:
-curl -sS -X POST -H "X-Admin-Token: $PROD_ADMIN_TOKEN" \
+curl -sS -X POST -H "X-Admin-Token: $STAGING_ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"policy":"linucb"}' \
-  "$API_URL/admin/bandit/switch_policy"
-
-# Smoke (still use live/chinese allows; neural does not need new smoke flags yet)
-.venv/bin/python scripts/production_smoke.py \
-  --allow-active-canary --allow-live-router --allow-chinese-providers --require-admin
+  "https://dealhunter-staging-api.onrender.com/admin/bandit/switch_policy"
 ```
 
-Blueprint edits (production): `FEATURE_NEURAL_BANDIT` / `FEATURE_RLHF_ROUTER` / optional `BANDIT_POLICY` in `render-production.yaml` → PR → merge → Render Sync.  
-Validator currently **requires** neural/RLHF flags stay `false` — enabling them needs a Gate 10H validator exception (same pattern as Gate 10G `--allow-live-ai`).
+Blueprint edits (staging first): `FEATURE_NEURAL_BANDIT` in `render.yaml` → validate with `--allow-neural-bandit` → Sync.  
+Production enablement remains a separate signed checklist step after staging PASS.
 
 ## Rollback plan
 

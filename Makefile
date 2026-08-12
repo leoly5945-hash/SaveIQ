@@ -1,4 +1,4 @@
-.PHONY: recommendation-eval staging-provision-validate staging-provision-validate-template staging-seed-mock staging-smoke production-provision-validate production-smoke deploy-production security-scan gate10d-abtest-rollout gate10e-rollout gate10e-auto-rollout gate10f-flip-router gate10g-live-providers
+.PHONY: recommendation-eval staging-provision-validate staging-provision-validate-template staging-seed-mock staging-smoke production-provision-validate production-smoke deploy-production security-scan gate10d-abtest-rollout gate10e-rollout gate10e-auto-rollout gate10f-flip-router gate10g-live-providers gate10h-staging-neural
 
 PYTHON ?= python3
 
@@ -61,3 +61,12 @@ gate10f-flip-router:
 #   make gate10g-live-providers ARGS='--apply --confirm-live --confirm-chinese --ack-tos --ack-pii --ack-cost-budget --ack-keys-in-render'
 gate10g-live-providers:
 	$(PYTHON) scripts/gate10g_live_providers.py $(ARGS)
+
+# Gate 10H: staging Neural Bandit evaluation (human-only).
+#   make gate10h-staging-neural ARGS='--stage check'
+#   make gate10h-staging-neural ARGS='--stage setup --dry-run'
+#   make gate10h-staging-neural ARGS='--stage setup'
+#   make gate10h-staging-neural ARGS='--stage evaluate --assume-synced'
+#   make gate10h-staging-neural ARGS='--stage cleanup'
+gate10h-staging-neural:
+	$(PYTHON) scripts/gate10h_staging_neural.py $(ARGS)
