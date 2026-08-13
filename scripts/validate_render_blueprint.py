@@ -178,6 +178,7 @@ def validate_env(
     profile: str,
     allow_live_ai: bool = False,
     allow_neural_bandit: bool = False,
+    allow_rlhf_router: bool = False,
 ) -> None:
     api_name = PROFILES[profile]["api"]
     web_name = PROFILES[profile]["web"]
@@ -230,6 +231,8 @@ def validate_env(
         if flag in api_env and api_env[flag].get("value") not in {None, "false"}:
             if flag == "FEATURE_NEURAL_BANDIT" and allow_neural_bandit:
                 continue
+            if flag == "FEATURE_RLHF_ROUTER" and allow_rlhf_router:
+                continue
             # Staging may omit FEATURE_AUTO_TUNING; production must keep listed flags false when present.
             if profile == "production" or flag not in {
                 "FEATURE_AUTO_TUNING",
@@ -238,6 +241,12 @@ def validate_env(
                 if api_env[flag].get("value") != "false":
                     fail(f"{flag} must be false in {profile}", profile=profile)
 
+    if allow_neural_bandit and allow_rlhf_router:
+        fail(
+            "allow only one of --allow-neural-bandit / --allow-rlhf-router (one flag at a time)",
+            profile=profile,
+        )
+
     if allow_neural_bandit:
         neural = (api_env.get("FEATURE_NEURAL_BANDIT") or {}).get("value")
         if neural not in {None, "false", "true"}:
@@ -245,7 +254,18 @@ def validate_env(
         rlhf = (api_env.get("FEATURE_RLHF_ROUTER") or {}).get("value")
         if rlhf not in {None, "false"}:
             fail(
-                "FEATURE_RLHF_ROUTER must stay false during Gate 10H neural staging",
+                "FEATURE_RLHF_ROUTER must stay false while FEATURE_NEURAL_BANDIT is allowed",
+                profile=profile,
+            )
+
+    if allow_rlhf_router:
+        rlhf = (api_env.get("FEATURE_RLHF_ROUTER") or {}).get("value")
+        if rlhf not in {None, "false", "true"}:
+            fail("FEATURE_RLHF_ROUTER must be false|true", profile=profile)
+        neural = (api_env.get("FEATURE_NEURAL_BANDIT") or {}).get("value")
+        if neural not in {None, "false"}:
+            fail(
+                "FEATURE_NEURAL_BANDIT must stay false while FEATURE_RLHF_ROUTER is allowed",
                 profile=profile,
             )
 
@@ -369,6 +389,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Gate 10H: allow FEATURE_NEURAL_BANDIT=true (RLHF stays false)",
     )
+    parser.add_argument(
+        "--allow-rlhf-router",
+        action="store_true",
+        help="Gate 10H: allow FEATURE_RLHF_ROUTER=true (neural stays false)",
+    )
     return parser.parse_args()
 
 
@@ -394,6 +419,7 @@ def main() -> None:
         profile=profile,
         allow_live_ai=args.allow_live_ai,
         allow_neural_bandit=args.allow_neural_bandit,
+        allow_rlhf_router=args.allow_rlhf_router,
     )
     validate_database(data, profile=profile)
 
