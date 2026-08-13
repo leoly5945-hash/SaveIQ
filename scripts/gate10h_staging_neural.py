@@ -80,9 +80,10 @@ def http_json(
         err_body = exc.read().decode("utf-8", errors="replace")
         hint = ""
         if exc.code == 401:
+            host_hint = "STAGING_ADMIN_TOKEN" if "staging" in url else "PROD_ADMIN_TOKEN"
             hint = (
-                " (wrong/missing token for this host — "
-                "PROD_ADMIN_TOKEN for production, STAGING_ADMIN_TOKEN for staging)"
+                f" (wrong/missing admin token — set {host_hint} in this shell "
+                "from the matching Render Environment ADMIN_API_TOKEN)"
             )
         raise Gate10HError(
             f"{method} {url} -> HTTP {exc.code}: {err_body[:400]}{hint}"
@@ -103,7 +104,12 @@ def require_staging_token() -> str:
         or os.environ.get("ADMIN_API_TOKEN", "").strip()
     )
     if not token:
-        raise Gate10HError("STAGING_ADMIN_TOKEN (or ADMIN_API_TOKEN) required")
+        raise Gate10HError(
+            "STAGING_ADMIN_TOKEN is not set in this shell. Example:\n"
+            "  export STAGING_ADMIN_TOKEN='...'   # Render → dealhunter-staging-api → ADMIN_API_TOKEN\n"
+            "  export ADMIN_API_TOKEN=\"$STAGING_ADMIN_TOKEN\"\n"
+            "  make gate10h-staging-neural ARGS=\"--stage evaluate --assume-synced --report\""
+        )
     return token
 
 
@@ -270,6 +276,8 @@ class StagingNeuralEvaluator:
         soak_seconds: int,
         benchmark_limit: int,
         python: str,
+        seed_before_smoke: bool = True,
+        full_staging_smoke: bool = False,
     ) -> None:
         self.repo = repo
         self.staging_url = staging_url.rstrip("/")
@@ -283,6 +291,8 @@ class StagingNeuralEvaluator:
         self.soak_seconds = soak_seconds
         self.benchmark_limit = benchmark_limit
         self.python = python
+        self.seed_before_smoke = seed_before_smoke
+        self.full_staging_smoke = full_staging_smoke
         self.results: dict[str, Any] = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "dry_run": dry_run,
@@ -502,17 +512,106 @@ class StagingNeuralEvaluator:
             body={"policy": policy},
         )
 
+    def _staging_admin_env(self) -> dict[str, str]:
+        env = os.environ.copy()
+        token = (
+            os.environ.get("STAGING_ADMIN_TOKEN", "").strip()
+            or os.environ.get("ADMIN_API_TOKEN", "").strip()
+        )
+        if token:
+            env["ADMIN_API_TOKEN"] = token
+            env["STAGING_ADMIN_TOKEN"] = token
+        return env
+
+    def run_staging_seed(self) -> bool:
+        """Seed mock affiliate data so staging_smoke recommendation fixtures can pass."""
+        if self.dry_run:
+            log("[DRY RUN] would run scripts/staging_seed_mock.py")
+            return True
+        env = self._staging_admin_env()
+        if not env.get("ADMIN_API_TOKEN"):
+            log("staging_seed=error: missing STAGING_ADMIN_TOKEN/ADMIN_API_TOKEN")
+            return False
+        cmd = [
+            self.python,
+            str(self.repo / "scripts" / "staging_seed_mock.py"),
+            "--api-url",
+            self.staging_url,
+            "--token-env",
+            "ADMIN_API_TOKEN",
+        ]
+        log(f"$ {' '.join(cmd)}")
+        result = subprocess.run(
+            cmd, cwd=str(self.repo), text=True, capture_output=True, env=env
+        )
+        if result.stdout:
+            print(result.stdout, end="" if result.stdout.endswith("\n") else "\n")
+        if result.stderr:
+            print(result.stderr, end="" if result.stderr.endswith("\n") else "\n", file=sys.stderr)
+        return result.returncode == 0
+
+    def run_neural_smoke(self, *, token: str) -> tuple[bool, dict[str, Any]]:
+        """Focused smoke for Gate 10H (not full staging recommendation fixtures)."""
+        detail: dict[str, Any] = {}
+        if self.dry_run:
+            log("[DRY RUN] would run neural-focused staging smoke")
+            return True, {"dry_run": True}
+
+        try:
+            health = http_json(f"{self.staging_url}/health")
+            detail["health"] = health.get("status")
+            if health.get("status") != "ok":
+                return False, detail
+
+            bandit = http_json(f"{self.staging_url}/admin/bandit/status", token=token)
+            detail["policy"] = bandit.get("policy")
+            detail["flags"] = bandit.get("flags")
+            detail["neural"] = {
+                "ready": (bandit.get("neural") or {}).get("ready"),
+                "sample_count": (bandit.get("neural") or {}).get("sample_count"),
+            }
+            flags = bandit.get("flags") or {}
+            if flags.get("neural") is not True:
+                detail["reason"] = "flags.neural is not true"
+                return False, detail
+            if str(bandit.get("policy") or "").lower() != "neural":
+                detail["reason"] = f"policy is {bandit.get('policy')}, expected neural"
+                return False, detail
+
+            # Search should work after mock seed (catalog smoke).
+            search = http_json(f"{self.staging_url}/search?q=buds&limit=5")
+            count = search.get("count")
+            detail["search_count"] = count
+            if not isinstance(count, int) or count < 1:
+                detail["reason"] = "search returned no results after seed"
+                return False, detail
+
+            safety = http_json(f"{self.staging_url}/admin/safety/status", token=token)
+            env = safety.get("env") or {}
+            detail["safety"] = {
+                "kill": env.get("feature_kill_switch"),
+                "autotune": env.get("feature_auto_tuning"),
+            }
+            if env.get("feature_kill_switch") is True or env.get("feature_auto_tuning") is True:
+                detail["reason"] = "kill/autotune unexpectedly enabled"
+                return False, detail
+
+            detail["reason"] = "ok"
+            log(
+                "neural_smoke=ok "
+                f"policy=neural search_count={count} "
+                f"neural.ready={detail['neural'].get('ready')}"
+            )
+            return True, detail
+        except Gate10HError as exc:
+            detail["reason"] = str(exc)
+            return False, detail
+
     def run_staging_smoke(self) -> bool:
         if self.dry_run:
             log("[DRY RUN] would run scripts/staging_smoke.py")
             return True
-        env = os.environ.copy()
-        # staging_smoke uses ADMIN_API_TOKEN
-        if not env.get("ADMIN_API_TOKEN"):
-            env["ADMIN_API_TOKEN"] = (
-                os.environ.get("STAGING_ADMIN_TOKEN", "").strip()
-                or os.environ.get("ADMIN_API_TOKEN", "").strip()
-            )
+        env = self._staging_admin_env()
         cmd = [self.python, str(self.repo / "scripts" / "staging_smoke.py")]
         log(f"$ {' '.join(cmd)}")
         result = subprocess.run(
@@ -574,13 +673,35 @@ class StagingNeuralEvaluator:
             "controls_routing": status_after.get("controls_routing"),
         }
 
-        smoke_ok = self.run_staging_smoke()
-        metrics["staging_smoke"] = smoke_ok
+        if self.seed_before_smoke:
+            seed_ok = self.run_staging_seed()
+            metrics["staging_seed"] = seed_ok
+            if not seed_ok:
+                self.switch_policy("linucb", token)
+                self.results["evaluation"]["passed"] = False
+                self.results["evaluation"]["metrics"] = metrics
+                log(
+                    "gate10h_staging=error: staging seed failed "
+                    "(empty catalog breaks search smoke)"
+                )
+                return False
+
+        if self.full_staging_smoke:
+            smoke_ok = self.run_staging_smoke()
+            metrics["staging_smoke"] = smoke_ok
+            metrics["smoke_mode"] = "full_staging_smoke"
+        else:
+            smoke_ok, smoke_detail = self.run_neural_smoke(token=token)
+            metrics["neural_smoke"] = smoke_detail
+            metrics["smoke_mode"] = "neural_focused"
         if not smoke_ok:
             self.switch_policy("linucb", token)
             self.results["evaluation"]["passed"] = False
             self.results["evaluation"]["metrics"] = metrics
-            log("gate10h_staging=error: staging smoke failed after neural switch")
+            log(
+                "gate10h_staging=error: smoke failed after neural switch "
+                f"(mode={metrics.get('smoke_mode')})"
+            )
             return False
 
         benchmark = http_json(
@@ -713,6 +834,19 @@ def parse_args() -> argparse.Namespace:
         default=int(os.environ.get("GATE10E_SOAK_SECONDS", str(DEFAULT_SOAK))),
     )
     parser.add_argument("--benchmark-limit", type=int, default=2000)
+    parser.add_argument(
+        "--no-seed",
+        action="store_true",
+        help="Skip staging_seed_mock before smoke (not recommended on empty DBs)",
+    )
+    parser.add_argument(
+        "--full-staging-smoke",
+        action="store_true",
+        help=(
+            "Run full scripts/staging_smoke.py (includes recommendation fixtures). "
+            "Default is neural-focused smoke: health + policy=neural + search."
+        ),
+    )
     parser.add_argument("--python", default="")
     parser.add_argument("--repo-root", default=str(repo))
     return parser.parse_args()
@@ -738,6 +872,8 @@ def main() -> int:
         soak_seconds=args.soak_seconds,
         benchmark_limit=args.benchmark_limit,
         python=python,
+        seed_before_smoke=not args.no_seed,
+        full_staging_smoke=args.full_staging_smoke,
     )
 
     log(f"gate10h_staging=start stage={args.stage} dry_run={args.dry_run}")

@@ -1,8 +1,8 @@
 # Gate 10H: Neural / RLHF Evaluation Checklist
 
 Generated: 2026-08-10  
-Updated: 2026-08-11 (post-10G stability recheck)  
-Status: PENDING — prerequisites mostly met; **do not enable** neural/RLHF in production until evaluation + staging drill pass
+Updated: 2026-08-13 (staging Neural drill PASS)  
+Status: PENDING for **production** enablement — staging Neural drill **PASS**; RLHF not started
 
 This gate is **human-only**. Auto-tune (Gate 10E/10J) must never flip neural/RLHF or `BANDIT_POLICY`.
 
@@ -13,8 +13,8 @@ This gate is **human-only**. Auto-tune (Gate 10E/10J) must never flip neural/RLH
 | `FEATURE_AI_ROUTER` / mode | `active=True`, **`live`** |
 | Chinese LLM | **ON** (`chinese=True`; DeepSeek configured) |
 | `BANDIT_POLICY` / public bandit | `linucb`; `controls_routing=False` |
-| `FEATURE_NEURAL_BANDIT` | `false` (`neural.ready=false`, `sample_count=0`) |
-| `FEATURE_RLHF_ROUTER` | `false` (`rlhf.ready=false`, `sample_count=0`) |
+| `FEATURE_NEURAL_BANDIT` | `false` on prod (staging drill temporarily `true`, then cleaned up) |
+| `FEATURE_RLHF_ROUTER` | `false` |
 | Kill / autotune | **OFF**, not tripped |
 | Canary | enabled **100%** |
 | Smoke | `production_smoke=ok` (live + chinese allow flags) |
