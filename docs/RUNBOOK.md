@@ -398,6 +398,22 @@ curl -sS -X POST -H "X-Admin-Token: $PROD_ADMIN_TOKEN" \
   "$API_URL/admin/bandit/switch_policy"
 ```
 
+### Production prereq (before neural enablement)
+
+Script: `scripts/gate10h_check_prod_prereq.py` · Make: `make gate10h-check-prod-prereq ARGS='…'`
+
+Uses Prometheus `GET /metrics` (not `/admin/latency`): `llm_requests_total`, `http_requests_total`, histogram buckets for `/search` + `/recommendations` p95. Also snapshots `/admin/safety/status` + `/admin/router-status`.
+
+```bash
+export PROD_ADMIN_TOKEN=...   # prod ADMIN_API_TOKEN (not staging)
+
+# Warm /recommendations (often zero traffic) then capture baseline:
+make gate10h-check-prod-prereq ARGS='--warm-endpoints --capture-baseline'
+make gate10h-check-prod-prereq ARGS='--baseline artifacts/gate10h_prod_baseline.json --allow-sparse-llm --report'
+# If a path still has no histogram samples:
+make gate10h-check-prod-prereq ARGS='--baseline artifacts/gate10h_prod_baseline.json --allow-sparse-llm --allow-sparse-latency --report'
+```
+
 ### Staging Neural evaluation script
 
 Script: `scripts/gate10h_staging_neural.py` · Make: `make gate10h-staging-neural ARGS='…'`
@@ -414,7 +430,39 @@ make gate10h-staging-neural ARGS='--stage evaluate --assume-synced --report'
 make gate10h-staging-neural ARGS='--stage cleanup'        # policy=linucb + flag false
 ```
 
-Auto-tune must **never** flip these flags. Next after 10H: Gate 10I kill switch, Gate 10J auto-tune.
+### Staging RLHF drill
+
+Script: `scripts/gate10h_staging_rlhf_drill.py` · Make: `make gate10h-staging-rlhf ARGS='…'`  
+Requires `--allow-rlhf-router` validation; keeps `FEATURE_NEURAL_BANDIT=false`.
+
+```bash
+export STAGING_ADMIN_TOKEN=...
+
+make gate10h-staging-rlhf ARGS='--stage setup --dry-run'
+make gate10h-staging-rlhf ARGS='--stage setup'
+# → Sync staging, wait flags.rlhf=true
+make gate10h-staging-rlhf ARGS='--stage evaluate --assume-synced --report'
+make gate10h-staging-rlhf ARGS='--stage cleanup'
+```
+
+### Production Neural enablement
+
+Script: `scripts/gate10h_prod_neural.py` · Make: `make gate10h-prod-neural ARGS='…'`  
+Only after staging RLHF PASS + prod prereq ok. Soak phases `n10→n25→n50→n100` (≥24h); rollback → `linucb` without disabling AI router.
+
+```bash
+export PROD_ADMIN_TOKEN=...
+
+make gate10h-prod-neural ARGS='--stage check'
+make gate10h-prod-neural ARGS='--stage dry-run'
+make gate10h-prod-neural ARGS='--stage apply --confirm-neural'
+# → Sync production
+make gate10h-prod-neural ARGS='--stage verify --assume-synced'
+make gate10h-prod-neural ARGS='--stage switch-neural --confirm-switch'
+make gate10h-prod-neural ARGS='--stage start-soak --phase n10 --report'
+```
+
+Auto-tune must **never** flip these flags. After 10H: Gate 10I / 10J stubs only (`docs/GATE_10I_KILL_SWITCH_CHECKLIST.md`, `docs/GATE_10J_AUTO_TUNE_CHECKLIST.md`) — do not enable yet.
 
 ## 4. Monitoring and alerts
 

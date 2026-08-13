@@ -1,4 +1,4 @@
-.PHONY: recommendation-eval staging-provision-validate staging-provision-validate-template staging-seed-mock staging-smoke production-provision-validate production-smoke deploy-production security-scan gate10d-abtest-rollout gate10e-rollout gate10e-auto-rollout gate10f-flip-router gate10g-live-providers gate10h-staging-neural
+.PHONY: recommendation-eval staging-provision-validate staging-provision-validate-template staging-seed-mock staging-smoke production-provision-validate production-smoke deploy-production security-scan gate10d-abtest-rollout gate10e-rollout gate10e-auto-rollout gate10f-flip-router gate10g-live-providers gate10h-staging-neural gate10h-check-prod-prereq gate10h-staging-rlhf gate10h-prod-neural
 
 PYTHON ?= python3
 
@@ -70,3 +70,29 @@ gate10g-live-providers:
 #   make gate10h-staging-neural ARGS='--stage cleanup'
 gate10h-staging-neural:
 	$(PYTHON) scripts/gate10h_staging_neural.py $(ARGS)
+
+# Gate 10H: production prereq before neural (Prometheus /metrics + admin safety/router).
+#   make gate10h-check-prod-prereq ARGS='--warm-endpoints --capture-baseline'
+#   make gate10h-check-prod-prereq ARGS='--baseline artifacts/gate10h_prod_baseline.json --allow-sparse-llm --allow-sparse-latency --report'
+gate10h-check-prod-prereq:
+	$(PYTHON) scripts/gate10h_check_prod_prereq.py $(ARGS)
+
+# Gate 10H: staging RLHF drill (human-only; neural flag must stay false).
+#   make gate10h-staging-rlhf ARGS='--stage check --skip-prod-prereqs'
+#   make gate10h-staging-rlhf ARGS='--stage setup --dry-run'
+#   make gate10h-staging-rlhf ARGS='--stage setup'
+#   make gate10h-staging-rlhf ARGS='--stage evaluate --assume-synced --report'
+#   make gate10h-staging-rlhf ARGS='--stage cleanup'
+gate10h-staging-rlhf:
+	$(PYTHON) scripts/gate10h_staging_rlhf_drill.py $(ARGS)
+
+# Gate 10H: production Neural enablement (after staging RLHF PASS).
+#   make gate10h-prod-neural ARGS='--stage check'
+#   make gate10h-prod-neural ARGS='--stage dry-run'
+#   make gate10h-prod-neural ARGS='--stage apply --confirm-neural'
+#   make gate10h-prod-neural ARGS='--stage verify --assume-synced'
+#   make gate10h-prod-neural ARGS='--stage switch-neural --confirm-switch'
+#   make gate10h-prod-neural ARGS='--stage start-soak --phase n10 --report'
+#   make gate10h-prod-neural ARGS='--stage rollback --confirm-rollback'
+gate10h-prod-neural:
+	$(PYTHON) scripts/gate10h_prod_neural.py $(ARGS)

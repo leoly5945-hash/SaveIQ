@@ -1,8 +1,8 @@
 # Gate 10H: Neural / RLHF Evaluation Checklist
 
 Generated: 2026-08-10  
-Updated: 2026-08-13 (staging Neural drill PASS)  
-Status: PENDING for **production** enablement — staging Neural drill **PASS**; RLHF not started
+Updated: 2026-08-13 (prod prereq PASS; RLHF/prod neural scripts ready)  
+Status: IN PROGRESS — staging Neural **PASS**; prod prereq **PASS**; staging RLHF drill next; prod neural **not** enabled
 
 This gate is **human-only**. Auto-tune (Gate 10E/10J) must never flip neural/RLHF or `BANDIT_POLICY`.
 
@@ -25,11 +25,11 @@ This gate is **human-only**. Auto-tune (Gate 10E/10J) must never flip neural/RLH
 - [x] Gate 10F complete (`FEATURE_AI_ROUTER=true`, mode=mock) — superseded by 10G
 - [x] Gate 10G complete (`mode=live`, Chinese LLM ON, DeepSeek key present)
 - [x] Live providers stable for ≥ **24h** after Gate 10G Sync (recheck 2026-08-11: smoke ok, live+chinese, no kill trip)
-- [ ] Provider/router error rate within Gate 10 plan budgets (target: LLM/provider errors **&lt; 5%** of live calls; HTTP 5xx stay healthy) — **needs metrics review window** (`/metrics` LLM series still sparse)
-- [ ] Latency within baseline + **10%** (p95 `/search` / `/recommendations` vs pre-10G window) — **needs baseline compare**
+- [x] Provider/router error rate within Gate 10 plan budgets — **PASS** 2026-08-13 (`http_5xx_rate=0`; LLM series sparse **3&lt;20**, operator `--allow-sparse-llm`; see `artifacts/gate10h_prod_prereq_report.json`)
+- [x] Latency within baseline + **10%** — **PASS** 2026-08-13 (`/search` p95=250ms; `/recommendations` p95=2500ms ≤ ×1.1; baseline `artifacts/gate10h_prod_baseline.json`)
 - [x] Kill switch / auto-tune still **OFF** (unchanged) — confirmed `/admin/safety/status`
 - [x] Staging Neural drill: `gate10h_staging_neural.py` evaluate **PASS** (2026-08-13; neural reward &gt; linucb; cleanup → flag `false`)
-- [ ] Staging RLHF drill: not started
+- [ ] Staging RLHF drill: `scripts/gate10h_staging_rlhf_drill.py` — **ready, not run**
 
 ## Feature flags (repo truth)
 
@@ -79,52 +79,54 @@ If neural/RLHF not ready, service falls back to LinUCB with an explicit reason.
 
 ### Online evaluation
 
-- [ ] Enable flag on **staging** first; switch policy to `rlhf`; smoke + benchmark
-- [ ] Production: enable `FEATURE_RLHF_ROUTER=true` via Blueprint + Sync (policy may stay `linucb` initially)
+- [ ] Enable flag on **staging** first via `gate10h_staging_rlhf_drill.py`; switch policy to `rlhf`; smoke + benchmark
+- [ ] Production: enable `FEATURE_RLHF_ROUTER=true` via Blueprint + Sync **only after** prod neural stable (one flag at a time)
 - [ ] Canary / A/B: route **≤ 10%** sticky cohort to RLHF (or admin switch with limited exposure)
 - [ ] Human preference / reward ≥ baseline; no quality degradation for ≥ 24h
 - [ ] Only then consider `BANDIT_POLICY=rlhf` (or 100% cohort) with explicit sign-off
 
 ## Enablement sequence (after checks pass)
 
-Do **not** invent one-shot traffic scripts until they exist. Preferred path:
+1. Staging Neural — **DONE** (`gate10h_staging_neural.py`)
+2. Prod prereq metrics — **DONE** (`gate10h_check_prod_prereq.py`)
+3. Staging RLHF — `gate10h_staging_rlhf_drill.py` (next)
+4. Production Neural — `gate10h_prod_neural.py` (one flag; soak n10→n25→n50→n100)
+5. Production RLHF — only after prod neural stable (separate Blueprint apply; not in prod neural script)
+6. Then Gate **10I** / **10J** (docs stubs only; do not enable yet)
 
-1. Staging: set `FEATURE_NEURAL_BANDIT=true` (and/or RLHF), Sync, `POST /admin/bandit/switch_policy`
-2. Staging smoke + benchmark PASS  
-3. Production Blueprint: enable **one** flag at a time (`FEATURE_NEURAL_BANDIT` first recommended)
-4. Render Sync → verify `/admin/bandit/status` (or router/bandit admin surfaces)
-5. Limited exposure (canary/A-B or careful policy switch) ≥ 24h  
-6. Promote or rollback  
-7. Repeat for RLHF only after neural (or LinUCB) is stable
-
-### Operator commands (sketch)
+### Operator commands
 
 ```bash
 export STAGING_ADMIN_TOKEN=...
 export PROD_ADMIN_TOKEN=...
 
-# Automated staging path (preferred)
-make gate10h-staging-neural ARGS='--stage check'
-make gate10h-staging-neural ARGS='--stage setup'            # FEATURE_NEURAL_BANDIT=true in render.yaml
-# Sync staging Blueprint on Render, then:
+# --- Staging Neural (done) ---
 make gate10h-staging-neural ARGS='--stage evaluate --assume-synced --report'
-make gate10h-staging-neural ARGS='--stage cleanup'
 
-# Manual policy switch (after flag enabled + Sync)
-curl -sS -X POST -H "X-Admin-Token: $STAGING_ADMIN_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"policy":"neural"}' \
-  "https://dealhunter-staging-api.onrender.com/admin/bandit/switch_policy"
+# --- Staging RLHF (next) ---
+make gate10h-staging-rlhf ARGS='--stage check --skip-prod-prereqs'
+make gate10h-staging-rlhf ARGS='--stage setup --dry-run'
+make gate10h-staging-rlhf ARGS='--stage setup'            # FEATURE_RLHF_ROUTER=true
+# Sync staging, then:
+make gate10h-staging-rlhf ARGS='--stage evaluate --assume-synced --report'
+make gate10h-staging-rlhf ARGS='--stage cleanup'
 
-# Rollback policy without disabling AI router:
-curl -sS -X POST -H "X-Admin-Token: $STAGING_ADMIN_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"policy":"linucb"}' \
-  "https://dealhunter-staging-api.onrender.com/admin/bandit/switch_policy"
+# --- Production Neural (after staging RLHF PASS) ---
+make gate10h-prod-neural ARGS='--stage check'
+make gate10h-prod-neural ARGS='--stage dry-run'
+make gate10h-prod-neural ARGS='--stage apply --confirm-neural'
+# Sync production, then:
+make gate10h-prod-neural ARGS='--stage verify --assume-synced'
+make gate10h-prod-neural ARGS='--stage switch-neural --confirm-switch'
+make gate10h-prod-neural ARGS='--stage start-soak --phase n10 --report'
+# After ≥24h each: --stage advance --phase n25|n50|n100
+make gate10h-prod-neural ARGS='--stage status --report'
+# Surgical rollback (does not disable FEATURE_AI_ROUTER):
+make gate10h-prod-neural ARGS='--stage rollback --confirm-rollback'
 ```
 
-Blueprint edits (staging first): `FEATURE_NEURAL_BANDIT` in `render.yaml` → validate with `--allow-neural-bandit` → Sync.  
-Production enablement remains a separate signed checklist step after staging PASS.
+Blueprint: staging `render.yaml` / prod `render-production.yaml`.  
+Validate with `--allow-neural-bandit` or `--allow-rlhf-router` (mutually exclusive).
 
 ## Rollback plan
 
@@ -154,8 +156,8 @@ If neural/RLHF fails any check:
 
 ## Next steps (after Gate 10H passes)
 
-- Gate **10I** — Kill switch enablement (`FEATURE_KILL_SWITCH`) — separate checklist  
-- Gate **10J** — Auto-tune enablement (`FEATURE_AUTO_TUNING`) — separate checklist; still must not auto-flip neural/RLHF  
+- Gate **10I** — Kill switch — stub: `docs/GATE_10I_KILL_SWITCH_CHECKLIST.md` (**do not enable yet**)
+- Gate **10J** — Auto-tune — stub: `docs/GATE_10J_AUTO_TUNE_CHECKLIST.md` (**do not enable yet**)
 
 ## Artifacts / references
 
@@ -163,4 +165,5 @@ If neural/RLHF fails any check:
 - `docs/GATE_10E_CLOSEOUT.md` — neural/RLHF human-only rule  
 - `docs/GATE_10_PLAN.md` — flag sequence  
 - `docs/RUNBOOK.md` §3g / §3h  
+- Scripts: `gate10h_check_prod_prereq.py`, `gate10h_staging_neural.py`, `gate10h_staging_rlhf_drill.py`, `gate10h_prod_neural.py`
 - Admin: `/admin/bandit/switch_policy`, `/admin/benchmark/*`
