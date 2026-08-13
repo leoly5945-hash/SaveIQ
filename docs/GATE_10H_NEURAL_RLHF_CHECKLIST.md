@@ -2,7 +2,7 @@
 
 Generated: 2026-08-10  
 Updated: 2026-08-13 (prod prereq PASS; RLHF/prod neural scripts ready)  
-Status: IN PROGRESS — staging Neural **PASS**; prod prereq **PASS**; staging RLHF drill next; prod neural **not** enabled
+Status: IN PROGRESS — staging Neural **PASS**; staging RLHF drill **PASS**; prod prereq **PASS**; prod neural **not** enabled
 
 This gate is **human-only**. Auto-tune (Gate 10E/10J) must never flip neural/RLHF or `BANDIT_POLICY`.
 
@@ -29,7 +29,7 @@ This gate is **human-only**. Auto-tune (Gate 10E/10J) must never flip neural/RLH
 - [x] Latency within baseline + **10%** — **PASS** 2026-08-13 (`/search` p95=250ms; `/recommendations` p95=2500ms ≤ ×1.1; baseline `artifacts/gate10h_prod_baseline.json`)
 - [x] Kill switch / auto-tune still **OFF** (unchanged) — confirmed `/admin/safety/status`
 - [x] Staging Neural drill: `gate10h_staging_neural.py` evaluate **PASS** (2026-08-13; neural reward &gt; linucb; cleanup → flag `false`)
-- [ ] Staging RLHF drill: `scripts/gate10h_staging_rlhf_drill.py` — **ready, not run**
+- [x] Staging RLHF drill: `gate10h_staging_rlhf_drill.py` evaluate **PASS** (2026-08-13; rlhf reward &gt; linucb; cleanup next → flag `false`)
 
 ## Feature flags (repo truth)
 
@@ -79,7 +79,7 @@ If neural/RLHF not ready, service falls back to LinUCB with an explicit reason.
 
 ### Online evaluation
 
-- [ ] Enable flag on **staging** first via `gate10h_staging_rlhf_drill.py`; switch policy to `rlhf`; smoke + benchmark
+- [x] Enable flag on **staging** first via `gate10h_staging_rlhf_drill.py`; switch policy to `rlhf`; smoke + benchmark — **PASS** 2026-08-13
 - [ ] Production: enable `FEATURE_RLHF_ROUTER=true` via Blueprint + Sync **only after** prod neural stable (one flag at a time)
 - [ ] Canary / A/B: route **≤ 10%** sticky cohort to RLHF (or admin switch with limited exposure)
 - [ ] Human preference / reward ≥ baseline; no quality degradation for ≥ 24h
