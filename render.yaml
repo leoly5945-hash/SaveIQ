@@ -103,7 +103,7 @@ services:
       - key: FEATURE_NEURAL_BANDIT
         value: "false"
       - key: FEATURE_RLHF_ROUTER
-        value: "true"
+        value: "false"
       - key: FEATURE_LLM_USER_EMBEDDING
         value: "false"
       - key: FEATURE_BAYESIAN_TUNING
