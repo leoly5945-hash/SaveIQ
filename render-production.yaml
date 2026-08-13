@@ -122,7 +122,7 @@ services:
       - key: BANDIT_POLICY
         value: linucb
       - key: FEATURE_NEURAL_BANDIT
-        value: "false"
+        value: "true"
       - key: FEATURE_RLHF_ROUTER
         value: "false"
       - key: FEATURE_LLM_USER_EMBEDDING
