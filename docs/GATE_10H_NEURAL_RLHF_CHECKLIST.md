@@ -28,7 +28,8 @@ This gate is **human-only**. Auto-tune (Gate 10E/10J) must never flip neural/RLH
 - [ ] Provider/router error rate within Gate 10 plan budgets (target: LLM/provider errors **&lt; 5%** of live calls; HTTP 5xx stay healthy) — **needs metrics review window** (`/metrics` LLM series still sparse)
 - [ ] Latency within baseline + **10%** (p95 `/search` / `/recommendations` vs pre-10G window) — **needs baseline compare**
 - [x] Kill switch / auto-tune still **OFF** (unchanged) — confirmed `/admin/safety/status`
-- [ ] Staging drill: neural + RLHF policy switch works with flags on, falls back when not ready
+- [x] Staging Neural drill: `gate10h_staging_neural.py` evaluate **PASS** (2026-08-13; neural reward &gt; linucb; cleanup → flag `false`)
+- [ ] Staging RLHF drill: not started
 
 ## Feature flags (repo truth)
 
@@ -47,7 +48,7 @@ If neural/RLHF not ready, service falls back to LinUCB with an explicit reason.
 
 ### Quality
 
-- [ ] Offline / staging benchmark vs LinUCB baseline (`POST /admin/benchmark/run`, `GET /admin/benchmark/results`)
+- [x] Offline / staging benchmark vs LinUCB baseline (`POST /admin/benchmark/run`) — PASS on staging 2026-08-13
 - [ ] Human review of routing decisions (sample ≥ N traces)
 - [ ] A/B or canary cohort: neural vs `linucb` (holdout or sticky canary)
 - [ ] Edge cases: cold start, missing features, provider failure → safe fallback
