@@ -460,6 +460,15 @@ make gate10h-prod-neural ARGS='--stage apply --confirm-neural'
 make gate10h-prod-neural ARGS='--stage verify --assume-synced'
 make gate10h-prod-neural ARGS='--stage switch-neural --confirm-switch'
 make gate10h-prod-neural ARGS='--stage start-soak --phase n10 --report'
+# Soak monitor (does not mutate). One sample:
+make gate10h-monitor-soak ARGS='--phase n10 --once --report'
+# 24h loop every 5m:
+make gate10h-monitor-soak ARGS='--phase n10 --duration 24h --interval 5m'
+
+# After ≥24h + monitor PASS:
+make gate10h-advance-neural ARGS='--phase n10 --target n25 --dry-run --report'
+# Production RLHF only after n100:
+make gate10h-prod-rlhf ARGS='--stage check'
 ```
 
 Auto-tune must **never** flip these flags. After 10H: Gate 10I / 10J stubs only (`docs/GATE_10I_KILL_SWITCH_CHECKLIST.md`, `docs/GATE_10J_AUTO_TUNE_CHECKLIST.md`) — do not enable yet.

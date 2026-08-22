@@ -1,8 +1,8 @@
 # Gate 10H: Neural / RLHF Evaluation Checklist
 
 Generated: 2026-08-10  
-Updated: 2026-08-13 (prod prereq PASS; RLHF/prod neural scripts ready)  
-Status: IN PROGRESS — staging Neural **PASS**; staging RLHF drill **PASS**; prod prereq **PASS**; prod neural **not** enabled
+Updated: 2026-08-22 (n100 soak PASS; prod RLHF Blueprint `FEATURE_RLHF_ROUTER=true`)  
+Status: IN PROGRESS — prod neural n100 **PASS**; RLHF Blueprint applied (PR / Render Sync next)
 
 This gate is **human-only**. Auto-tune (Gate 10E/10J) must never flip neural/RLHF or `BANDIT_POLICY`.
 
@@ -12,9 +12,9 @@ This gate is **human-only**. Auto-tune (Gate 10E/10J) must never flip neural/RLH
 | --- | --- |
 | `FEATURE_AI_ROUTER` / mode | `active=True`, **`live`** |
 | Chinese LLM | **ON** (`chinese=True`; DeepSeek configured) |
-| `BANDIT_POLICY` / public bandit | `linucb`; `controls_routing=False` |
-| `FEATURE_NEURAL_BANDIT` | `false` on prod (staging drill temporarily `true`, then cleaned up) |
-| `FEATURE_RLHF_ROUTER` | `false` |
+| `BANDIT_POLICY` / public bandit | runtime **neural** (Blueprint still `linucb`); `feature_bandit_router` logging (`feature_enabled=false`) |
+| `FEATURE_NEURAL_BANDIT` | **`true`** (PR #33; Sync verified) |
+| `FEATURE_RLHF_ROUTER` | **`true`** in Blueprint (awaiting PR + Render Sync; runtime still `false` until Sync) |
 | Kill / autotune | **OFF**, not tripped |
 | Canary | enabled **100%** |
 | Smoke | `production_smoke=ok` (live + chinese allow flags) |
@@ -29,7 +29,19 @@ This gate is **human-only**. Auto-tune (Gate 10E/10J) must never flip neural/RLH
 - [x] Latency within baseline + **10%** — **PASS** 2026-08-13 (`/search` p95=250ms; `/recommendations` p95=2500ms ≤ ×1.1; baseline `artifacts/gate10h_prod_baseline.json`)
 - [x] Kill switch / auto-tune still **OFF** (unchanged) — confirmed `/admin/safety/status`
 - [x] Staging Neural drill: `gate10h_staging_neural.py` evaluate **PASS** (2026-08-13; neural reward &gt; linucb; cleanup → flag `false`)
-- [x] Staging RLHF drill: `gate10h_staging_rlhf_drill.py` evaluate **PASS** (2026-08-13; rlhf reward &gt; linucb; cleanup next → flag `false`)
+- [x] Staging RLHF drill: `gate10h_staging_rlhf_drill.py` evaluate **PASS** (2026-08-13; rlhf reward &gt; linucb; cleanup → flag `false`)
+
+## Production neural soak
+
+Monitor: `scripts/gate10h_monitor_soak.py`. Advance: `scripts/gate10h_advance_neural.py` (requires ≥24h **and** monitor report PASS).
+
+- [x] Soak n10 completed: 2026-08-14 (monitor PASS; advanced to n25 2026-08-17)
+- [x] Soak n25 completed: 2026-08-19 (monitor PASS; advanced to n50 2026-08-19)
+- [x] Soak n50 completed: 2026-08-20 (started 2026-08-19T07:01Z, ~31h36m; loop had 4 local DNS blips; fresh `--once` PASS; advanced to n100 2026-08-20T14:37Z)
+- [x] Soak n100 completed: 2026-08-22 (started 2026-08-20T14:37Z, ~37h; loop had 401-before-token + DNS blips; fresh `--once` PASS 2026-08-22T03:39Z)
+- [x] Neural performance metrics within threshold for n10/n25/n50/n100 (5xx=0, error_rate=0, cache ~98%; p95 series empty → WARN allowed)
+
+Production RLHF (`scripts/gate10h_prod_rlhf.py`): `--stage check` **PASS** 2026-08-22; `--stage blueprint --confirm-rlhf` applied locally. Next: PR + Render Sync, then `--stage verify --assume-synced`. Kill/autotune stay OFF (Gate 10I/10J still stubs).
 
 ## Feature flags (repo truth)
 
@@ -126,7 +138,7 @@ make gate10h-prod-neural ARGS='--stage rollback --confirm-rollback'
 ```
 
 Blueprint: staging `render.yaml` / prod `render-production.yaml`.  
-Validate with `--allow-neural-bandit` or `--allow-rlhf-router` (mutually exclusive).
+Validate production with `--allow-neural-bandit --allow-rlhf-router --allow-rlhf-after-neural` (both flags after n100 only).
 
 ## Rollback plan
 
@@ -144,8 +156,10 @@ If neural/RLHF fails any check:
 | --- | --- |
 | Router / provider errors & cost | `/metrics`, `/admin/router/metrics`, `/admin/models/status` |
 | Bandit policy / ready | `/admin/bandit/status`, switch_policy responses |
-| Latency / 5xx | Render metrics, Prometheus SLIs |
+| Latency / 5xx / cache | `scripts/gate10h_monitor_soak.py` → `artifacts/gate10h_soak_monitor_{phase}.jsonl` |
 | Safety | `/admin/safety/status` (must stay kill/autotune OFF) |
+
+Soak n100 **PASS** 2026-08-22T03:39Z. Production RLHF Blueprint applied locally — Sync before `--stage verify`. Do not enable Gate 10I/10J.
 
 ## Sign-off
 
@@ -165,5 +179,5 @@ If neural/RLHF fails any check:
 - `docs/GATE_10E_CLOSEOUT.md` — neural/RLHF human-only rule  
 - `docs/GATE_10_PLAN.md` — flag sequence  
 - `docs/RUNBOOK.md` §3g / §3h  
-- Scripts: `gate10h_check_prod_prereq.py`, `gate10h_staging_neural.py`, `gate10h_staging_rlhf_drill.py`, `gate10h_prod_neural.py`
+- Scripts: `gate10h_check_prod_prereq.py`, `gate10h_staging_neural.py`, `gate10h_staging_rlhf_drill.py`, `gate10h_prod_neural.py`, `gate10h_monitor_soak.py`, `gate10h_advance_neural.py`, `gate10h_prod_rlhf.py`
 - Admin: `/admin/bandit/switch_policy`, `/admin/benchmark/*`

@@ -1,4 +1,4 @@
-.PHONY: recommendation-eval staging-provision-validate staging-provision-validate-template staging-seed-mock staging-smoke production-provision-validate production-smoke deploy-production security-scan gate10d-abtest-rollout gate10e-rollout gate10e-auto-rollout gate10f-flip-router gate10g-live-providers gate10h-staging-neural gate10h-check-prod-prereq gate10h-staging-rlhf gate10h-prod-neural
+.PHONY: recommendation-eval staging-provision-validate staging-provision-validate-template staging-seed-mock staging-smoke production-provision-validate production-smoke deploy-production security-scan gate10d-abtest-rollout gate10e-rollout gate10e-auto-rollout gate10f-flip-router gate10g-live-providers gate10h-staging-neural gate10h-check-prod-prereq gate10h-staging-rlhf gate10h-prod-neural gate10h-monitor-soak gate10h-advance-neural gate10h-prod-rlhf
 
 PYTHON ?= python3
 
@@ -9,7 +9,7 @@ staging-provision-validate-template:
 	$(PYTHON) scripts/validate_render_blueprint.py render.yaml --allow-placeholders
 
 production-provision-validate:
-	$(PYTHON) scripts/validate_render_blueprint.py render-production.yaml --profile production
+	$(PYTHON) scripts/validate_render_blueprint.py render-production.yaml --profile production --allow-neural-bandit --allow-rlhf-router --allow-rlhf-after-neural
 
 staging-seed-mock:
 	$(PYTHON) scripts/staging_seed_mock.py
@@ -96,3 +96,21 @@ gate10h-staging-rlhf:
 #   make gate10h-prod-neural ARGS='--stage rollback --confirm-rollback'
 gate10h-prod-neural:
 	$(PYTHON) scripts/gate10h_prod_neural.py $(ARGS)
+
+# Gate 10H: production neural soak monitor (does not mutate flags/canary).
+#   make gate10h-monitor-soak ARGS='--phase n10 --once --report'
+#   make gate10h-monitor-soak ARGS='--phase n10 --duration 24h --interval 5m'
+gate10h-monitor-soak:
+	$(PYTHON) scripts/gate10h_monitor_soak.py $(ARGS)
+
+# Gate 10H: advance neural soak n10→n25→n50→n100 (requires 24h + monitor PASS).
+#   make gate10h-advance-neural ARGS='--stage status'
+#   make gate10h-advance-neural ARGS='--phase n10 --target n25 --dry-run --report'
+gate10h-advance-neural:
+	$(PYTHON) scripts/gate10h_advance_neural.py $(ARGS)
+
+# Gate 10H: production RLHF after neural n100 PASS.
+#   make gate10h-prod-rlhf ARGS='--stage check'
+#   make gate10h-prod-rlhf ARGS='--stage blueprint --dry-run'
+gate10h-prod-rlhf:
+	$(PYTHON) scripts/gate10h_prod_rlhf.py $(ARGS)

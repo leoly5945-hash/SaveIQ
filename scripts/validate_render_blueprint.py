@@ -179,6 +179,7 @@ def validate_env(
     allow_live_ai: bool = False,
     allow_neural_bandit: bool = False,
     allow_rlhf_router: bool = False,
+    allow_rlhf_after_neural: bool = False,
 ) -> None:
     api_name = PROFILES[profile]["api"]
     web_name = PROFILES[profile]["web"]
@@ -241,33 +242,43 @@ def validate_env(
                 if api_env[flag].get("value") != "false":
                     fail(f"{flag} must be false in {profile}", profile=profile)
 
-    if allow_neural_bandit and allow_rlhf_router:
+    if allow_neural_bandit and allow_rlhf_router and not allow_rlhf_after_neural:
         fail(
-            "allow only one of --allow-neural-bandit / --allow-rlhf-router (one flag at a time)",
+            "allow only one of --allow-neural-bandit / --allow-rlhf-router "
+            "(pass --allow-rlhf-after-neural only after prod neural n100)",
             profile=profile,
         )
+    if allow_rlhf_after_neural and not (allow_neural_bandit and allow_rlhf_router):
+        fail(
+            "--allow-rlhf-after-neural requires both --allow-neural-bandit and --allow-rlhf-router",
+            profile=profile,
+        )
+    if allow_rlhf_after_neural and profile != "production":
+        fail("--allow-rlhf-after-neural is production-only", profile=profile)
 
     if allow_neural_bandit:
         neural = (api_env.get("FEATURE_NEURAL_BANDIT") or {}).get("value")
         if neural not in {None, "false", "true"}:
             fail("FEATURE_NEURAL_BANDIT must be false|true", profile=profile)
-        rlhf = (api_env.get("FEATURE_RLHF_ROUTER") or {}).get("value")
-        if rlhf not in {None, "false"}:
-            fail(
-                "FEATURE_RLHF_ROUTER must stay false while FEATURE_NEURAL_BANDIT is allowed",
-                profile=profile,
-            )
+        if not allow_rlhf_after_neural:
+            rlhf = (api_env.get("FEATURE_RLHF_ROUTER") or {}).get("value")
+            if rlhf not in {None, "false"}:
+                fail(
+                    "FEATURE_RLHF_ROUTER must stay false while FEATURE_NEURAL_BANDIT is allowed",
+                    profile=profile,
+                )
 
     if allow_rlhf_router:
         rlhf = (api_env.get("FEATURE_RLHF_ROUTER") or {}).get("value")
         if rlhf not in {None, "false", "true"}:
             fail("FEATURE_RLHF_ROUTER must be false|true", profile=profile)
-        neural = (api_env.get("FEATURE_NEURAL_BANDIT") or {}).get("value")
-        if neural not in {None, "false"}:
-            fail(
-                "FEATURE_NEURAL_BANDIT must stay false while FEATURE_RLHF_ROUTER is allowed",
-                profile=profile,
-            )
+        if not allow_rlhf_after_neural:
+            neural = (api_env.get("FEATURE_NEURAL_BANDIT") or {}).get("value")
+            if neural not in {None, "false"}:
+                fail(
+                    "FEATURE_NEURAL_BANDIT must stay false while FEATURE_RLHF_ROUTER is allowed",
+                    profile=profile,
+                )
 
     # Gate 10F/10G: FEATURE_AI_ROUTER=true with mode mock|live.
     # Chinese providers only with live. Staging stays mock unless --allow-live-ai.
@@ -392,7 +403,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--allow-rlhf-router",
         action="store_true",
-        help="Gate 10H: allow FEATURE_RLHF_ROUTER=true (neural stays false)",
+        help="Gate 10H: allow FEATURE_RLHF_ROUTER=true (neural stays false unless after-neural)",
+    )
+    parser.add_argument(
+        "--allow-rlhf-after-neural",
+        action="store_true",
+        help="Production only: allow both FEATURE_NEURAL_BANDIT and FEATURE_RLHF_ROUTER after n100",
     )
     return parser.parse_args()
 
@@ -420,6 +436,7 @@ def main() -> None:
         allow_live_ai=args.allow_live_ai,
         allow_neural_bandit=args.allow_neural_bandit,
         allow_rlhf_router=args.allow_rlhf_router,
+        allow_rlhf_after_neural=args.allow_rlhf_after_neural,
     )
     validate_database(data, profile=profile)
 
