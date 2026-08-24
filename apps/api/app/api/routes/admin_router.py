@@ -32,6 +32,9 @@ class AiRouterStatusResponse(BaseModel):
     fallback_provider: str
     bandit: dict[str, object] | None = None
     chinese_providers_enabled: bool = False
+    request_router_active: bool | None = None
+    kill_switch_tripped: bool = False
+    kill_switch_fallback: bool = False
 
 
 class AiRouterMetricsResponse(BaseModel):

@@ -1,4 +1,4 @@
-.PHONY: recommendation-eval staging-provision-validate staging-provision-validate-template staging-seed-mock staging-smoke production-provision-validate production-smoke deploy-production security-scan gate10d-abtest-rollout gate10e-rollout gate10e-auto-rollout gate10f-flip-router gate10g-live-providers gate10h-staging-neural gate10h-check-prod-prereq gate10h-staging-rlhf gate10h-prod-neural gate10h-monitor-soak gate10h-advance-neural gate10h-prod-rlhf
+.PHONY: recommendation-eval staging-provision-validate staging-provision-validate-template staging-seed-mock staging-smoke production-provision-validate production-smoke deploy-production security-scan gate10d-abtest-rollout gate10e-rollout gate10e-auto-rollout gate10f-flip-router gate10g-live-providers gate10h-staging-neural gate10h-check-prod-prereq gate10h-staging-rlhf gate10h-prod-neural gate10h-monitor-soak gate10h-advance-neural gate10h-prod-rlhf gate10i-kill-switch
 
 PYTHON ?= python3
 
@@ -9,7 +9,7 @@ staging-provision-validate-template:
 	$(PYTHON) scripts/validate_render_blueprint.py render.yaml --allow-placeholders
 
 production-provision-validate:
-	$(PYTHON) scripts/validate_render_blueprint.py render-production.yaml --profile production --allow-neural-bandit --allow-rlhf-router --allow-rlhf-after-neural
+	$(PYTHON) scripts/validate_render_blueprint.py render-production.yaml --profile production --allow-neural-bandit --allow-rlhf-router --allow-rlhf-after-neural --allow-kill-switch
 
 staging-seed-mock:
 	$(PYTHON) scripts/staging_seed_mock.py
@@ -114,3 +114,11 @@ gate10h-advance-neural:
 #   make gate10h-prod-rlhf ARGS='--stage blueprint --dry-run'
 gate10h-prod-rlhf:
 	$(PYTHON) scripts/gate10h_prod_rlhf.py $(ARGS)
+
+# Gate 10I: arm FEATURE_KILL_SWITCH (staging drill → prod). Autotune stays OFF.
+#   make gate10i-kill-switch ARGS='--stage check'
+#   make gate10i-kill-switch ARGS='--stage staging-blueprint --dry-run'
+#   make gate10i-kill-switch ARGS='--stage staging-drill --assume-synced --confirm-trip'
+#   make gate10i-kill-switch ARGS='--stage prod-verify --assume-synced'
+gate10i-kill-switch:
+	$(PYTHON) scripts/gate10i_kill_switch.py $(ARGS)

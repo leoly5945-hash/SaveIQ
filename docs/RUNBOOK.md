@@ -176,6 +176,9 @@ Canary auto-ramp is **off** by default (`AUTO_TUNE_CANARY_ENABLED=false`) so Gat
 | `POST /admin/safety/evaluate` | Run kill checks then auto-tune tick (`{"force_tune":true}` optional) |
 | `POST /admin/safety/kill/trip` | Manual trip / drill (`force=true` bypasses override) |
 | `POST /admin/safety/kill/disarm` | Clear trip state |
+| `GET /admin/kill-switch/status` | Gate 10I: `armed` / `tripped` / `router_fallback` / `request_router_active` |
+| `POST /admin/kill-switch/enable` | Gate 10I: arm runtime overlay; default `trip=true` (parser fallback) |
+| `POST /admin/kill-switch/disable` | Gate 10I: clear trip; `unarm=true` also drops runtime arm |
 | `POST /admin/safety/autotune/apply` | Admin override epsilon/α/β/γ/cache TTL (within caps) |
 | `POST /admin/safety/autotune/reset` | Reset hparams to env defaults |
 | `GET /admin/safety/audit` | Recent change / trip log |
@@ -189,6 +192,7 @@ When armed and window metrics breach thresholds (error rate / latency p95 / cost
 3. Zero canary (`zero_canary`)
 4. Disable auto-tune runtime
 5. Reset bandit/cache hparams to safe env defaults
+6. Force AI router fallback (`fallback_router`) — deterministic parser until disarm
 
 `manual_override=true` blocks automatic trip and auto-tune until cleared.
 
@@ -202,9 +206,9 @@ Default `dry_run=true` proposes + audits without applying.
 ### Staging drill (before production enable)
 
 1. Staging: set env `FEATURE_KILL_SWITCH=true` (keep auto-tune dry-run).
-2. `POST /admin/safety/kill/trip` with `{"reason":"drill"}` → confirm A/B stopped / canary zeroed.
-3. `POST /admin/safety/kill/disarm`.
-4. Enable `FEATURE_AUTO_TUNING=true` with `AUTO_TUNE_DRY_RUN=true`; `POST /admin/safety/evaluate`.
+2. `POST /admin/kill-switch/enable` with `{"reason":"drill","trip":true}` → confirm A/B stopped / canary zeroed / `request_router_active=false`.
+3. `POST /admin/kill-switch/disable`. Restore canary if this was a drill.
+4. Gate 10J only: enable `FEATURE_AUTO_TUNING=true` with `AUTO_TUNE_DRY_RUN=true`; `POST /admin/safety/evaluate`.
 5. Review `/admin/safety/audit` before turning dry-run off.
 
 ### Emergency override
@@ -471,7 +475,48 @@ make gate10h-advance-neural ARGS='--phase n10 --target n25 --dry-run --report'
 make gate10h-prod-rlhf ARGS='--stage check'
 ```
 
-Auto-tune must **never** flip these flags. After 10H: Gate 10I / 10J stubs only (`docs/GATE_10I_KILL_SWITCH_CHECKLIST.md`, `docs/GATE_10J_AUTO_TUNE_CHECKLIST.md`) — do not enable yet.
+Auto-tune must **never** flip these flags.
+
+## 3i. Gate 10I kill switch
+
+Script: `scripts/gate10i_kill_switch.py` · Make: `make gate10i-kill-switch ARGS='…'`  
+Checklist: `docs/GATE_10I_KILL_SWITCH_CHECKLIST.md`
+
+Enable `FEATURE_KILL_SWITCH` after Gate 10H is stable. **Do not** enable `FEATURE_AUTO_TUNING` here.
+
+```bash
+export STAGING_ADMIN_TOKEN=...
+export PROD_ADMIN_TOKEN=...
+
+make gate10i-kill-switch ARGS='--stage check'
+make gate10i-kill-switch ARGS='--stage staging-blueprint --confirm-kill'
+# → Sync staging
+make gate10i-kill-switch ARGS='--stage staging-drill --assume-synced --confirm-trip'
+make gate10i-kill-switch ARGS='--stage prod-blueprint --confirm-kill'
+# → Sync production; then --allow-kill-switch on production-provision-validate
+make gate10i-kill-switch ARGS='--stage prod-verify --assume-synced'
+make gate10i-kill-switch ARGS='--stage monitor --target prod'
+```
+
+Emergency stop (does not wait for Blueprint):
+
+```bash
+curl -sS -X POST "$API_URL/admin/kill-switch/enable" \
+  -H "X-Admin-Token: $ADMIN_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"reason":"incident","trip":true,"force":true}'
+```
+
+Restore traffic:
+
+```bash
+curl -sS -X POST "$API_URL/admin/kill-switch/disable" \
+  -H "X-Admin-Token: $ADMIN_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"clear_window":true,"unarm":false}'
+```
+
+Gate 10J (`docs/GATE_10J_AUTO_TUNE_CHECKLIST.md`) only after this kill switch is proven.
 
 ## 4. Monitoring and alerts
 

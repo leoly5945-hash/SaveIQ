@@ -43,11 +43,16 @@ def is_feature_active(
 
     Precedence: A/B group overrides → canary cohort → global FEATURE_* flags.
     """
+    cfg = settings or get_settings()
+    if feature == "router":
+        from app.services.safety.service import kill_switch_forces_router_fallback
+
+        if kill_switch_forces_router_fallback(cfg):
+            return False
+
     ab = _ab_override_bool(feature)
     if ab is not None:
         return ab
-
-    cfg = settings or get_settings()
     global_on = bool(getattr(cfg, FEATURE_TO_SETTING.get(feature, ""), False))
     service = build_canary_service(cfg)
     config = service.get_config()
@@ -67,6 +72,10 @@ def effective_ai_router_mode(settings: Settings | None = None) -> str:
     from app.services.abtest.context import get_ab_overrides
 
     cfg = settings or get_settings()
+    from app.services.safety.service import kill_switch_forces_router_fallback
+
+    if kill_switch_forces_router_fallback(cfg):
+        return "disabled"
     overrides = get_ab_overrides() or {}
     if "ai_router_mode" in overrides:
         mode = str(overrides["ai_router_mode"]).lower()

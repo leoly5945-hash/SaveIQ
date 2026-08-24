@@ -16,11 +16,14 @@ from app.main import create_app
 from app.services.abtest.service import reset_abtest_service_for_tests
 from app.services.canary.service import reset_canary_service_for_tests
 from app.services.rate_limit import reset_rate_limiter_for_tests
-from app.services.router.ai_router import clear_runtime_cache_ttl
+from app.services.router.ai_router import AiRouter, clear_runtime_cache_ttl
+from app.services.router.contract import RouteRequest
 from app.services.safety.metrics_window import MetricsWindow
 from app.services.safety.service import (
     SafetyService,
     TunableHParams,
+    build_safety_service,
+    kill_switch_forces_router_fallback,
     reset_safety_service_for_tests,
 )
 
@@ -75,6 +78,7 @@ def test_kill_switch_trips_on_error_rate() -> None:
     assert "error_rate" in (result["kill"]["reason"] or "")
     assert canary.get_config().percentage == 0
     assert ab.status()["running"] is False
+    assert result["kill"].get("router_fallback") is True
 
 
 def test_manual_override_blocks_trip_and_tune() -> None:
@@ -188,6 +192,8 @@ def test_admin_safety_endpoints(monkeypatch) -> None:  # type: ignore[no-untyped
     monkeypatch.setenv("ADMIN_API_TOKEN", "test-admin")
     monkeypatch.setenv("FEATURE_KILL_SWITCH", "true")
     monkeypatch.setenv("FEATURE_AUTO_TUNING", "true")
+    monkeypatch.setenv("FEATURE_AI_ROUTER", "true")
+    monkeypatch.setenv("AI_ROUTER_MODE", "mock")
     monkeypatch.setenv("RATE_LIMIT_ENABLED", "false")
     get_settings.cache_clear()
 
@@ -250,4 +256,71 @@ def test_admin_safety_endpoints(monkeypatch) -> None:  # type: ignore[no-untyped
     audit = client.get("/admin/safety/audit", headers=headers)
     assert audit.status_code == 200
     assert isinstance(audit.json()["events"], list)
+
+    ks = client.get("/admin/kill-switch/status", headers=headers)
+    assert ks.status_code == 200
+    assert ks.json()["tripped"] is False
+    assert "request_router_active" in ks.json()
+
+    enabled = client.post(
+        "/admin/kill-switch/enable",
+        headers=headers,
+        json={"reason": "gate10i_test", "trip": True, "force": True},
+    )
+    assert enabled.status_code == 200
+    body_en = enabled.json()
+    assert body_en["tripped"] is True
+    assert body_en["router_fallback"] is True
+    assert body_en["request_router_active"] is False
+
+    disabled = client.post(
+        "/admin/kill-switch/disable",
+        headers=headers,
+        json={"clear_window": True, "unarm": False},
+    )
+    assert disabled.status_code == 200
+    assert disabled.json()["tripped"] is False
+    assert disabled.json()["router_fallback"] is False
+    assert disabled.json()["request_router_active"] is True
+
+    missing = client.get("/admin/kill-switch/status")
+    assert missing.status_code == 401
+
     get_settings.cache_clear()
+    reset_safety_service_for_tests()
+
+
+def test_kill_switch_trip_forces_ai_router_fallback() -> None:
+    reset_safety_service_for_tests()
+    reset_canary_service_for_tests()
+    settings = Settings(
+        FEATURE_KILL_SWITCH="true",
+        FEATURE_AUTO_TUNING="false",
+        FEATURE_AI_ROUTER="true",
+        AI_ROUTER_MODE="mock",
+        REDIS_URL="",
+    )
+    service = build_safety_service(settings)
+    service.set_config(kill_switch_enabled=True, auto_tune_enabled=False, dry_run=True)
+    router = AiRouter(settings)
+    request = RouteRequest(query_text="cheap laptop", intent_type="recommendation", market="CA")
+    assert router._router_active() is True
+    assert kill_switch_forces_router_fallback(settings) is False
+    live = router.execute(request)
+    assert live.fallback_reason != "AI router disabled"
+
+    trip = service.trip("gate10i_unit", force=True)
+    assert trip["tripped"] is True
+    assert trip["router_fallback"] is True
+    assert kill_switch_forces_router_fallback(settings) is True
+    assert router._router_active() is False
+    fallback = router.execute(request)
+    assert fallback.fallback_required is True
+    assert fallback.fallback_reason == "AI router disabled"
+    assert fallback.decision.selected_provider == "none"
+
+    service.disarm(clear_window=True)
+    assert kill_switch_forces_router_fallback(settings) is False
+    assert router._router_active() is True
+    reset_safety_service_for_tests()
+    reset_canary_service_for_tests()

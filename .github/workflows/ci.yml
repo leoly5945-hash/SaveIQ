@@ -64,7 +64,7 @@ jobs:
       - name: Validate Render blueprints
         run: |
           python ../../scripts/validate_render_blueprint.py ../../render.yaml
-          python ../../scripts/validate_render_blueprint.py ../../render-production.yaml --profile production --allow-neural-bandit --allow-rlhf-router --allow-rlhf-after-neural
+          python ../../scripts/validate_render_blueprint.py ../../render-production.yaml --profile production --allow-neural-bandit --allow-rlhf-router --allow-rlhf-after-neural --allow-kill-switch
 
   security:
     runs-on: ubuntu-latest

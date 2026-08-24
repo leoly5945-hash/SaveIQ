@@ -123,6 +123,11 @@ def main() -> None:
         action="store_true",
         help="Gate 10G: allow chinese_providers_enabled=true.",
     )
+    parser.add_argument(
+        "--allow-kill-switch",
+        action="store_true",
+        help="Gate 10I: allow FEATURE_KILL_SWITCH=true (still fail if tripped or autotune on).",
+    )
     args = parser.parse_args()
     api_url = args.api_url.rstrip("/")
     web_url = args.web_url.rstrip("/")
@@ -267,13 +272,16 @@ def main() -> None:
         safety = get_json(f"{api_url}/admin/safety/status", token)
         runtime = safety.get("runtime") or {}
         env = safety.get("env") or {}
-        if (
-            env.get("feature_kill_switch") is True
-            or env.get("feature_auto_tuning") is True
-        ):
+        if env.get("feature_auto_tuning") is True:
+            fail(
+                "FEATURE_AUTO_TUNING must remain false until Gate 10J "
+                "(FEATURE_AUTO_TUNING=false)"
+            )
+        if env.get("feature_kill_switch") is True and not args.allow_kill_switch:
             fail(
                 "Gate 10E safety features must remain env-disabled "
-                "(FEATURE_KILL_SWITCH=false, FEATURE_AUTO_TUNING=false) until staging drill"
+                "(FEATURE_KILL_SWITCH=false, FEATURE_AUTO_TUNING=false) until Gate 10I "
+                "(pass --allow-kill-switch after kill is armed)"
             )
         if runtime.get("tripped") is True:
             fail(

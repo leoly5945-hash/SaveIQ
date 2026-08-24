@@ -43,7 +43,13 @@ class SafetyRuntimeConfig:
     last_evaluate_at: float | None = None
     last_tune_at: float | None = None
     actions_on_trip: list[str] = field(
-        default_factory=lambda: ["stop_abtest", "zero_canary", "disable_autotune", "reset_hparams"]
+        default_factory=lambda: [
+            "stop_abtest",
+            "zero_canary",
+            "disable_autotune",
+            "reset_hparams",
+            "fallback_router",
+        ]
     )
 
 
@@ -275,6 +281,7 @@ class SafetyService:
                     and not config.manual_override
                     and not config.tripped
                 ),
+                "router_fallback": bool(config.tripped),
             },
         }
 
@@ -319,6 +326,12 @@ class SafetyService:
 
         self._persist_config(config)
         self._audit("kill_trip", {"reason": reason, "actions": actions_taken, "force": force})
+        logger.warning(
+            "Kill switch TRIPPED reason=%s force=%s actions=%s",
+            reason,
+            force,
+            [item.get("action") for item in actions_taken],
+        )
         try:
             from app.observability.metrics import observe_kill_switch_trip
 
@@ -330,6 +343,7 @@ class SafetyService:
             "reason": reason,
             "actions": actions_taken,
             "runtime": asdict(config),
+            "router_fallback": True,
         }
 
     def disarm(self, *, clear_window: bool = False) -> dict[str, Any]:
@@ -341,7 +355,8 @@ class SafetyService:
         if clear_window:
             self._window.clear()
         self._audit("kill_disarm", {"clear_window": clear_window})
-        return {"tripped": False, "runtime": asdict(config)}
+        logger.warning("Kill switch DISARMED clear_window=%s", clear_window)
+        return {"tripped": False, "runtime": asdict(config), "router_fallback": False}
 
     def evaluate(self, *, force_tune: bool = False) -> dict[str, Any]:
         """Run kill-switch checks then (if safe) auto-tune proposals/applies."""
@@ -619,6 +634,10 @@ class SafetyService:
             if action == "reset_hparams":
                 hparams = self.reset_hparams(reason="kill_switch_reset")
                 return {"ok": True, "hparams": asdict(hparams)}
+            if action == "fallback_router":
+                # Router honor is runtime.tripped (see kill_switch_forces_router_fallback).
+                logger.warning("Kill switch forcing AI router fallback to deterministic parser")
+                return {"ok": True, "router_fallback": True}
             return {"ok": False, "error": f"unknown_action:{action}"}
         except Exception as exc:  # noqa: BLE001
             logger.exception("Kill switch action %s failed", action)
@@ -653,6 +672,15 @@ class SafetyService:
                 logger.warning("Safety config write failed (%s)", exc.__class__.__name__)
         with self._lock:
             self._memory_config = config
+        try:
+            from app.observability.metrics import observe_kill_switch_state
+
+            observe_kill_switch_state(
+                armed=bool(config.kill_switch_enabled) and not config.manual_override,
+                tripped=bool(config.tripped),
+            )
+        except Exception:  # noqa: BLE001
+            pass
 
     def _persist_hparams(self, hparams: TunableHParams) -> None:
         payload = asdict(hparams)
@@ -680,6 +708,19 @@ class SafetyService:
 
 _service: SafetyService | None = None
 _service_lock = threading.Lock()
+
+
+def kill_switch_forces_router_fallback(settings: Settings | None = None) -> bool:
+    """True when the kill switch is tripped — AI router must use the old parser."""
+    try:
+        cfg = settings
+        if cfg is None:
+            from app.core.settings import get_settings
+
+            cfg = get_settings()
+        return bool(build_safety_service(cfg).get_config().tripped)
+    except Exception:  # noqa: BLE001
+        return False
 
 
 def build_safety_service(settings: Settings) -> SafetyService:

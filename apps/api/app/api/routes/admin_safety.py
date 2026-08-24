@@ -1,7 +1,8 @@
-"""Admin safety controls — kill switch + auto-tune (Gate 10E)."""
+"""Admin safety controls — kill switch + auto-tune (Gate 10E / 10I)."""
 
 from __future__ import annotations
 
+import logging
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -10,6 +11,8 @@ from pydantic import BaseModel, Field
 from app.api.dependencies import require_admin
 from app.core.settings import Settings, get_settings
 from app.services.safety.service import TunableHParams, build_safety_service
+
+logger = logging.getLogger(__name__)
 
 AppSettings = Annotated[Settings, Depends(get_settings)]
 
@@ -40,6 +43,23 @@ class SafetyTripRequest(BaseModel):
 
 class SafetyDisarmRequest(BaseModel):
     clear_window: bool = False
+
+
+class KillSwitchEnableRequest(BaseModel):
+    """Arm runtime kill switch. Default trip=true for emergency router fallback.
+
+    FEATURE_KILL_SWITCH env is Render/Blueprint — this endpoint cannot mutate
+    process env. It sets the runtime overlay (same as POST /admin/safety/config).
+    """
+
+    reason: str = Field(default="admin_kill_switch_enable", min_length=1, max_length=500)
+    trip: bool = True
+    force: bool = True
+
+
+class KillSwitchDisableRequest(BaseModel):
+    clear_window: bool = False
+    unarm: bool = False
 
 
 class SafetyHParamsRequest(BaseModel):
@@ -125,3 +145,81 @@ def reset_autotune_hparams(settings: AppSettings) -> dict[str, Any]:
 def get_safety_audit(settings: AppSettings, limit: int = 50) -> dict[str, Any]:
     service = build_safety_service(settings)
     return {"events": service.audit_log(limit=limit)}
+
+
+def _kill_switch_payload(settings: Settings) -> dict[str, Any]:
+    service = build_safety_service(settings)
+    status_body = service.status()
+    runtime = status_body.get("runtime") or {}
+    env = status_body.get("env") or {}
+    tripped = bool(runtime.get("tripped"))
+    from app.services.router.ai_router import build_ai_router
+
+    router_status = build_ai_router(settings).status()
+    return {
+        "env_flag": bool(env.get("feature_kill_switch")),
+        "armed": bool(runtime.get("kill_switch_enabled")),
+        "tripped": tripped,
+        "trip_reason": runtime.get("trip_reason"),
+        "trip_at": runtime.get("trip_at"),
+        "manual_override": bool(runtime.get("manual_override")),
+        "auto_tune_enabled": bool(runtime.get("auto_tune_enabled")),
+        "router_fallback": tripped,
+        "request_router_active": bool(router_status.get("request_router_active")),
+        "env_note": (
+            "FEATURE_KILL_SWITCH is a Render Blueprint env flag. "
+            "This API arms the runtime overlay; durable enablement requires Sync."
+        ),
+        "safety": status_body,
+    }
+
+
+@router.get("/kill-switch/status")
+def get_kill_switch_status(settings: AppSettings) -> dict[str, Any]:
+    return _kill_switch_payload(settings)
+
+
+@router.post("/kill-switch/enable")
+def enable_kill_switch(body: KillSwitchEnableRequest, settings: AppSettings) -> dict[str, Any]:
+    service = build_safety_service(settings)
+    service.set_config(kill_switch_enabled=True, manual_override=False)
+    logger.warning(
+        "Kill switch ENABLE requested reason=%s trip=%s force=%s env_flag=%s",
+        body.reason,
+        body.trip,
+        body.force,
+        settings.feature_kill_switch,
+    )
+    trip_result: dict[str, Any] | None = None
+    if body.trip:
+        trip_result = service.trip(body.reason, force=body.force)
+        if not trip_result.get("tripped"):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=trip_result,
+            )
+    payload = _kill_switch_payload(settings)
+    payload["updated"] = {"kill_switch_enabled": True, "tripped": body.trip}
+    payload["trip"] = trip_result
+    return payload
+
+
+@router.post("/kill-switch/disable")
+def disable_kill_switch(
+    settings: AppSettings,
+    body: KillSwitchDisableRequest | None = None,
+) -> dict[str, Any]:
+    service = build_safety_service(settings)
+    clear = bool(body.clear_window) if body is not None else False
+    unarm = bool(body.unarm) if body is not None else False
+    disarm_result = service.disarm(clear_window=clear)
+    if unarm:
+        service.set_config(kill_switch_enabled=False)
+    logger.warning("Kill switch DISABLE unarm=%s clear_window=%s", unarm, clear)
+    payload = _kill_switch_payload(settings)
+    payload["updated"] = {
+        "tripped": False,
+        "kill_switch_enabled": False if unarm else payload["armed"],
+    }
+    payload["disarm"] = disarm_result
+    return payload
