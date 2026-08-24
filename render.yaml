@@ -111,7 +111,7 @@ services:
       - key: FEATURE_AUTO_TUNING
         value: "false"
       - key: FEATURE_KILL_SWITCH
-        value: "false"
+        value: "true"
       - key: AUTO_TUNE_DRY_RUN
         value: "true"
       - key: FEATURE_ABTEST_ENABLED

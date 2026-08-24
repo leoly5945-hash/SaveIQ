@@ -1,8 +1,8 @@
 # Gate 10H: Neural / RLHF Evaluation Checklist
 
 Generated: 2026-08-10  
-Updated: 2026-08-22 (n100 soak PASS; prod RLHF Blueprint `FEATURE_RLHF_ROUTER=true`)  
-Status: IN PROGRESS — prod neural n100 **PASS**; RLHF Blueprint applied (PR / Render Sync next)
+Updated: 2026-08-23 (prod RLHF `--stage promote` ok)  
+Status: **ENABLEMENT COMPLETE** — runtime `policy=rlhf` (canary soak ≥24h PASS). Sign-off / 10I still open. Kill/autotune OFF.
 
 This gate is **human-only**. Auto-tune (Gate 10E/10J) must never flip neural/RLHF or `BANDIT_POLICY`.
 
@@ -12,9 +12,9 @@ This gate is **human-only**. Auto-tune (Gate 10E/10J) must never flip neural/RLH
 | --- | --- |
 | `FEATURE_AI_ROUTER` / mode | `active=True`, **`live`** |
 | Chinese LLM | **ON** (`chinese=True`; DeepSeek configured) |
-| `BANDIT_POLICY` / public bandit | runtime **neural** (Blueprint still `linucb`); `feature_bandit_router` logging (`feature_enabled=false`) |
-| `FEATURE_NEURAL_BANDIT` | **`true`** (PR #33; Sync verified) |
-| `FEATURE_RLHF_ROUTER` | **`true`** in Blueprint (awaiting PR + Render Sync; runtime still `false` until Sync) |
+| `BANDIT_POLICY` / public bandit | Blueprint `linucb`; runtime **`rlhf`** (promoted 2026-08-23T12:44Z; `feature_enabled=false`; LinUCB fallback while `ready=false`) |
+| `FEATURE_NEURAL_BANDIT` | **`true`** (PR #33) |
+| `FEATURE_RLHF_ROUTER` | **`true`** (PR #34 merged + Sync; `flags.rlhf=true`, `rlhf.ready=false`, samples=0) |
 | Kill / autotune | **OFF**, not tripped |
 | Canary | enabled **100%** |
 | Smoke | `production_smoke=ok` (live + chinese allow flags) |
@@ -41,7 +41,7 @@ Monitor: `scripts/gate10h_monitor_soak.py`. Advance: `scripts/gate10h_advance_ne
 - [x] Soak n100 completed: 2026-08-22 (started 2026-08-20T14:37Z, ~37h; loop had 401-before-token + DNS blips; fresh `--once` PASS 2026-08-22T03:39Z)
 - [x] Neural performance metrics within threshold for n10/n25/n50/n100 (5xx=0, error_rate=0, cache ~98%; p95 series empty → WARN allowed)
 
-Production RLHF (`scripts/gate10h_prod_rlhf.py`): `--stage check` **PASS** 2026-08-22; `--stage blueprint --confirm-rlhf` applied locally. Next: PR + Render Sync, then `--stage verify --assume-synced`. Kill/autotune stay OFF (Gate 10I/10J still stubs).
+Production RLHF (`scripts/gate10h_prod_rlhf.py`): verify **PASS**; canary 2026-08-22T03:58Z; soak `--expect-rlhf` **PASS** (53 ticks / 0 breach + fresh `--once` 2026-08-23T12:44Z); `--stage promote` **ok** (`policy=rlhf`, canary % not mutated). Blueprint `BANDIT_POLICY` remains `linucb` (runtime switch). Kill/autotune stay OFF until Gate 10I/10J.
 
 ## Feature flags (repo truth)
 
@@ -92,10 +92,10 @@ If neural/RLHF not ready, service falls back to LinUCB with an explicit reason.
 ### Online evaluation
 
 - [x] Enable flag on **staging** first via `gate10h_staging_rlhf_drill.py`; switch policy to `rlhf`; smoke + benchmark — **PASS** 2026-08-13
-- [ ] Production: enable `FEATURE_RLHF_ROUTER=true` via Blueprint + Sync **only after** prod neural stable (one flag at a time)
-- [ ] Canary / A/B: route **≤ 10%** sticky cohort to RLHF (or admin switch with limited exposure)
-- [ ] Human preference / reward ≥ baseline; no quality degradation for ≥ 24h
-- [ ] Only then consider `BANDIT_POLICY=rlhf` (or 100% cohort) with explicit sign-off
+- [x] Production: enable `FEATURE_RLHF_ROUTER=true` via Blueprint + Sync — **PASS** 2026-08-22 (PR #34; `verify=ok`)
+- [x] Canary / A/B: runtime `switch_policy` → `rlhf` with label 10% (router canary **not** mutated; live canary stays 100%) — 2026-08-22
+- [x] Human preference / reward ≥ baseline; no quality degradation for ≥ 24h — RLHF canary soak PASS (started 2026-08-22T03:58Z; loop 53 ticks 0 breach; `--once` PASS 2026-08-23T12:44Z)
+- [x] Runtime policy `rlhf` promoted 2026-08-23T12:44Z (`switch_policy`; Blueprint `BANDIT_POLICY` still `linucb`; router canary stays 100%)
 
 ## Enablement sequence (after checks pass)
 
@@ -104,7 +104,7 @@ If neural/RLHF not ready, service falls back to LinUCB with an explicit reason.
 3. Staging RLHF — `gate10h_staging_rlhf_drill.py` (next)
 4. Production Neural — `gate10h_prod_neural.py` (one flag; soak n10→n25→n50→n100)
 5. Production RLHF — only after prod neural stable (separate Blueprint apply; not in prod neural script)
-6. Then Gate **10I** / **10J** (docs stubs only; do not enable yet)
+6. Then Gate **10I** kill switch (`scripts/gate10i_kill_switch.py`). Gate **10J** autotune only after 10I is proven.
 
 ### Operator commands
 
@@ -159,7 +159,7 @@ If neural/RLHF fails any check:
 | Latency / 5xx / cache | `scripts/gate10h_monitor_soak.py` → `artifacts/gate10h_soak_monitor_{phase}.jsonl` |
 | Safety | `/admin/safety/status` (must stay kill/autotune OFF) |
 
-Soak n100 **PASS** 2026-08-22T03:39Z. Production RLHF Blueprint applied locally — Sync before `--stage verify`. Do not enable Gate 10I/10J.
+Soak n100 **PASS** 2026-08-22T03:39Z. Production RLHF `--stage promote` ok 2026-08-23. Next: Gate 10I kill switch (not 10J).
 
 ## Sign-off
 
@@ -170,8 +170,8 @@ Soak n100 **PASS** 2026-08-22T03:39Z. Production RLHF Blueprint applied locally 
 
 ## Next steps (after Gate 10H passes)
 
-- Gate **10I** — Kill switch — stub: `docs/GATE_10I_KILL_SWITCH_CHECKLIST.md` (**do not enable yet**)
-- Gate **10J** — Auto-tune — stub: `docs/GATE_10J_AUTO_TUNE_CHECKLIST.md` (**do not enable yet**)
+- Gate **10I** — Kill switch: `docs/GATE_10I_KILL_SWITCH_CHECKLIST.md` / `scripts/gate10i_kill_switch.py`
+- Gate **10J** — Auto-tune: `docs/GATE_10J_AUTO_TUNE_CHECKLIST.md` (**do not enable until 10I is proven**)
 
 ## Artifacts / references
 

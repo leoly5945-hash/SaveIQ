@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
+from prometheus_client import CONTENT_TYPE_LATEST, Counter, Gauge, Histogram, generate_latest
 
 HTTP_REQUESTS = Counter(
     "http_requests_total",
@@ -190,6 +190,14 @@ KILL_SWITCH_TRIPS = Counter(
     "Kill switch trip events (Gate 10E)",
     ["reason_class"],
 )
+KILL_SWITCH_ARMED = Gauge(
+    "kill_switch_armed",
+    "Kill switch armed (runtime overlay, Gate 10I): 1=armed 0=off",
+)
+KILL_SWITCH_TRIPPED = Gauge(
+    "kill_switch_tripped",
+    "Kill switch tripped (Gate 10I): 1=router fallback active 0=clear",
+)
 AUTO_TUNE_ACTIONS = Counter(
     "auto_tune_actions_total",
     "Auto-tune propose/apply events (Gate 10E)",
@@ -206,11 +214,16 @@ def observe_kill_switch_trip(*, reason: str) -> None:
         reason_class = "latency"
     elif lowered.startswith("cost"):
         reason_class = "cost"
-    elif "manual" in lowered:
+    elif any(token in lowered for token in ("manual", "admin", "drill", "kill_switch")):
         reason_class = "manual"
     else:
         reason_class = "other"
     KILL_SWITCH_TRIPS.labels(reason_class=reason_class).inc()
+
+
+def observe_kill_switch_state(*, armed: bool, tripped: bool) -> None:
+    KILL_SWITCH_ARMED.set(1.0 if armed else 0.0)
+    KILL_SWITCH_TRIPPED.set(1.0 if tripped else 0.0)
 
 
 def observe_auto_tune_action(*, result: str) -> None:

@@ -180,6 +180,7 @@ def validate_env(
     allow_neural_bandit: bool = False,
     allow_rlhf_router: bool = False,
     allow_rlhf_after_neural: bool = False,
+    allow_kill_switch: bool = False,
 ) -> None:
     api_name = PROFILES[profile]["api"]
     web_name = PROFILES[profile]["web"]
@@ -234,6 +235,8 @@ def validate_env(
                 continue
             if flag == "FEATURE_RLHF_ROUTER" and allow_rlhf_router:
                 continue
+            if flag == "FEATURE_KILL_SWITCH" and allow_kill_switch:
+                continue
             # Staging may omit FEATURE_AUTO_TUNING; production must keep listed flags false when present.
             if profile == "production" or flag not in {
                 "FEATURE_AUTO_TUNING",
@@ -279,6 +282,11 @@ def validate_env(
                     "FEATURE_NEURAL_BANDIT must stay false while FEATURE_RLHF_ROUTER is allowed",
                     profile=profile,
                 )
+
+    if allow_kill_switch:
+        kill = (api_env.get("FEATURE_KILL_SWITCH") or {}).get("value")
+        if kill not in {None, "false", "true"}:
+            fail("FEATURE_KILL_SWITCH must be false|true", profile=profile)
 
     # Gate 10F/10G: FEATURE_AI_ROUTER=true with mode mock|live.
     # Chinese providers only with live. Staging stays mock unless --allow-live-ai.
@@ -410,6 +418,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Production only: allow both FEATURE_NEURAL_BANDIT and FEATURE_RLHF_ROUTER after n100",
     )
+    parser.add_argument(
+        "--allow-kill-switch",
+        action="store_true",
+        help="Gate 10I: allow FEATURE_KILL_SWITCH=true (FEATURE_AUTO_TUNING stays false)",
+    )
     return parser.parse_args()
 
 
@@ -437,6 +450,7 @@ def main() -> None:
         allow_neural_bandit=args.allow_neural_bandit,
         allow_rlhf_router=args.allow_rlhf_router,
         allow_rlhf_after_neural=args.allow_rlhf_after_neural,
+        allow_kill_switch=args.allow_kill_switch,
     )
     validate_database(data, profile=profile)
 

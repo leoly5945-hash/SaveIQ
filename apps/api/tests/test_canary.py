@@ -19,6 +19,7 @@ from app.services.canary.service import CanaryService, reset_canary_service_for_
 from app.services.rate_limit import reset_rate_limiter_for_tests
 from app.services.router.ai_router import AiRouter
 from app.services.router.contract import RouteRequest
+from app.services.safety.service import reset_safety_service_for_tests
 
 
 def test_canary_settings_default_off() -> None:
@@ -67,6 +68,7 @@ def test_is_feature_active_respects_global_when_canary_off() -> None:
 
 def test_canary_enables_router_for_cohort_without_global_flag() -> None:
     reset_canary_service_for_tests()
+    reset_safety_service_for_tests()
     settings = Settings(
         FEATURE_AI_ROUTER="false",
         AI_ROUTER_MODE="disabled",
@@ -98,6 +100,7 @@ def test_canary_enables_router_for_cohort_without_global_flag() -> None:
 
 def test_control_cohort_keeps_router_off() -> None:
     reset_canary_service_for_tests()
+    reset_safety_service_for_tests()
     settings = Settings(
         FEATURE_AI_ROUTER="false",
         AI_ROUTER_MODE="disabled",

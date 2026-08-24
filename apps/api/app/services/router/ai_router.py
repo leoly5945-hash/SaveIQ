@@ -296,6 +296,8 @@ class AiRouter:
             "bandit": self._bandit.public_status(),
             "request_router_active": self._router_active(),
             "request_chinese_active": self._chinese_active(),
+            "kill_switch_tripped": self._kill_switch_tripped(),
+            "kill_switch_fallback": self._kill_switch_tripped(),
             "abtest": self._ab_group_config(),
         }
 
@@ -436,12 +438,21 @@ class AiRouter:
         provider = self._providers.get(name)
         return provider is not None and provider.is_configured()
 
+    def _kill_switch_tripped(self) -> bool:
+        from app.services.safety.service import kill_switch_forces_router_fallback
+
+        return kill_switch_forces_router_fallback(self._settings)
+
     def _effective_mode(self) -> str:
         from app.services.canary.effective import effective_ai_router_mode
 
         return effective_ai_router_mode(self._settings)
 
     def _router_active(self) -> bool:
+        from app.services.safety.service import kill_switch_forces_router_fallback
+
+        if kill_switch_forces_router_fallback(self._settings):
+            return False
         return self._effective_mode() in {"mock", "live"}
 
     def _chinese_active(self) -> bool:
