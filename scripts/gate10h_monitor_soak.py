@@ -200,6 +200,7 @@ def evaluate_tick(
     require_neural_ready: bool,
     allow_sparse_llm: bool,
     router_metrics: dict[str, Any] | None = None,
+    expect_rlhf: bool = False,
 ) -> tuple[bool, list[dict[str, Any]]]:
     checks: list[dict[str, Any]] = []
     http = snap.get("http") or {}
@@ -314,19 +315,31 @@ def evaluate_tick(
     flags = bandit.get("flags") or {}
     policy = str(bandit.get("policy") or "")
     neural = bandit.get("neural") or {}
-    flag_ok = flags.get("neural") is True and flags.get("rlhf") is not True
-    checks.append(
-        {
-            "name": "bandit_flags",
-            "ok": flag_ok,
-            "detail": (
-                f"policy={policy} flags.neural={flags.get('neural')} "
-                f"flags.rlhf={flags.get('rlhf')} "
-                f"neural.ready={neural.get('ready')} samples={neural.get('sample_count')}"
-            ),
-        }
-    )
-    if require_neural_policy:
+    rlhf = bandit.get("rlhf") or {}
+    if expect_rlhf:
+        flag_ok = flags.get("rlhf") is True
+        flag_detail = (
+            f"policy={policy} flags.rlhf={flags.get('rlhf')} "
+            f"flags.neural={flags.get('neural')} "
+            f"rlhf.ready={rlhf.get('ready')} samples={rlhf.get('sample_count')}"
+        )
+    else:
+        flag_ok = flags.get("neural") is True and flags.get("rlhf") is not True
+        flag_detail = (
+            f"policy={policy} flags.neural={flags.get('neural')} "
+            f"flags.rlhf={flags.get('rlhf')} "
+            f"neural.ready={neural.get('ready')} samples={neural.get('sample_count')}"
+        )
+    checks.append({"name": "bandit_flags", "ok": flag_ok, "detail": flag_detail})
+    if expect_rlhf:
+        checks.append(
+            {
+                "name": "policy_rlhf",
+                "ok": policy.lower() == "rlhf",
+                "detail": f"policy={policy}",
+            }
+        )
+    elif require_neural_policy:
         checks.append(
             {
                 "name": "policy_neural",
@@ -500,6 +513,7 @@ def collect_tick(
         require_neural_ready=args.require_neural_ready,
         allow_sparse_llm=args.allow_sparse_llm,
         router_metrics=router_metrics if "error" not in router_metrics else None,
+        expect_rlhf=args.expect_rlhf,
     )
     return {
         "ts": datetime.now(timezone.utc).isoformat(),
@@ -767,6 +781,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="FAIL unless neural.ready=true (default is WARN; live soak still has 0 samples)",
     )
+    parser.add_argument(
+        "--expect-rlhf",
+        action="store_true",
+        help="RLHF canary soak: require policy=rlhf and flags.rlhf=true (neural may stay on)",
+    )
     return parser.parse_args()
 
 
@@ -776,7 +795,7 @@ def main() -> int:
         args.allow_sparse_cache = False
     if args.strict_llm:
         args.allow_sparse_llm = False
-    if args.allow_any_policy:
+    if args.allow_any_policy or args.expect_rlhf:
         args.require_neural_policy = False
     if not hasattr(args, "require_neural_ready"):
         args.require_neural_ready = False
