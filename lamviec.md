@@ -1,6 +1,6 @@
 # Làm việc — DealHunter / SaveIQ (handover cho Claude + DeepSeek)
 
-Cập nhật: **2026-08-25** (Gate 10I complete; Gate 10J **staging dry-run exercised PASS** qua PR #37/#38, prod autotune vẫn false)  
+Cập nhật: **2026-08-25** (Gate 10I complete + prod-drill PASS; Gate 10J **production enabled, propose-only, verified live** qua PR #37/#38/#40/#41)  
 Repo: `leoly5945-hash/SaveIQ` · Workspace local: `Dealhunter AI plafform` (typo `plafform`, không phải `platform`)  
 Luôn `cd` đúng folder này. Operator hay lỡ chạy script trong `b2b-rubber-automation`.
 
@@ -20,7 +20,7 @@ Luôn `cd` đúng folder này. Operator hay lỡ chạy script trong `b2b-rubber
 | `FEATURE_RLHF_ROUTER` | **true** | false |
 | Runtime bandit `policy` | **rlhf** (Blueprint `BANDIT_POLICY` vẫn `linucb`; runtime `switch_policy`. `rlhf.ready=false` → LinUCB fallback) | — |
 | `FEATURE_KILL_SWITCH` | **true** (armed, **not tripped**) | true in `render.yaml`; staging drill PASS |
-| `FEATURE_AUTO_TUNING` | **false** — **không bật** (Gate 10J) | false |
+| `FEATURE_AUTO_TUNING` | **true** — propose-only (`AUTO_TUNE_DRY_RUN=true`), verified live via `prod-verify` 2026-08-25 (PR #40/#41) | false |
 | Canary | enabled **100%** (prod) | 0 sau drill |
 | Image `/admin/kill-switch/*` | **live** digest `e0ed9382…667a7cd8` (PR #36 pin + Sync). OpenAPI có status/enable/disable | same API digest in `render.yaml` |
 
@@ -29,7 +29,7 @@ PR pin image: **https://github.com/leoly5945-hash/SaveIQ/pull/36** — Merged 20
 `prod-verify` **PASS** 2026-08-24T08:53Z trên image 10I (`env_flag=true`, `armed=true`, `tripped=false`, router live, **không** `pre-10I`). `monitor` PASS trước pin; nên chạy lại sau image mới.
 
 Gate **10H** Neural + RLHF: ENABLEMENT COMPLETE (2026-08-23).  
-Gate **10J** auto-tune: **staging dry-run exercised PASS** 2026-08-25 (PR #37/#38); production **CHƯA LÀM**, vẫn chờ sign-off riêng.
+Gate **10J** auto-tune: **PRODUCTION ENABLED, propose-only, verified live** 2026-08-25 (staging PR #37/#38 → prod-drill → validator PR #40 → fix PR #41). `AUTO_TUNE_DRY_RUN=true` throughout — nothing auto-applies.
 
 ---
 
@@ -54,10 +54,11 @@ Auth: header `X-Admin-Token` = Render env `ADMIN_API_TOKEN` của **đúng** ser
 
 ## Việc tiếp theo (ưu tiên)
 
-1. **Gate 10I prod-drill — ĐÃ XONG, PASS** 2026-08-25: trip → canary 100→0 + router fallback xác nhận → disarm ngay → canary phục hồi 100 → 4 audit events. Kill switch đã được chứng minh hoạt động thật trên production.
-2. **Gate 10J staging exercise — ĐÃ XONG** 2026-08-25 (PR #37 bật thử + PR #38 trả lại `false`): `evaluate` quan sát đúng 1 đề xuất propose-only (`cache_ttl_seconds 300→270`, lý do `latency_headroom`), `applied=false`, 0 audit `hparams_update`.
-3. **Gate 10J production — đang triển khai** (operator đã xác nhận, 2026-08-25): `scripts/validate_render_blueprint.py` trước đây **không có** cờ nào cho phép `FEATURE_AUTO_TUNING=true` trên production (chặn cứng, khác mọi flag khác) — đã thêm `--allow-auto-tuning` (bắt buộc đi kèm `--allow-kill-switch`, và chặn nếu `AUTO_TUNE_DRY_RUN=false`). `render-production.yaml` đã đổi `FEATURE_AUTO_TUNING=true` + `AUTO_TUNE_DRY_RUN=true` (chỉ đề xuất, giống hệt staging). PR đang chờ merge + Render Manual Sync `saveiq-production`. **Không** chuyển `dry_run=false` trừ khi có xác nhận riêng.
-4. Affiliate modules dưới `src/` + Docker context `COPY src` là **uncommitted**, **không** nằm trong PR #35/#36/#37/#38. Đừng trộn.
+1. **Gate 10I prod-drill — ĐÃ XONG, PASS** 2026-08-25: trip → canary 100→0 + router fallback xác nhận → disarm ngay → canary phục hồi 100 → 4 audit events.
+2. **Gate 10J staging exercise — ĐÃ XONG** 2026-08-25 (PR #37/#38): `evaluate` quan sát đúng 1 đề xuất propose-only (`cache_ttl_seconds 300→270`, lý do `latency_headroom`), `applied=false`, 0 audit `hparams_update`.
+3. **Gate 10J production — ĐÃ XONG, VERIFIED LIVE** 2026-08-25: `--allow-auto-tuning` thêm vào `scripts/validate_render_blueprint.py` (PR #40, bắt buộc đi kèm `--allow-kill-switch`, chặn nếu `AUTO_TUNE_DRY_RUN=false`) → `render-production.yaml` `FEATURE_AUTO_TUNING=true` merged + Synced → `gate10i_kill_switch.py --stage prod-verify` xác nhận `env_autotune_safe: PASS` trên production thật (PR #41 sửa checker để hiểu đúng trạng thái mới). **Không** chuyển `dry_run=false` trừ khi có xác nhận riêng — đó là bước khác, cần thêm sign-off và sửa validator riêng.
+4. Việc còn lại: theo dõi `/admin/safety/audit` trên production một thời gian, xác nhận chỉ thấy `autotune_propose`, không có `hparams_update`.
+5. Affiliate modules dưới `src/` + Docker context `COPY src` là **uncommitted**, **không** nằm trong PR #35/#36/#37/#38/#40/#41. Đừng trộn.
 
 ---
 

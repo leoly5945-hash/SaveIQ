@@ -2,7 +2,7 @@
 
 Generated: 2026-08-13  
 Updated: 2026-08-25  
-Status: **PRODUCTION ENABLEMENT IN PROGRESS** — staging dry-run PASS (PR #37/#38), Gate 10I prod-drill PASS, operator sign-off received 2026-08-25. Production `FEATURE_AUTO_TUNING=true` + `AUTO_TUNE_DRY_RUN=true` (propose-only) pending merge + Render Manual Sync.
+Status: **PRODUCTION ENABLED, propose-only — VERIFIED LIVE** 2026-08-25. Staging dry-run PASS (PR #37/#38) → Gate 10I prod-drill PASS → operator sign-off → `--allow-auto-tuning` added to the validator (PR #40) → `render-production.yaml` `FEATURE_AUTO_TUNING=true` merged + Synced → `gate10i_kill_switch.py --stage prod-verify --assume-synced` confirms `env_autotune_safe: PASS` (`autotune=True dry_run=True`), kill switch still armed/not tripped, router live (PR #41 fixed the checker itself to understand this state). `AUTO_TUNE_DRY_RUN=true` throughout — production is propose-only, nothing auto-applies.
 
 ## Scope
 
@@ -59,8 +59,8 @@ make gate10j-auto-tune ARGS='--stage cleanup --confirm-autotune'
 2. Gate 10I prod-drill — **DONE** 2026-08-25 (see `docs/GATE_10I_KILL_SWITCH_CHECKLIST.md`)
 3. Operator sign-off to proceed — **received** 2026-08-25
 4. `scripts/validate_render_blueprint.py`: added `--allow-auto-tuning` (requires `--allow-kill-switch` + `AUTO_TUNE_DRY_RUN=true`; rejects `dry_run=false` even with the flag) — the validator previously had **no** escape hatch for `FEATURE_AUTO_TUNING` at all, unlike every other gated flag. This was a deliberate hard stop, not an oversight, so it's called out here explicitly rather than silently patched.
-5. Production Blueprint: `FEATURE_AUTO_TUNING=true` + `AUTO_TUNE_DRY_RUN=true` (propose-only) — **PR opened**, pending merge + Render Manual Sync on `saveiq-production`
-6. Monitor after Sync: `/admin/safety/status`, `/admin/safety/audit` — confirm `autotune_propose` events only, no `hparams_update`
+5. Production Blueprint: `FEATURE_AUTO_TUNING=true` + `AUTO_TUNE_DRY_RUN=true` (propose-only) — **DONE**, PR #40 merged + Render Manual Sync on `saveiq-production` confirmed by operator
+6. Monitor after Sync — **DONE**: `prod-verify --assume-synced` → `env_autotune_safe: PASS` (`autotune=True dry_run=True`), `armed=True`, `tripped=False`, `router_live=True`. Ongoing: keep an eye on `/admin/safety/audit` for `autotune_propose` events only, no `hparams_update`, as real production traffic exercises it.
 7. Only after a sustained propose-only window would `AUTO_TUNE_DRY_RUN=false` even be discussed — **not part of this pass**, requires its own separate, explicit sign-off and its own validator change
 8. Human-only flags (`FEATURE_NEURAL_BANDIT`, `FEATURE_RLHF_ROUTER`, `BANDIT_POLICY`) — untouched throughout; validator continues to enforce this regardless of `--allow-auto-tuning`
 
