@@ -63,7 +63,7 @@ Flag PR: https://github.com/leoly5945-hash/SaveIQ/pull/35 (merged 2026-08-24)
 - [x] `monitor --target prod` PASS (`http_5xx=0`) — re-run after image pin if desired
 - [x] Pin 10I API digest (PR #36) + Render Manual Sync staging (`saveiq`) **and** production (`saveiq-production`)
 - [x] OpenAPI includes `/admin/kill-switch/status`
-- [ ] Optional prod-drill **deferred** (zeros canary + parser fallback on live traffic)
+- [x] Prod-drill **PASS** 2026-08-25 (`--stage prod-drill --confirm-trip`): trip → canary 100→0 + router fallback confirmed → immediate disarm → canary restored to 100; 4 audit events
 
 ```bash
 export STAGING_ADMIN_TOKEN=...
@@ -125,7 +125,7 @@ Or 10E equivalent: `POST /admin/safety/kill/disarm`.
 - [x] Production env `FEATURE_KILL_SWITCH=true`, autotune false, not tripped
 - [x] Monitor PASS (`/metrics` HTTP 5xx)
 - [x] 10I API image live (OpenAPI `/admin/kill-switch/*`) after PR #36 Sync; `prod-verify` 2026-08-24T08:53Z PASS, no `pre-10I` WARN
-- [x] Optional prod drill **deferred**
+- [x] Prod drill **PASS** 2026-08-25 (canary 100→0→100, router fallback confirmed, trip cleared, 4 audit events)
 
 ## References
 

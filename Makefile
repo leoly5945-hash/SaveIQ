@@ -9,7 +9,7 @@ staging-provision-validate-template:
 	$(PYTHON) scripts/validate_render_blueprint.py render.yaml --allow-placeholders
 
 production-provision-validate:
-	$(PYTHON) scripts/validate_render_blueprint.py render-production.yaml --profile production --allow-neural-bandit --allow-rlhf-router --allow-rlhf-after-neural --allow-kill-switch
+	$(PYTHON) scripts/validate_render_blueprint.py render-production.yaml --profile production --allow-neural-bandit --allow-rlhf-router --allow-rlhf-after-neural --allow-kill-switch --allow-auto-tuning
 
 staging-seed-mock:
 	$(PYTHON) scripts/staging_seed_mock.py

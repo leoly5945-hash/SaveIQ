@@ -2,7 +2,7 @@
 
 Generated: 2026-08-13  
 Updated: 2026-08-25  
-Status: **STAGING DRY-RUN EXERCISED, PASS** (PR #37/#38) — production `FEATURE_AUTO_TUNING` stays **false** until a separate, explicit sign-off.
+Status: **PRODUCTION ENABLEMENT IN PROGRESS** — staging dry-run PASS (PR #37/#38), Gate 10I prod-drill PASS, operator sign-off received 2026-08-25. Production `FEATURE_AUTO_TUNING=true` + `AUTO_TUNE_DRY_RUN=true` (propose-only) pending merge + Render Manual Sync.
 
 ## Scope
 
@@ -17,8 +17,8 @@ These remain human-only forever (`HUMAN_ONLY_FLAGS` in `apps/api/app/services/sa
 ## Preconditions
 
 - [x] Gate 10I **code complete** and **armed in production** (PR #35 + pin PR #36; `/admin/kill-switch/*` live; `armed=true`, `tripped=false`)
-- [ ] Gate 10I **prod-drill** (still deferred — zeros canary + parser fallback on live traffic)
-- [x] Auto-tune still **OFF** in production Blueprint (`FEATURE_AUTO_TUNING=false`)
+- [x] Gate 10I **prod-drill PASS** 2026-08-25 (`--stage prod-drill --confirm-trip`: canary 100→0→100, router fallback confirmed, trip cleared, 4 audit events)
+- [x] Auto-tune still **OFF** in production Blueprint as of this precondition check (`FEATURE_AUTO_TUNING=false`) — see "Enablement" below for the production flip now in progress
 - [x] Cap bounds recorded from `apps/api/app/core/settings.py` defaults (operator should re-read before any prod window):
   - `AUTO_TUNE_DRY_RUN=true`
   - `AUTO_TUNE_CANARY_ENABLED=false` (do not enable canary ramp in this gate)
@@ -53,14 +53,16 @@ make gate10j-auto-tune ARGS='--stage cleanup --confirm-autotune'
 
 `evaluate` without Sync can arm a **runtime overlay** (`POST /admin/safety/config` with `dry_run=true`) only when `--confirm-autotune` is passed. Env flag still needs Blueprint Sync to be durable. Overlay is not production. This is exactly the path used above — the first `evaluate` (no `--confirm-autotune`) correctly reported `auto_tune_disabled` / `skipped=true` because the PR #37 Sync had not landed yet; the second `evaluate --confirm-autotune` armed the overlay directly and produced the propose-only result above.
 
-## Enablement (production — all unchecked)
+## Enablement (production)
 
 1. Staging: auto-tune dry-run → observe propose events — **DONE** 2026-08-25 (PR #37/#38, propose-only PASS; final Manual Sync of the `false` revert still pending)
-2. Production Blueprint: enable with dry-run → Sync → monitor
-3. Only then consider `AUTO_TUNE_DRY_RUN=false` with **explicit** sign-off
-4. Confirm human-only flags remain untouched after soak
-
-Do **not** add `--allow-auto-tuning` to production Blueprint validation until that sign-off. `render-production.yaml` must keep `FEATURE_AUTO_TUNING=false`.
+2. Gate 10I prod-drill — **DONE** 2026-08-25 (see `docs/GATE_10I_KILL_SWITCH_CHECKLIST.md`)
+3. Operator sign-off to proceed — **received** 2026-08-25
+4. `scripts/validate_render_blueprint.py`: added `--allow-auto-tuning` (requires `--allow-kill-switch` + `AUTO_TUNE_DRY_RUN=true`; rejects `dry_run=false` even with the flag) — the validator previously had **no** escape hatch for `FEATURE_AUTO_TUNING` at all, unlike every other gated flag. This was a deliberate hard stop, not an oversight, so it's called out here explicitly rather than silently patched.
+5. Production Blueprint: `FEATURE_AUTO_TUNING=true` + `AUTO_TUNE_DRY_RUN=true` (propose-only) — **PR opened**, pending merge + Render Manual Sync on `saveiq-production`
+6. Monitor after Sync: `/admin/safety/status`, `/admin/safety/audit` — confirm `autotune_propose` events only, no `hparams_update`
+7. Only after a sustained propose-only window would `AUTO_TUNE_DRY_RUN=false` even be discussed — **not part of this pass**, requires its own separate, explicit sign-off and its own validator change
+8. Human-only flags (`FEATURE_NEURAL_BANDIT`, `FEATURE_RLHF_ROUTER`, `BANDIT_POLICY`) — untouched throughout; validator continues to enforce this regardless of `--allow-auto-tuning`
 
 ## Out of scope
 

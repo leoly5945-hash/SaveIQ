@@ -181,6 +181,7 @@ def validate_env(
     allow_rlhf_router: bool = False,
     allow_rlhf_after_neural: bool = False,
     allow_kill_switch: bool = False,
+    allow_auto_tuning: bool = False,
 ) -> None:
     api_name = PROFILES[profile]["api"]
     web_name = PROFILES[profile]["web"]
@@ -237,6 +238,8 @@ def validate_env(
                 continue
             if flag == "FEATURE_KILL_SWITCH" and allow_kill_switch:
                 continue
+            if flag == "FEATURE_AUTO_TUNING" and allow_auto_tuning:
+                continue
             # Staging may omit FEATURE_AUTO_TUNING; production must keep listed flags false when present.
             if profile == "production" or flag not in {
                 "FEATURE_AUTO_TUNING",
@@ -287,6 +290,24 @@ def validate_env(
         kill = (api_env.get("FEATURE_KILL_SWITCH") or {}).get("value")
         if kill not in {None, "false", "true"}:
             fail("FEATURE_KILL_SWITCH must be false|true", profile=profile)
+
+    if allow_auto_tuning:
+        if not allow_kill_switch:
+            fail(
+                "--allow-auto-tuning requires --allow-kill-switch "
+                "(Gate 10J depends on Gate 10I)",
+                profile=profile,
+            )
+        tune = (api_env.get("FEATURE_AUTO_TUNING") or {}).get("value")
+        if tune not in {None, "false", "true"}:
+            fail("FEATURE_AUTO_TUNING must be false|true", profile=profile)
+        dry_run = (api_env.get("AUTO_TUNE_DRY_RUN") or {}).get("value")
+        if tune == "true" and dry_run != "true":
+            fail(
+                "FEATURE_AUTO_TUNING=true requires AUTO_TUNE_DRY_RUN=true "
+                "(propose-only; dry_run=false needs a separate, explicit validator change)",
+                profile=profile,
+            )
 
     # Gate 10F/10G: FEATURE_AI_ROUTER=true with mode mock|live.
     # Chinese providers only with live. Staging stays mock unless --allow-live-ai.
@@ -423,6 +444,14 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Gate 10I: allow FEATURE_KILL_SWITCH=true (FEATURE_AUTO_TUNING stays false)",
     )
+    parser.add_argument(
+        "--allow-auto-tuning",
+        action="store_true",
+        help=(
+            "Gate 10J: allow FEATURE_AUTO_TUNING=true (requires --allow-kill-switch "
+            "and AUTO_TUNE_DRY_RUN=true; propose-only)"
+        ),
+    )
     return parser.parse_args()
 
 
@@ -451,6 +480,7 @@ def main() -> None:
         allow_rlhf_router=args.allow_rlhf_router,
         allow_rlhf_after_neural=args.allow_rlhf_after_neural,
         allow_kill_switch=args.allow_kill_switch,
+        allow_auto_tuning=args.allow_auto_tuning,
     )
     validate_database(data, profile=profile)
 
