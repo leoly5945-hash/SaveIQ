@@ -63,6 +63,21 @@ STAGES = (
 )
 
 
+def autotune_is_safe(env: dict[str, Any]) -> tuple[bool, str]:
+    """Gate 10J may be on, but only in propose-only mode.
+
+    FEATURE_AUTO_TUNING=false is always fine (pre-Gate-10J state). If it's
+    true, AUTO_TUNE_DRY_RUN must also be true - mirrors the same rule
+    scripts/validate_render_blueprint.py enforces on the Blueprint itself.
+    """
+    tune = env.get("feature_auto_tuning")
+    if tune is not True:
+        return True, f"autotune={tune}"
+    dry_run = env.get("auto_tune_dry_run")
+    ok = dry_run is True
+    return ok, f"autotune={tune} dry_run={dry_run}"
+
+
 def canary_percentage(payload: dict[str, Any]) -> int:
     """0 is a valid canary value — never use `percentage or -1`."""
     raw = payload.get("percentage")
@@ -394,11 +409,8 @@ class Gate10I:
             safety = http_json(f"{self.prod_api}/admin/safety/status", token=token)
             env = safety.get("env") or {}
             runtime = safety.get("runtime") or {}
-            ok &= self._note(
-                "prod_autotune_off",
-                env.get("feature_auto_tuning") is not True,
-                f"autotune={env.get('feature_auto_tuning')}",
-            )
+            autotune_ok, autotune_detail = autotune_is_safe(env)
+            ok &= self._note("prod_autotune_safe", autotune_ok, autotune_detail)
             ok &= self._note(
                 "prod_not_tripped",
                 runtime.get("tripped") is not True,
@@ -674,11 +686,8 @@ class Gate10I:
         )
         safety = ks.get("safety") or {}
         env = safety.get("env") or {}
-        ok &= self._note(
-            "env_autotune",
-            env.get("feature_auto_tuning") is not True,
-            f"env_autotune={env.get('feature_auto_tuning')}",
-        )
+        autotune_ok, autotune_detail = autotune_is_safe(env)
+        ok &= self._note("env_autotune_safe", autotune_ok, f"env_{autotune_detail}")
         state = self.load_state()
         state["prod_verified_at"] = datetime.now(timezone.utc).isoformat()
         state["prod_kill_status"] = {
