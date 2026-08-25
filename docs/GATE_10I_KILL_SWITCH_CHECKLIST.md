@@ -2,7 +2,7 @@
 
 Generated: 2026-08-13  
 Updated: 2026-08-24  
-Status: **ENABLEMENT COMPLETE** — Blueprint `FEATURE_KILL_SWITCH=true` (staging + production). Runtime armed, **not tripped**. Auto-tune stays **OFF** (Gate 10J).
+Status: **ENABLEMENT COMPLETE** — Blueprint `FEATURE_KILL_SWITCH=true` (staging + production). 10I image live. Runtime armed, **not tripped**. Auto-tune stays **OFF** (Gate 10J).
 
 API image pin (PR #35 code, Publish Containers run `32706540315`):
 
@@ -37,7 +37,7 @@ Gate 10I aliases (same service, router-fallback fields) — **on the pinned 10I 
 | `POST /admin/kill-switch/enable` | Arm runtime overlay; default `trip=true` (emergency stop) |
 | `POST /admin/kill-switch/disable` | Disarm trip; `unarm=true` also clears runtime arm |
 
-Until Render Syncs the digest above, live OpenAPI may still lack `/admin/kill-switch/*` (pre-10I image). Then use `/admin/safety/kill/*`. After Sync, `prod-verify` must **not** print `pre-10I image`.
+Live OpenAPI includes `/admin/kill-switch/*` after PR #36 pin + Manual Sync (2026-08-24). `/admin/safety/kill/*` remains valid.
 
 `FEATURE_KILL_SWITCH` itself is a Render Blueprint env flag. The admin API
 cannot mutate process env; durable enablement is Sync. Runtime overlay
@@ -59,10 +59,10 @@ Flag PR: https://github.com/leoly5945-hash/SaveIQ/pull/35 (merged 2026-08-24)
 - [x] Staging Blueprint `FEATURE_KILL_SWITCH=true` (autotune false)
 - [x] Staging drill PASS 2026-08-24 (`legacy=True` on pre-10I image; canary seeded 5% → 0; restore; audit)
 - [x] Production Blueprint `FEATURE_KILL_SWITCH=true` (autotune false)
-- [x] `prod-verify --assume-synced` PASS (`env_flag=true`, `armed=true`, `tripped=false`, router live)
-- [x] `monitor --target prod` PASS (`http_5xx=0`)
-- [ ] Pin 10I API digest (this PR) + Render **Manual Sync** staging (`saveiq` / `render.yaml`) **and** production (`saveiq-production`)
-- [ ] After Sync: OpenAPI includes `/admin/kill-switch/status`; `prod-verify` has **no** `pre-10I` WARN
+- [x] `prod-verify --assume-synced` PASS on **10I image** 2026-08-24 (`env_flag=true`, `armed=true`, `tripped=false`, router live; **no** `pre-10I` WARN)
+- [x] `monitor --target prod` PASS (`http_5xx=0`) — re-run after image pin if desired
+- [x] Pin 10I API digest (PR #36) + Render Manual Sync staging (`saveiq`) **and** production (`saveiq-production`)
+- [x] OpenAPI includes `/admin/kill-switch/status`
 - [ ] Optional prod-drill **deferred** (zeros canary + parser fallback on live traffic)
 
 ```bash
@@ -89,7 +89,7 @@ curl -sS -X POST "$API_URL/admin/kill-switch/enable" \
 3. **AI router fallback** (`fallback_router`) — searches use the old parser
 4. Gauges: `kill_switch_armed`, `kill_switch_tripped`
 
-On the **pre-10I** image, trip still zeros canary / stops A/B; global `FEATURE_AI_ROUTER=true` can keep the router on until this digest is live.
+Trip on this image zeros canary / stops A/B **and** falls the AI router back to the parser (`request_router_active=false`).
 
 `manual_override=true` blocks automatic trip until cleared. `force=true` still trips.
 
@@ -124,7 +124,7 @@ Or 10E equivalent: `POST /admin/safety/kill/disarm`.
 - [x] Staging drill PASS (trip → canary 0 → disarm → restore; image was pre-10I)
 - [x] Production env `FEATURE_KILL_SWITCH=true`, autotune false, not tripped
 - [x] Monitor PASS (`/metrics` HTTP 5xx)
-- [ ] 10I API image live (OpenAPI `/admin/kill-switch/*`) after digest Sync
+- [x] 10I API image live (OpenAPI `/admin/kill-switch/*`) after PR #36 Sync; `prod-verify` 2026-08-24T08:53Z PASS, no `pre-10I` WARN
 - [x] Optional prod drill **deferred**
 
 ## References

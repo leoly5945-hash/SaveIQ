@@ -45,7 +45,7 @@ Xây dựng và triển khai **AI Router** cho nền tảng tiếp thị liên k
 | **10G** | Live providers + Chinese / DeepSeek | ✅ COMPLETE | `AI_ROUTER_MODE=live`, `chinese=True` |
 | **10H Neural** | Neural bandit prod | ✅ n10→n100 PASS | PR **#33** `FEATURE_NEURAL_BANDIT=true` |
 | **10H RLHF** | RLHF prod | ✅ COMPLETE (2026-08-24 cập nhật) | PR **#34**; promoted 2026-08-23T12:44:27Z — xem `lamviec.md` |
-| **10I** | Kill switch | ✅ COMPLETE (2026-08-24 cập nhật) | Merged PR **#35**; `FEATURE_KILL_SWITCH=true` armed, chưa trip; alias `/admin/kill-switch/*` chưa deploy image mới — xem `lamviec.md` |
+| **10I** | Kill switch | ✅ COMPLETE (2026-08-24) | PR **#35** flag + PR **#36** image pin (merged); `/admin/kill-switch/*` **live**; `prod-verify` PASS, chưa trip — xem `lamviec.md` |
 | **10J** | Auto-tune | ⏸ PENDING | Stub: `docs/GATE_10J_AUTO_TUNE_CHECKLIST.md` |
 
 Checklist chi tiết: `docs/GATE_10H_NEURAL_RLHF_CHECKLIST.md`. Runbook: `docs/RUNBOOK.md` §3h.
