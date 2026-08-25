@@ -17,8 +17,8 @@ These remain human-only forever (`HUMAN_ONLY_FLAGS` in `apps/api/app/services/sa
 ## Preconditions
 
 - [x] Gate 10I **code complete** and **armed in production** (PR #35 + pin PR #36; `/admin/kill-switch/*` live; `armed=true`, `tripped=false`)
-- [ ] Gate 10I **prod-drill** (still deferred — zeros canary + parser fallback on live traffic)
-- [x] Auto-tune still **OFF** in production Blueprint (`FEATURE_AUTO_TUNING=false`)
+- [x] Gate 10I **prod-drill PASS** 2026-08-25 (`--stage prod-drill --confirm-trip`: canary 100→0→100, router fallback confirmed, trip cleared, 4 audit events)
+- [x] Auto-tune still **OFF** in production Blueprint as of this precondition check (`FEATURE_AUTO_TUNING=false`) — see "Enablement" below for the production flip now in progress
 - [x] Cap bounds recorded from `apps/api/app/core/settings.py` defaults (operator should re-read before any prod window):
   - `AUTO_TUNE_DRY_RUN=true`
   - `AUTO_TUNE_CANARY_ENABLED=false` (do not enable canary ramp in this gate)

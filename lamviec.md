@@ -54,9 +54,9 @@ Auth: header `X-Admin-Token` = Render env `ADMIN_API_TOKEN` của **đúng** ser
 
 ## Việc tiếp theo (ưu tiên)
 
-1. **Không** chạy Gate 10I `--stage prod-drill` (zero canary + fallback parser trên live traffic).
-2. **Gate 10J staging exercise — ĐÃ XONG** 2026-08-25 (PR #37 bật thử + PR #38 trả lại `false`): `evaluate` quan sát đúng 1 đề xuất propose-only (`cache_ttl_seconds 300→270`, lý do `latency_headroom`), `applied=false`, 0 audit `hparams_update`. **Việc còn lại:** operator bấm **Render Manual Sync** trên staging (`saveiq`) một lần nữa cho PR #38 để `FEATURE_AUTO_TUNING=false` có hiệu lực thật trên service (script/PR chỉ đổi file, Sync là bước tay).
-3. **Trước khi bật production 10J:** staging đã chứng minh propose-only hoạt động đúng, nhưng vẫn cần sign-off riêng + Gate 10I prod-drill (mục 1) trước khi đổi `render-production.yaml`. Production `FEATURE_AUTO_TUNING` **vẫn false**.
+1. **Gate 10I prod-drill — ĐÃ XONG, PASS** 2026-08-25: trip → canary 100→0 + router fallback xác nhận → disarm ngay → canary phục hồi 100 → 4 audit events. Kill switch đã được chứng minh hoạt động thật trên production.
+2. **Gate 10J staging exercise — ĐÃ XONG** 2026-08-25 (PR #37 bật thử + PR #38 trả lại `false`): `evaluate` quan sát đúng 1 đề xuất propose-only (`cache_ttl_seconds 300→270`, lý do `latency_headroom`), `applied=false`, 0 audit `hparams_update`.
+3. **Gate 10J production — đang triển khai** (operator đã xác nhận, 2026-08-25): bật `FEATURE_AUTO_TUNING=true` trên `render-production.yaml` với `AUTO_TUNE_DRY_RUN=true` (chỉ đề xuất, giống hệt staging) — **không** chuyển `dry_run=false` trừ khi có xác nhận riêng.
 4. Affiliate modules dưới `src/` + Docker context `COPY src` là **uncommitted**, **không** nằm trong PR #35/#36/#37/#38. Đừng trộn.
 
 ---
