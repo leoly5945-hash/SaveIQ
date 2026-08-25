@@ -1,6 +1,6 @@
 # Làm việc — DealHunter / SaveIQ (handover cho Claude + DeepSeek)
 
-Cập nhật: **2026-08-25** (Gate 10I complete; Gate 10J **staging dry-run scaffold only**, prod autotune vẫn false)  
+Cập nhật: **2026-08-25** (Gate 10I complete; Gate 10J **staging dry-run exercised PASS** qua PR #37/#38, prod autotune vẫn false)  
 Repo: `leoly5945-hash/SaveIQ` · Workspace local: `Dealhunter AI plafform` (typo `plafform`, không phải `platform`)  
 Luôn `cd` đúng folder này. Operator hay lỡ chạy script trong `b2b-rubber-automation`.
 
@@ -29,7 +29,7 @@ PR pin image: **https://github.com/leoly5945-hash/SaveIQ/pull/36** — Merged 20
 `prod-verify` **PASS** 2026-08-24T08:53Z trên image 10I (`env_flag=true`, `armed=true`, `tripped=false`, router live, **không** `pre-10I`). `monitor` PASS trước pin; nên chạy lại sau image mới.
 
 Gate **10H** Neural + RLHF: ENABLEMENT COMPLETE (2026-08-23).  
-Gate **10J** auto-tune: **CHƯA LÀM**.
+Gate **10J** auto-tune: **staging dry-run exercised PASS** 2026-08-25 (PR #37/#38); production **CHƯA LÀM**, vẫn chờ sign-off riêng.
 
 ---
 
@@ -55,9 +55,9 @@ Auth: header `X-Admin-Token` = Render env `ADMIN_API_TOKEN` của **đúng** ser
 ## Việc tiếp theo (ưu tiên)
 
 1. **Không** chạy Gate 10I `--stage prod-drill` (zero canary + fallback parser trên live traffic).
-2. **Gate 10J scaffold (staging-only, dry-run):** `scripts/gate10j_auto_tune.py` + `make gate10j-auto-tune`. Stages: `check` → `staging-dry-run` → `evaluate` → `cleanup`. Mặc định **không ghi file**. `--confirm-autotune` mới sửa `render.yaml` (`FEATURE_AUTO_TUNING=true` + `AUTO_TUNE_DRY_RUN=true`) hoặc arm runtime overlay staging. **Không** đụng `render-production.yaml`. **Không** flip `FEATURE_NEURAL_BANDIT` / `FEATURE_RLHF_ROUTER` / `BANDIT_POLICY`.
-3. **Trước khi bật production 10J** còn thiếu: operator chạy staging-dry-run + Manual Sync **saveiq** (không phải saveiq-production) → `evaluate` thấy `applied=false` / audit `autotune_propose` → `cleanup` về `false` + Sync → sign-off riêng mới được đổi prod Blueprint. Production `FEATURE_AUTO_TUNING` **vẫn false**.
-4. Affiliate modules dưới `src/` + Docker context `COPY src` là **uncommitted**, **không** nằm trong PR #35/#36 / 10J. Đừng trộn.
+2. **Gate 10J staging exercise — ĐÃ XONG** 2026-08-25 (PR #37 bật thử + PR #38 trả lại `false`): `evaluate` quan sát đúng 1 đề xuất propose-only (`cache_ttl_seconds 300→270`, lý do `latency_headroom`), `applied=false`, 0 audit `hparams_update`. **Việc còn lại:** operator bấm **Render Manual Sync** trên staging (`saveiq`) một lần nữa cho PR #38 để `FEATURE_AUTO_TUNING=false` có hiệu lực thật trên service (script/PR chỉ đổi file, Sync là bước tay).
+3. **Trước khi bật production 10J:** staging đã chứng minh propose-only hoạt động đúng, nhưng vẫn cần sign-off riêng + Gate 10I prod-drill (mục 1) trước khi đổi `render-production.yaml`. Production `FEATURE_AUTO_TUNING` **vẫn false**.
+4. Affiliate modules dưới `src/` + Docker context `COPY src` là **uncommitted**, **không** nằm trong PR #35/#36/#37/#38. Đừng trộn.
 
 ---
 

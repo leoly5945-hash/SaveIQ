@@ -2,7 +2,7 @@
 
 Generated: 2026-08-13  
 Updated: 2026-08-25  
-Status: **STAGING DRY-RUN SCAFFOLD ONLY** — production `FEATURE_AUTO_TUNING` stays **false** until a separate, explicit sign-off.
+Status: **STAGING DRY-RUN EXERCISED, PASS** (PR #37/#38) — production `FEATURE_AUTO_TUNING` stays **false** until a separate, explicit sign-off.
 
 ## Scope
 
@@ -45,15 +45,17 @@ make gate10j-auto-tune ARGS='--stage cleanup --confirm-autotune'
 ```
 
 - [x] Staging dry-run scaffolding exists (`check` / `staging-dry-run` / `evaluate` / `cleanup`)
-- [ ] Operator has run `staging-dry-run --confirm-autotune` + staging Manual Sync
-- [ ] Staging `evaluate` observed **propose-only** (`applied=false`, `dry_run=true`; audit `autotune_propose`, no `hparams_update`)
-- [ ] Staging cleanup: `FEATURE_AUTO_TUNING` back to `false` + Sync
+- [x] Operator ran `staging-dry-run --confirm-autotune` (`render.yaml` `FEATURE_AUTO_TUNING=true`, merged **PR #37**)
+- [x] Staging `evaluate` observed **propose-only**, 2026-08-25 — armed via runtime overlay (`--confirm-autotune`) since Blueprint Sync had not yet propagated:
+  `applied=false`, `dry_run=true`, proposal `cache_ttl_seconds 300->270` (`reason=latency_headroom`), hparams unchanged before/after, `audit_proposed=1`, `audit_applied=0`
+- [x] Staging cleanup: runtime overlay disarmed + `render.yaml` `FEATURE_AUTO_TUNING` reverted to `false` (merged **PR #38**)
+- [ ] Operator has clicked **Render Manual Sync** on staging (`saveiq`) after PR #38, so `false` is durable on the live service (script writes/overlay only — Sync is a manual dashboard step)
 
-`evaluate` without Sync can arm a **runtime overlay** (`POST /admin/safety/config` with `dry_run=true`) only when `--confirm-autotune` is passed. Env flag still needs Blueprint Sync to be durable. Overlay is not production.
+`evaluate` without Sync can arm a **runtime overlay** (`POST /admin/safety/config` with `dry_run=true`) only when `--confirm-autotune` is passed. Env flag still needs Blueprint Sync to be durable. Overlay is not production. This is exactly the path used above — the first `evaluate` (no `--confirm-autotune`) correctly reported `auto_tune_disabled` / `skipped=true` because the PR #37 Sync had not landed yet; the second `evaluate --confirm-autotune` armed the overlay directly and produced the propose-only result above.
 
 ## Enablement (production — all unchecked)
 
-1. Staging: auto-tune dry-run → observe propose events (scaffold ready; not yet operator-complete)
+1. Staging: auto-tune dry-run → observe propose events — **DONE** 2026-08-25 (PR #37/#38, propose-only PASS; final Manual Sync of the `false` revert still pending)
 2. Production Blueprint: enable with dry-run → Sync → monitor
 3. Only then consider `AUTO_TUNE_DRY_RUN=false` with **explicit** sign-off
 4. Confirm human-only flags remain untouched after soak
