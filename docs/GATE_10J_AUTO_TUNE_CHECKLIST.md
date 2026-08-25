@@ -1,7 +1,8 @@
 # Gate 10J: Auto-Tune Enablement Checklist
 
 Generated: 2026-08-13  
-Status: **NOT STARTED** — only after Gate 10I kill switch is proven.
+Updated: 2026-08-25  
+Status: **STAGING DRY-RUN SCAFFOLD ONLY** — production `FEATURE_AUTO_TUNING` stays **false** until a separate, explicit sign-off.
 
 ## Scope
 
@@ -11,22 +12,66 @@ Enable `FEATURE_AUTO_TUNING` (prefer dry-run first) for capped hparam adjustment
 - `FEATURE_RLHF_ROUTER`
 - `BANDIT_POLICY`
 
+These remain human-only forever (`HUMAN_ONLY_FLAGS` in `apps/api/app/services/safety/service.py`). Auto-tune may only propose/apply epsilon, α/β/γ, and cache TTL within `AUTO_TUNE_*` caps.
+
 ## Preconditions
 
-- [ ] Gate 10I kill switch armed and exercised (staging + prod drill)
-- [ ] Auto-tune still OFF in Blueprint
-- [ ] Cap bounds reviewed (`AUTO_TUNE_*` settings)
-- [ ] Prefer `AUTO_TUNE_DRY_RUN=true` for first production window
+- [x] Gate 10I **code complete** and **armed in production** (PR #35 + pin PR #36; `/admin/kill-switch/*` live; `armed=true`, `tripped=false`)
+- [ ] Gate 10I **prod-drill** (still deferred — zeros canary + parser fallback on live traffic)
+- [x] Auto-tune still **OFF** in production Blueprint (`FEATURE_AUTO_TUNING=false`)
+- [x] Cap bounds recorded from `apps/api/app/core/settings.py` defaults (operator should re-read before any prod window):
+  - `AUTO_TUNE_DRY_RUN=true`
+  - `AUTO_TUNE_CANARY_ENABLED=false` (do not enable canary ramp in this gate)
+  - `AUTO_TUNE_INTERVAL_SECONDS=300`, `AUTO_TUNE_MIN_SAMPLES=100`
+  - epsilon `[0.01, 0.4]`, cache TTL `[60, 900]`
+  - canary step caps exist in code (`max 25%`, `step 5%`) but stay unused while canary auto-ramp is off
+- [ ] Prefer `AUTO_TUNE_DRY_RUN=true` for first **production** window (not started)
 
-## Enablement (sketch)
+## Staging scaffold (this pass)
 
-1. Staging: auto-tune dry-run → observe propose events
+Script: `scripts/gate10j_auto_tune.py` · Make: `make gate10j-auto-tune ARGS='…'`  
+Writes **only** `render.yaml`. Refuses any `*production*` Blueprint path. urllib + `X-Admin-Token`. Dry-run / no write unless `--confirm-autotune`.
+
+```bash
+export STAGING_ADMIN_TOKEN=...
+export PROD_ADMIN_TOKEN=...
+
+make gate10j-auto-tune ARGS='--stage check'
+make gate10j-auto-tune ARGS='--stage staging-dry-run'   # prints diff; does not write
+make gate10j-auto-tune ARGS='--stage staging-dry-run --confirm-autotune'
+# → Render Manual Sync Blueprint saveiq (staging) — NOT saveiq-production
+make gate10j-auto-tune ARGS='--stage evaluate'
+make gate10j-auto-tune ARGS='--stage cleanup --confirm-autotune'
+```
+
+- [x] Staging dry-run scaffolding exists (`check` / `staging-dry-run` / `evaluate` / `cleanup`)
+- [ ] Operator has run `staging-dry-run --confirm-autotune` + staging Manual Sync
+- [ ] Staging `evaluate` observed **propose-only** (`applied=false`, `dry_run=true`; audit `autotune_propose`, no `hparams_update`)
+- [ ] Staging cleanup: `FEATURE_AUTO_TUNING` back to `false` + Sync
+
+`evaluate` without Sync can arm a **runtime overlay** (`POST /admin/safety/config` with `dry_run=true`) only when `--confirm-autotune` is passed. Env flag still needs Blueprint Sync to be durable. Overlay is not production.
+
+## Enablement (production — all unchecked)
+
+1. Staging: auto-tune dry-run → observe propose events (scaffold ready; not yet operator-complete)
 2. Production Blueprint: enable with dry-run → Sync → monitor
-3. Only then consider dry-run=false with explicit sign-off
+3. Only then consider `AUTO_TUNE_DRY_RUN=false` with **explicit** sign-off
 4. Confirm human-only flags remain untouched after soak
+
+Do **not** add `--allow-auto-tuning` to production Blueprint validation until that sign-off. `render-production.yaml` must keep `FEATURE_AUTO_TUNING=false`.
+
+## Out of scope
+
+- Production `FEATURE_AUTO_TUNING=true`
+- `AUTO_TUNE_DRY_RUN=false` on any environment in this pass
+- Flipping neural / RLHF / `BANDIT_POLICY` / Chinese LLM
+- Affiliate modules (`src/affiliate`, `src/router`, `apps/api/app/integrations/`)
 
 ## References
 
+- `lamviec.md` — operator handover
 - `docs/GATE_10I_KILL_SWITCH_CHECKLIST.md`
 - `docs/GATE_10E_CLOSEOUT.md`
-- `apps/api/app/services/safety/service.py` (`HUMAN_ONLY_FLAGS`)
+- `docs/RUNBOOK.md` §3d
+- `apps/api/app/services/safety/service.py` (`HUMAN_ONLY_FLAGS`, `_auto_tune`)
+- Admin: `POST /admin/safety/evaluate`, `GET /admin/safety/audit`, `POST /admin/safety/config`

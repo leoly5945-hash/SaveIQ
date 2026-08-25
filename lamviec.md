@@ -1,6 +1,6 @@
 # Làm việc — DealHunter / SaveIQ (handover cho Claude + DeepSeek)
 
-Cập nhật: **2026-08-24 08:35 UTC** (sau Gate 10I prod-verify + monitor PASS)  
+Cập nhật: **2026-08-25** (Gate 10I complete; Gate 10J **staging dry-run scaffold only**, prod autotune vẫn false)  
 Repo: `leoly5945-hash/SaveIQ` · Workspace local: `Dealhunter AI plafform` (typo `plafform`, không phải `platform`)  
 Luôn `cd` đúng folder này. Operator hay lỡ chạy script trong `b2b-rubber-automation`.
 
@@ -22,10 +22,11 @@ Luôn `cd` đúng folder này. Operator hay lỡ chạy script trong `b2b-rubber
 | `FEATURE_KILL_SWITCH` | **true** (armed, **not tripped**) | true in `render.yaml`; staging drill PASS |
 | `FEATURE_AUTO_TUNING` | **false** — **không bật** (Gate 10J) | false |
 | Canary | enabled **100%** (prod) | 0 sau drill |
-| Image `/admin/kill-switch/*` | Pin digest `e0ed9382…667a7cd8` (GHCR after #35). **Live after Render Sync of pin PR.** | same API digest in `render.yaml` |
+| Image `/admin/kill-switch/*` | **live** digest `e0ed9382…667a7cd8` (PR #36 pin + Sync). OpenAPI có status/enable/disable | same API digest in `render.yaml` |
 
-PR Gate 10I: **https://github.com/leoly5945-hash/SaveIQ/pull/35** — **Merged** vào `main`.  
-Sync Blueprint production: **done**. `prod-verify` + `monitor` **PASS** 2026-08-24.
+PR Gate 10I flag: **https://github.com/leoly5945-hash/SaveIQ/pull/35** — Merged.  
+PR pin image: **https://github.com/leoly5945-hash/SaveIQ/pull/36** — Merged 2026-08-24.  
+`prod-verify` **PASS** 2026-08-24T08:53Z trên image 10I (`env_flag=true`, `armed=true`, `tripped=false`, router live, **không** `pre-10I`). `monitor` PASS trước pin; nên chạy lại sau image mới.
 
 Gate **10H** Neural + RLHF: ENABLEMENT COMPLETE (2026-08-23).  
 Gate **10J** auto-tune: **CHƯA LÀM**.
@@ -43,9 +44,9 @@ Gate **10J** auto-tune: **CHƯA LÀM**.
 
 `ghcr.io/leoly5945-hash/saveiq-engine@sha256:e0ed93821f953537d2b4a3c122b644aeecf03e8074e9111d622d4635667a7cd8`
 
-Pin trong `render.yaml` + `render-production.yaml`. **Chưa live trên Render** cho đến khi merge pin PR + Manual Sync staging **và** production. Web digest không đổi.
+Pin trong `render.yaml` + `render-production.yaml`. **Đã live trên prod** (OpenAPI `/admin/kill-switch/*`). Web digest không đổi.
 
-Khẩn cấp trước Sync pin: `/admin/safety/kill/*`. Sau Sync: `/admin/kill-switch/*` + router fallback khi trip.
+Emergency: `POST /admin/kill-switch/enable` (mặc định `trip=true`) hoặc `/admin/safety/kill/trip`. Trip trên image này **fallback parser**.
 
 Auth: header `X-Admin-Token` = Render env `ADMIN_API_TOKEN` của **đúng** service (staging ≠ prod).
 
@@ -53,11 +54,10 @@ Auth: header `X-Admin-Token` = Render env `ADMIN_API_TOKEN` của **đúng** ser
 
 ## Việc tiếp theo (ưu tiên)
 
-1. **Không** chạy `--stage prod-drill` trừ khi operator chủ động cắt traffic (zero canary + fallback router).
-2. **Không** bật `FEATURE_AUTO_TUNING` / Gate 10J cho đến khi 10I đứng (kill armed + image 10I nếu muốn alias).
-3. **Pin API digest 10I** (branch `chore/pin-gate-10i-api-image`): merge PR → Render Manual Sync **saveiq** (staging) và **saveiq-production**. Rồi `prod-verify` — hết WARN `pre-10I image`.
-4. Cập nhật checklist `docs/GATE_10I_KILL_SWITCH_CHECKLIST.md` (Blueprint **true**, enablement complete; còn ô Sync digest).
-5. Affiliate modules dưới `src/` + Docker context `COPY src` là **uncommitted**, **không** nằm trong PR #35 / pin PR. Đừng trộn vào 10J.
+1. **Không** chạy Gate 10I `--stage prod-drill` (zero canary + fallback parser trên live traffic).
+2. **Gate 10J scaffold (staging-only, dry-run):** `scripts/gate10j_auto_tune.py` + `make gate10j-auto-tune`. Stages: `check` → `staging-dry-run` → `evaluate` → `cleanup`. Mặc định **không ghi file**. `--confirm-autotune` mới sửa `render.yaml` (`FEATURE_AUTO_TUNING=true` + `AUTO_TUNE_DRY_RUN=true`) hoặc arm runtime overlay staging. **Không** đụng `render-production.yaml`. **Không** flip `FEATURE_NEURAL_BANDIT` / `FEATURE_RLHF_ROUTER` / `BANDIT_POLICY`.
+3. **Trước khi bật production 10J** còn thiếu: operator chạy staging-dry-run + Manual Sync **saveiq** (không phải saveiq-production) → `evaluate` thấy `applied=false` / audit `autotune_propose` → `cleanup` về `false` + Sync → sign-off riêng mới được đổi prod Blueprint. Production `FEATURE_AUTO_TUNING` **vẫn false**.
+4. Affiliate modules dưới `src/` + Docker context `COPY src` là **uncommitted**, **không** nằm trong PR #35/#36 / 10J. Đừng trộn.
 
 ---
 
@@ -72,6 +72,11 @@ export STAGING_ADMIN_TOKEN='...'   # dealhunter-staging-api → ADMIN_API_TOKEN
 make gate10i-kill-switch ARGS='--stage check'
 make gate10i-kill-switch ARGS='--stage prod-verify --assume-synced'
 make gate10i-kill-switch ARGS='--stage monitor --target prod'
+
+# Gate 10J staging dry-run only (never production):
+make gate10j-auto-tune ARGS='--stage check'
+make gate10j-auto-tune ARGS='--stage staging-dry-run'
+make gate10j-auto-tune ARGS='--stage evaluate'
 ```
 
 Smoke sau 10I: `scripts/production_smoke.py --allow-kill-switch --allow-live-router --allow-chinese-providers`  

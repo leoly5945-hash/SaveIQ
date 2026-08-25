@@ -1,4 +1,4 @@
-.PHONY: recommendation-eval staging-provision-validate staging-provision-validate-template staging-seed-mock staging-smoke production-provision-validate production-smoke deploy-production security-scan gate10d-abtest-rollout gate10e-rollout gate10e-auto-rollout gate10f-flip-router gate10g-live-providers gate10h-staging-neural gate10h-check-prod-prereq gate10h-staging-rlhf gate10h-prod-neural gate10h-monitor-soak gate10h-advance-neural gate10h-prod-rlhf gate10i-kill-switch
+.PHONY: recommendation-eval staging-provision-validate staging-provision-validate-template staging-seed-mock staging-smoke production-provision-validate production-smoke deploy-production security-scan gate10d-abtest-rollout gate10e-rollout gate10e-auto-rollout gate10f-flip-router gate10g-live-providers gate10h-staging-neural gate10h-check-prod-prereq gate10h-staging-rlhf gate10h-prod-neural gate10h-monitor-soak gate10h-advance-neural gate10h-prod-rlhf gate10i-kill-switch gate10j-auto-tune
 
 PYTHON ?= python3
 
@@ -122,3 +122,13 @@ gate10h-prod-rlhf:
 #   make gate10i-kill-switch ARGS='--stage prod-verify --assume-synced'
 gate10i-kill-switch:
 	$(PYTHON) scripts/gate10i_kill_switch.py $(ARGS)
+
+# Gate 10J: staging-only auto-tune dry-run. Never writes render-production.yaml.
+# Never flips FEATURE_NEURAL_BANDIT / FEATURE_RLHF_ROUTER / BANDIT_POLICY.
+#   make gate10j-auto-tune ARGS='--stage check'
+#   make gate10j-auto-tune ARGS='--stage staging-dry-run'
+#   make gate10j-auto-tune ARGS='--stage staging-dry-run --confirm-autotune'
+#   make gate10j-auto-tune ARGS='--stage evaluate'
+#   make gate10j-auto-tune ARGS='--stage cleanup --confirm-autotune'
+gate10j-auto-tune:
+	$(PYTHON) scripts/gate10j_auto_tune.py $(ARGS)
