@@ -7,7 +7,7 @@ const brandName = getBrandName();
 
 export const metadata: Metadata = {
   title: brandName,
-  description: "AI-assisted affiliate deal discovery platform foundation.",
+  description: "Find product deals and affiliate offers in Canada.",
 };
 
 export default function RootLayout({

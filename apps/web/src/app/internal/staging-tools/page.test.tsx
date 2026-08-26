@@ -1,9 +1,7 @@
 import { isValidElement, type ReactNode } from "react";
 import { describe, expect, it } from "vitest";
 
-import { HOME_AFFILIATE_DISCLOSURE } from "@/lib/home-recommendations";
-
-import Home from "./page";
+import StagingTools from "./page";
 
 function collectText(node: ReactNode): string {
   if (typeof node === "string" || typeof node === "number") {
@@ -21,15 +19,11 @@ function collectText(node: ReactNode): string {
   return "";
 }
 
-describe("Home", () => {
-  it("renders the public search shell", () => {
-    const text = collectText(Home()).replace(/\s+/g, " ");
+describe("Staging tools", () => {
+  it("renders the relocated mock search shell", () => {
+    const text = collectText(StagingTools()).replace(/\s+/g, " ");
 
     expect(text).toContain("DealHunter");
-    expect(text).toContain("Find a better deal");
-    expect(text).toContain(HOME_AFFILIATE_DISCLOSURE);
-    expect(text).toContain("Privacy");
-    expect(text).not.toContain("Staging mock data only");
-    expect(text).not.toContain("Admin token");
+    expect(text).toContain("Staging mock data only");
   });
 });
