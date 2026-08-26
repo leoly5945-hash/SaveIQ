@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from app.services.affiliate.schemas import (
@@ -16,9 +16,9 @@ from app.services.affiliate.schemas import (
     ProviderValidationResult,
 )
 
-
-def dt(value: str) -> datetime:
-    return datetime.fromisoformat(value).replace(tzinfo=UTC)
+# One clock per process so re-syncs see identical hashes/timestamps, while each
+# process start stays inside the 30-day freshness window.
+_FIXTURE_NOW = datetime.now(UTC)
 
 
 class MockAffiliateProvider:
@@ -27,7 +27,8 @@ class MockAffiliateProvider:
     market = "CA"
     currency = "CAD"
 
-    def __init__(self) -> None:
+    def __init__(self, *, now: datetime | None = None) -> None:
+        self._now = now or _FIXTURE_NOW
         self._merchants = [
             ProviderMerchant(
                 source_record_id="merchant-maple-tech",
@@ -169,20 +170,20 @@ class MockAffiliateProvider:
         self,
         source_record_id: str,
         record_type: ProviderRecordType,
-        source_timestamp: str,
+        source_timestamp: datetime,
         payload: dict[str, Any],
     ) -> ProviderRawRecord:
         return ProviderRawRecord(
             source_record_id=source_record_id,
             record_type=record_type,
-            source_timestamp=dt(source_timestamp),
+            source_timestamp=source_timestamp,
             payload=payload,
         )
 
     def _product(
         self,
         source_record_id: str,
-        source_timestamp: str,
+        source_timestamp: datetime,
         merchant_slug: str,
         provider_product_id: str,
         title: str,
@@ -222,10 +223,20 @@ class MockAffiliateProvider:
         )
 
     def _build_records(self) -> list[ProviderRawRecord]:
+        # Original calendar timeline was anchored at 2026-07-09T10:00:00 (T0).
+        # Keep relative ages/order; T0 is a few hours ago so every source_timestamp
+        # is in the past and well inside the 30-day freshness window except the
+        # deliberately stale pack (originally 2026-05-01, 69 days before T0).
+        now = self._now
+        t0 = now - timedelta(hours=7)
+
+        def at(*, days: int = 0, hours: int = 0, minutes: int = 0, seconds: int = 0) -> datetime:
+            return t0 + timedelta(days=days, hours=hours, minutes=minutes, seconds=seconds)
+
         records = [
             self._product(
                 "mt-wavebuds-offer",
-                "2026-07-09T10:00:00",
+                at(),
                 "maple-tech",
                 "MT-WAVEBUDS-BLACK",
                 "Aurora WaveBuds Noise Cancelling Earbuds",
@@ -241,7 +252,7 @@ class MockAffiliateProvider:
             ),
             self._product(
                 "no-wavebuds-offer",
-                "2026-07-09T10:05:00",
+                at(minutes=5),
                 "north-outfitters",
                 "NO-AWB-2026",
                 "Aurora WaveBuds ANC Earbuds",
@@ -257,7 +268,7 @@ class MockAffiliateProvider:
             ),
             self._product(
                 "mt-kettle-offer",
-                "2026-07-09T11:00:00",
+                at(hours=1),
                 "maple-tech",
                 "MT-KETTLE-1L",
                 "Summit Home Smart Kettle 1L",
@@ -272,7 +283,7 @@ class MockAffiliateProvider:
             ),
             self._product(
                 "bn-python-book-offer",
-                "2026-07-09T12:00:00",
+                at(hours=2),
                 "book-nook-canada",
                 "BN-PY-DATA",
                 "Practical Python Data Tools",
@@ -288,7 +299,7 @@ class MockAffiliateProvider:
             ),
             self._product(
                 "no-pack-offer",
-                "2026-07-09T13:00:00",
+                at(hours=3),
                 "north-outfitters",
                 "NO-TRAILPACK-32",
                 "Boreal Trail Pack 32L",
@@ -304,7 +315,7 @@ class MockAffiliateProvider:
             ),
             self._product(
                 "mt-monitor-offer",
-                "2026-07-09T14:00:00",
+                at(hours=4),
                 "maple-tech",
                 "MT-VIEW27",
                 "LumaView 27 inch 4K Monitor",
@@ -324,14 +335,14 @@ class MockAffiliateProvider:
             self._record(
                 "malformed-record",
                 ProviderRecordType.product_offer,
-                "2026-07-09T15:00:00",
+                at(hours=5),
                 {"malformed": True, "merchant_slug": "maple-tech", "currency": self.currency},
             )
         )
         records.append(
             self._product(
                 "stale-pack-offer",
-                "2026-05-01T10:00:00",
+                at(days=-69),
                 "north-outfitters",
                 "NO-TRAILPACK-32-OLD",
                 "Boreal Trail Pack 32L Old Feed",
@@ -350,7 +361,7 @@ class MockAffiliateProvider:
                 self._record(
                     "coupon-maple-summer",
                     ProviderRecordType.coupon,
-                    "2026-07-09T16:00:00",
+                    at(hours=6),
                     {
                         "merchant_slug": "maple-tech",
                         "code": "MAPLE10",
@@ -359,14 +370,14 @@ class MockAffiliateProvider:
                         "discount_value": 1000,
                         "currency": self.currency,
                         "market": self.market,
-                        "starts_at": dt("2026-07-01T00:00:00"),
-                        "expires_at": dt("2026-08-31T23:59:59"),
+                        "starts_at": at(days=-8, hours=-10),
+                        "expires_at": at(days=53, hours=13, minutes=59, seconds=59),
                     },
                 ),
                 self._record(
                     "coupon-book-expired",
                     ProviderRecordType.coupon,
-                    "2026-07-09T16:05:00",
+                    at(hours=6, minutes=5),
                     {
                         "merchant_slug": "book-nook-canada",
                         "code": "SPRING5",
@@ -375,22 +386,22 @@ class MockAffiliateProvider:
                         "discount_value": 5,
                         "currency": self.currency,
                         "market": self.market,
-                        "starts_at": dt("2026-04-01T00:00:00"),
-                        "expires_at": dt("2026-05-01T00:00:00"),
+                        "starts_at": at(days=-99, hours=-10),
+                        "expires_at": at(days=-69, hours=-10),
                     },
                 ),
                 self._record(
                     "cashback-north",
                     ProviderRecordType.cashback,
-                    "2026-07-09T16:10:00",
+                    at(hours=6, minutes=10),
                     {
                         "merchant_slug": "north-outfitters",
                         "rate_type": "percent_bps",
                         "rate_value_bps": 250,
                         "currency": self.currency,
                         "market": self.market,
-                        "starts_at": dt("2026-07-01T00:00:00"),
-                        "expires_at": dt("2026-09-01T00:00:00"),
+                        "starts_at": at(days=-8, hours=-10),
+                        "expires_at": at(days=53, hours=14),
                     },
                 ),
             ]
