@@ -1,0 +1,20 @@
+# Root Ruff config so repo-root `src/` (mounted into the API image via
+# `COPY src ./src`) is linted/formatted with the same rules as `apps/api`.
+# `apps/api/pyproject.toml [tool.ruff]` stays authoritative for `apps/api/**`
+# (nearest-config wins); keep `line-length` and `select` in sync.
+line-length = 100
+target-version = "py311"
+
+[lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[lint.flake8-bugbear]
+# `src/` routers use FastAPI's classic default-arg DI (`x: T = Depends(...)`)
+# to stay self-contained; these callables are safe as argument defaults.
+extend-immutable-calls = [
+  "fastapi.Depends",
+  "fastapi.Query",
+  "fastapi.Header",
+  "fastapi.Path",
+  "fastapi.Body",
+]

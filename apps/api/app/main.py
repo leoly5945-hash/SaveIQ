@@ -20,6 +20,7 @@ from app.api.routes.search import router as search_router
 from app.api.routes.user import router as user_router
 from app.core.logging import configure_logging
 from app.core.settings import get_settings
+from app.integrations.repo_src import ensure_repo_src_on_path
 from app.middleware.abtest import ABTestMiddleware
 from app.middleware.canary import CanaryMiddleware
 from app.middleware.rate_limit import RateLimitMiddleware
@@ -62,6 +63,17 @@ def create_app() -> FastAPI:
     app.include_router(admin_canary_router)
     app.include_router(admin_abtest_router)
     app.include_router(admin_safety_router)
+    ensure_repo_src_on_path()
+    from src.affiliate.attribution_tracking import router as attribution_router
+    from src.affiliate.fraud_detection import router as fraud_router
+    from src.router.multi_objective import router as objective_router
+    from src.router.partner_diversity import router as diversity_router
+
+    # Each module already prefixes /admin/{attribution,objective,fraud,diversity}.
+    app.include_router(attribution_router, tags=["attribution"])
+    app.include_router(objective_router, tags=["objective"])
+    app.include_router(fraud_router, tags=["fraud"])
+    app.include_router(diversity_router, tags=["diversity"])
     return app
 
 

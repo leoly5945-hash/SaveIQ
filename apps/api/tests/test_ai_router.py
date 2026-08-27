@@ -359,3 +359,61 @@ def test_admin_router_status_reports_active_mock_without_live() -> None:
     finally:
         app.dependency_overrides.clear()
         session.close()
+
+
+def test_fraud_block_skips_primary_provider() -> None:
+    from app.services.router.ai_router import AiRouter, get_fraud
+
+    detector = get_fraud()
+    previous = detector.enabled
+    detector.enabled = True
+    detector.block_partner("openai", "unit-test block")
+    try:
+        settings = Settings(
+            FEATURE_AI_ROUTER="true",
+            AI_ROUTER_MODE="live",
+            FEATURE_CHINESE_LLM_PROVIDERS="false",
+            AI_ROUTER_STRATEGY="cost_optimized",
+            AI_ROUTER_FALLBACK_PROVIDER="mock",
+        )
+        openai = RecordingProvider(_valid_payload())
+        mock = RecordingProvider(_valid_payload())
+        mock.name = "mock"
+        router = AiRouter(
+            settings,
+            providers={"openai": openai, "mock": mock},
+            metrics=RouterMetrics(InMemoryMetricsStore()),
+        )
+        result = router.execute(RouteRequest(query_text="cheap earbuds", user_id="u-fraud"))
+        assert result.decision.selected_provider == "mock"
+        assert openai.calls == 0
+        assert mock.calls == 1
+    finally:
+        detector.unblock_partner("openai")
+        detector.enabled = previous
+
+
+def test_attribution_records_provider_touch_on_success() -> None:
+    from app.services.router.ai_router import AiRouter, get_attribution
+
+    tracker = get_attribution()
+    previous = tracker.enabled
+    tracker.enabled = True
+    before = len(tracker._touches)
+    try:
+        settings = Settings(
+            FEATURE_AI_ROUTER="true",
+            AI_ROUTER_MODE="mock",
+        )
+        router = AiRouter(
+            settings,
+            providers={"mock": MockProvider()},
+            metrics=RouterMetrics(InMemoryMetricsStore()),
+        )
+        result = router.execute(RouteRequest(query_text="cheap earbuds", user_id="u-attr"))
+        assert result.fallback_required is False
+        assert len(tracker._touches) == before + 1
+        assert tracker._touches[-1].user_id == "u-attr"
+        assert tracker._touches[-1].affiliate_id == "mock"
+    finally:
+        tracker.enabled = previous
