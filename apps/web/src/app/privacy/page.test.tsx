@@ -20,13 +20,13 @@ function collectText(node: ReactNode): string {
 }
 
 describe("Privacy", () => {
-  it("renders a draft privacy policy", () => {
+  it("renders the privacy policy", () => {
     const text = collectText(PrivacyPage()).replace(/\s+/g, " ");
 
-    expect(text).toContain("Draft — pending legal review");
-    expect(text).toContain("not final legal advice");
+    expect(text).toContain("Last updated");
     expect(text).toContain("do not sell personal information");
-    expect(text).toContain("Contact method TBD");
+    expect(text).toContain("luongdoduy@me.com");
     expect(text).toContain("anonymous identifier");
+    expect(text).toContain("PIPEDA");
   });
 });

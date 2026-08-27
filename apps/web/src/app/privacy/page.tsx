@@ -5,29 +5,31 @@ import { getBrandName } from "@/lib/config";
 
 const brandName = getBrandName();
 
+const CONTACT_EMAIL = "luongdoduy@me.com";
+const OPERATOR_NAME = "Duy Luong";
+const LAST_UPDATED = "August 27, 2026";
+
 export const metadata: Metadata = {
   title: `Privacy — ${brandName}`,
-  description: "Draft privacy policy pending legal review.",
+  description: "How SaveIQ collects and uses information.",
 };
 
 export default function PrivacyPage() {
   return (
     <main className="home-shell privacy-page">
-      <p className="privacy-draft-banner">Draft — pending legal review</p>
       <p>
         <Link href="/">Back to {brandName}</Link>
       </p>
       <h1 className="home-title">Privacy Policy</h1>
-      <p className="privacy-note">
-        This page is a starter draft for a Canadian audience. It is not final
-        legal advice and has not been reviewed by counsel.
-      </p>
+      <p className="privacy-note">Last updated: {LAST_UPDATED}</p>
 
       <section className="privacy-section">
         <h2>Who we are</h2>
         <p>
-          {brandName} helps people discover product and affiliate offers. We do
-          not offer user accounts, login, or sign-up on this site.
+          {brandName} ({`https://saveiq.ca`}) helps people discover product and
+          affiliate offers in Canada. It is currently operated by an individual,
+          {" "}{OPERATOR_NAME}, rather than a registered company. We do not offer
+          user accounts, login, or sign-up on this site.
         </p>
       </section>
 
@@ -40,7 +42,7 @@ export default function PrivacyPage() {
           offer identifiers you click, technical request data (such as time,
           referrer, and user agent), and similar usage analytics.
         </p>
-        <p>We do not collect names, emails, phone numbers, or payment details on this page.</p>
+        <p>We do not collect names, emails, phone numbers, or payment details through this site.</p>
       </section>
 
       <section className="privacy-section">
@@ -48,8 +50,7 @@ export default function PrivacyPage() {
         <p>
           We use local storage for the anonymous identifier described above. We
           may use cookies or similar technologies for basic site operation and
-          aggregated analytics. This draft does not describe a third-party ad
-          tracker.
+          aggregated analytics. We do not run third-party advertising trackers.
         </p>
       </section>
 
@@ -63,8 +64,52 @@ export default function PrivacyPage() {
       </section>
 
       <section className="privacy-section">
+        <h2>Affiliate links and sharing</h2>
+        <p>
+          When you click an outbound offer link, the destination merchant (and
+          any affiliate network connecting us to them) receives standard
+          referral information about that click, so the merchant/network can
+          attribute a resulting purchase to {brandName}. We do not sell or
+          share the anonymous identifier described above for advertising
+          purposes.
+        </p>
+      </section>
+
+      <section className="privacy-section">
+        <h2>Data retention</h2>
+        <p>
+          We keep anonymous usage and click data only as long as useful for the
+          purposes above, and delete or aggregate it afterward. Since we do not
+          collect names or contact details through this site, there is no
+          personal account data to retain or delete on request.
+        </p>
+      </section>
+
+      <section className="privacy-section">
+        <h2>Your rights</h2>
+        <p>
+          If you are in Canada, Canadaʼs federal privacy law (PIPEDA) gives you
+          the right to ask what information an organization holds about you and
+          to file a complaint with the Office of the Privacy Commissioner of
+          Canada. Because we only hold anonymous, non-identifying data, we
+          generally have no way to look up a specific person&apos;s
+          information — contact us if you believe this affects you.
+        </p>
+      </section>
+
+      <section className="privacy-section">
+        <h2>Changes to this policy</h2>
+        <p>
+          We may update this page as the product changes. We&apos;ll update the
+          &quot;Last updated&quot; date above when we do.
+        </p>
+      </section>
+
+      <section className="privacy-section">
         <h2>Contact</h2>
-        <p>Contact method TBD.</p>
+        <p>
+          Questions about this policy: <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.
+        </p>
       </section>
     </main>
   );
