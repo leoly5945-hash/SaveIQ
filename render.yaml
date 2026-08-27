@@ -1,4 +1,4 @@
-# Render Blueprint for DealHunter staging.
+# Render Blueprint for SaveIQ staging.
 # Replace all placeholder values before applying this Blueprint.
 #
 # Required Render workspace setup:
@@ -26,7 +26,7 @@ services:
       - key: PORT
         value: "10000"
       - key: APP_NAME
-        value: DealHunter API
+        value: SaveIQ API
       - key: ENVIRONMENT
         value: staging
       - key: LOG_LEVEL
@@ -145,7 +145,7 @@ services:
       - key: NEXT_PUBLIC_API_BASE_URL
         value: "https://dealhunter-staging-api.onrender.com"
       - key: NEXT_PUBLIC_BRAND_NAME
-        value: DealHunter
+        value: SaveIQ
       - key: STAGING_NOINDEX
         value: "true"
 

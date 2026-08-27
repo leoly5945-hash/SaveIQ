@@ -1,1 +1,1 @@
-"""DealHunter API package."""
+"""SaveIQ API package."""

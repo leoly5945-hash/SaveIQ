@@ -71,7 +71,7 @@ def build_chat_completions_payload(
             {
                 "role": "system",
                 "content": (
-                    "You are DealHunter's constrained shopping-intent parser. "
+                    "You are SaveIQ's constrained shopping-intent parser. "
                     "Return only valid JSON for the supplied schema. "
                     "Do not browse, call tools, invent merchants, invent products, "
                     "invent prices, invent coupons, or invent cashback."

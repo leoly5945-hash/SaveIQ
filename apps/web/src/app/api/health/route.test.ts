@@ -9,6 +9,6 @@ describe("GET /api/health", () => {
 
     expect(response.status).toBe(200);
     expect(body.status).toBe("ok");
-    expect(body.service).toBe("DealHunter Web");
+    expect(body.service).toBe("SaveIQ Web");
   });
 });

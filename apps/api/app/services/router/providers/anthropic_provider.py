@@ -115,7 +115,7 @@ def _build_anthropic_payload(request: LlmIntentParserInput, *, model: str) -> di
         "model": model,
         "max_tokens": 512,
         "system": (
-            "You are DealHunter's constrained shopping-intent parser. "
+            "You are SaveIQ's constrained shopping-intent parser. "
             "Return only valid JSON matching the supplied schema. "
             "Do not browse, call tools, invent merchants, invent products, "
             "invent prices, invent coupons, or invent cashback."

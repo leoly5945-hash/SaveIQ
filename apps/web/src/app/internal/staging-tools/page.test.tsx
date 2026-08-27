@@ -23,7 +23,7 @@ describe("Staging tools", () => {
   it("renders the relocated mock search shell", () => {
     const text = collectText(StagingTools()).replace(/\s+/g, " ");
 
-    expect(text).toContain("DealHunter");
+    expect(text).toContain("SaveIQ");
     expect(text).toContain("Staging mock data only");
   });
 });

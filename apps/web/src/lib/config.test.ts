@@ -8,6 +8,6 @@ describe("getApiBaseUrl", () => {
   });
 
   it("returns the default brand name", () => {
-    expect(getBrandName()).toBe("DealHunter");
+    expect(getBrandName()).toBe("SaveIQ");
   });
 });

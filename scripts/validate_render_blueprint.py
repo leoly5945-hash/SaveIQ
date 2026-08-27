@@ -371,8 +371,8 @@ def validate_env(
         if web_env.get("STAGING_NOINDEX", {}).get("value") != "true":
             fail("web service must set STAGING_NOINDEX=true", profile=profile)
 
-    if web_env.get("NEXT_PUBLIC_BRAND_NAME", {}).get("value") != "DealHunter":
-        fail("web service must set NEXT_PUBLIC_BRAND_NAME=DealHunter", profile=profile)
+    if web_env.get("NEXT_PUBLIC_BRAND_NAME", {}).get("value") != "SaveIQ":
+        fail("web service must set NEXT_PUBLIC_BRAND_NAME=SaveIQ", profile=profile)
 
 
 def validate_database(data: dict[str, Any], *, profile: str) -> None:

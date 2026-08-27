@@ -6,8 +6,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    public_brand_name: str = Field(default="DealHunter", validation_alias="PUBLIC_BRAND_NAME")
-    app_name: str = Field(default="DealHunter API", validation_alias="APP_NAME")
+    public_brand_name: str = Field(default="SaveIQ", validation_alias="PUBLIC_BRAND_NAME")
+    app_name: str = Field(default="SaveIQ API", validation_alias="APP_NAME")
     app_version: str = "0.1.0"
     database_url: str = Field(
         default="postgresql+psycopg://dealhunter:dealhunter@localhost:5432/dealhunter",
