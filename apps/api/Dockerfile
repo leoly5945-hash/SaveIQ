@@ -5,10 +5,12 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-COPY pyproject.toml ./
+COPY apps/api/pyproject.toml ./
 RUN pip install --no-cache-dir -e .
 
-COPY . .
+COPY apps/api/ ./
+COPY src ./src
+ENV PYTHONPATH=/app
 
 EXPOSE 8000
 CMD ["python", "-m", "app.server"]

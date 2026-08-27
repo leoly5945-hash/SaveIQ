@@ -44,6 +44,46 @@ logger = logging.getLogger(__name__)
 MIN_ROUTER_INTENT_CONFIDENCE = 0.60
 
 
+def get_attribution() -> Any:
+    """Process singleton shared with GET /admin/attribution/*."""
+    from app.integrations.repo_src import ensure_repo_src_on_path
+
+    ensure_repo_src_on_path()
+    from src.affiliate.attribution_tracking import get_tracker
+
+    return get_tracker()
+
+
+def get_objective() -> Any:
+    """Process singleton shared with POST /admin/objective/*."""
+    from app.integrations.repo_src import ensure_repo_src_on_path
+
+    ensure_repo_src_on_path()
+    from src.router.multi_objective import get_optimizer
+
+    return get_optimizer()
+
+
+def get_fraud() -> Any:
+    """Process singleton shared with GET /admin/fraud/*."""
+    from app.integrations.repo_src import ensure_repo_src_on_path
+
+    ensure_repo_src_on_path()
+    from src.affiliate.fraud_detection import get_detector
+
+    return get_detector()
+
+
+def get_diversity() -> Any:
+    """Process singleton shared with GET /admin/diversity/*."""
+    from app.integrations.repo_src import ensure_repo_src_on_path
+
+    ensure_repo_src_on_path()
+    from src.router.partner_diversity import get_manager
+
+    return get_manager()
+
+
 @dataclass(frozen=True)
 class RouterExecutionResult:
     decision: RouterDecision
@@ -156,6 +196,7 @@ class AiRouter:
                     latency_ms=0.0,
                     cache_hit=True,
                 )
+                self._track_routing_decision(request, provider)
                 logger.info(
                     "AI router cache hit provider=%s model=%s",
                     provider,
@@ -175,6 +216,12 @@ class AiRouter:
             if fallback is None and primary != bandit_decision.selected_action:
                 fallback = primary
             primary = bandit_decision.selected_action
+        primary, fallback = self._apply_partner_modules(
+            request,
+            primary=primary,
+            fallback=fallback,
+            bandit_scores=bandit_decision.scores,
+        )
         try:
             result = self._invoke_provider(primary, request)
             return self._accept_provider_result(
@@ -299,6 +346,7 @@ class AiRouter:
             "kill_switch_tripped": self._kill_switch_tripped(),
             "kill_switch_fallback": self._kill_switch_tripped(),
             "abtest": self._ab_group_config(),
+            "partner_modules": self._partner_module_status(),
         }
 
     def metrics_snapshot(self) -> dict[str, Any]:
@@ -368,6 +416,113 @@ class AiRouter:
             if self._provider_ready(fallback_setting):
                 fallback = fallback_setting
         return configured_primary, fallback
+
+    def _apply_partner_modules(
+        self,
+        request: RouteRequest,
+        *,
+        primary: str,
+        fallback: str | None,
+        bandit_scores: dict[str, float],
+    ) -> tuple[str, str | None]:
+        """Partner-block filter, multi-objective score, then diversity-weight providers.
+
+        Modules no-op when their FEATURE_* flags are off, so the default path
+        stays rule+bandit. LLM providers are the router's 'partners'. Only
+        explicit admin partner blocks are honored here; click/velocity fraud
+        detection is a user-click concern, not a provider-vetting one.
+        """
+        try:
+            fraud = get_fraud()
+            objective = get_objective()
+            diversity = get_diversity()
+        except Exception:  # noqa: BLE001
+            logger.exception("partner modules unavailable; skipping rerank")
+            return primary, fallback
+
+        try:
+            primary_blocked = fraud.is_blocked(primary)
+        except Exception:  # noqa: BLE001
+            primary_blocked = False
+        if (
+            not fraud.enabled
+            and not objective.enabled
+            and not diversity.enabled
+            and not primary_blocked
+        ):
+            return primary, fallback
+
+        candidates: list[str] = []
+        for name in (primary, fallback):
+            if name and name not in candidates:
+                candidates.append(name)
+        for name in self._providers:
+            if name not in candidates and self._provider_ready(name):
+                candidates.append(name)
+
+        allowed: list[str] = []
+        for name in candidates:
+            try:
+                if fraud.is_blocked(name):
+                    logger.info("AI router skipped provider=%s (partner blocked)", name)
+                    continue
+            except Exception:  # noqa: BLE001
+                logger.exception("partner block check failed provider=%s", name)
+            allowed.append(name)
+        if not allowed:
+            return primary, fallback
+
+        raw_scores = {name: float(bandit_scores.get(name, 0.0)) for name in allowed}
+        peak = max(raw_scores.values()) if raw_scores else 0.0
+        scored: dict[str, float] = {}
+        for name in allowed:
+            cr = raw_scores[name] / peak if peak > 0 else (1.0 if name == primary else 0.5)
+            cr = max(0.0, min(1.0, cr))
+            try:
+                scored[name] = float(objective.calculate_score(cr, rpu=1.0, us=3.0))
+            except Exception:  # noqa: BLE001
+                logger.exception("objective score failed provider=%s", name)
+                scored[name] = cr
+
+        try:
+            weights = diversity.apply_diversity_constraint(scored)
+        except Exception:  # noqa: BLE001
+            logger.exception("diversity constraint failed")
+            weights = scored
+        if not weights:
+            return primary, fallback
+
+        ranked = sorted(weights, key=lambda key: weights[key], reverse=True)
+        new_primary = ranked[0]
+        new_fallback = next((name for name in ranked[1:] if name != new_primary), None)
+        if new_fallback is None and fallback and fallback != new_primary:
+            new_fallback = fallback
+        return new_primary, new_fallback
+
+    def _track_routing_decision(self, request: RouteRequest, provider: str) -> None:
+        try:
+            get_attribution().track_affiliate(
+                request.user_id or "anonymous",
+                provider,
+                metadata={
+                    "intent_type": request.intent_type,
+                    "market": request.market,
+                    "query": request.query_text[:80],
+                },
+            )
+        except Exception:  # noqa: BLE001
+            logger.exception("attribution track_affiliate failed")
+
+    def _partner_module_status(self) -> dict[str, Any]:
+        try:
+            return {
+                "attribution_enabled": bool(get_attribution().enabled),
+                "objective_enabled": bool(get_objective().enabled),
+                "fraud_enabled": bool(get_fraud().enabled),
+                "diversity_enabled": bool(get_diversity().enabled),
+            }
+        except Exception:  # noqa: BLE001
+            return {"error": "unavailable"}
 
     def _consult_bandit(
         self,
@@ -646,6 +801,7 @@ class AiRouter:
                 latency_ms=result.latency_ms,
                 success=True,
             )
+        self._track_routing_decision(request, result.provider)
         return RouterExecutionResult(
             decision=decision,
             parsed_intent=parsed,

@@ -58,6 +58,11 @@ jobs:
       - run: ruff check .
       - run: ruff format --check .
       - run: mypy app
+      # Repo-root src/ is shipped in the API image (COPY src ./src) but lives
+      # outside apps/api, so lint/type-check it explicitly here.
+      - run: ruff check ../../src
+      - run: ruff format --check ../../src
+      - run: mypy ../../src
       - run: alembic upgrade head
       - run: pytest
       - run: python ../../scripts/evaluate_recommendations.py

@@ -1,0 +1,59 @@
+# The `saveiq-engine` image builds from the repo root (context: .) so the
+# Dockerfile can `COPY src ./src` alongside `apps/api/`. Without this file the
+# build context would upload node_modules/, .venv/, .git/, artifacts/, etc.
+# The API Dockerfile only COPYs `apps/api/` and `src/`, so everything else is
+# safe to exclude from the context entirely.
+
+# VCS / editor
+.git
+.gitignore
+.editorconfig
+.DS_Store
+**/.DS_Store
+
+# Python caches / local virtualenv
+.venv
+**/.venv
+__pycache__
+**/__pycache__
+*.pyc
+*.pyo
+.mypy_cache
+.pytest_cache
+.ruff_cache
+
+# Node / frontend (built in its own image with context: apps/web)
+node_modules
+**/node_modules
+apps/web
+package-lock.json
+
+# Runtime / generated output
+artifacts
+logs
+data
+report_preview.html
+*.log
+
+# Repo tooling not needed inside the image
+.github
+docs
+monitoring
+scripts
+infra
+
+# Secrets / local env
+.env
+.env.*
+!.env.example
+
+# Unrelated local scratch (rubber automation, ad-hoc data pulls)
+rubber_app.py
+rubber_bot.py
+rubber_automator
+rubber_phone_qr.png
+shandong_tire_data.py
+inventory_proxy.py
+input_portal.py
+input_data*.json
+*.md
