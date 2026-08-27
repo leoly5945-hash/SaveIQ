@@ -1,6 +1,6 @@
 export const HOME_INTENT_PLACEHOLDER = "What are you looking for?";
 export const HOME_AFFILIATE_DISCLOSURE =
-  "Some links on this page are affiliate links. If you make a purchase through them, DealHunter may earn a commission at no extra cost to you.";
+  "Some links on this page are affiliate links. If you make a purchase through them, SaveIQ may earn a commission at no extra cost to you.";
 
 export type ClickTargetType = "product" | "affiliate";
 

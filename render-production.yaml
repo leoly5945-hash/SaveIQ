@@ -1,4 +1,4 @@
-# Render Blueprint for DealHunter production (saveiq-production).
+# Render Blueprint for SaveIQ production (saveiq-production).
 # Apply in the SaveIQ workspace as a separate Blueprint from staging.
 #
 # Required setup:
@@ -31,7 +31,7 @@ services:
       - key: PORT
         value: "10000"
       - key: APP_NAME
-        value: DealHunter API
+        value: SaveIQ API
       - key: ENVIRONMENT
         value: production
       - key: LOG_LEVEL
@@ -174,7 +174,7 @@ services:
       - key: NEXT_PUBLIC_API_BASE_URL
         value: "https://dealhunter-production-api.onrender.com"
       - key: NEXT_PUBLIC_BRAND_NAME
-        value: DealHunter
+        value: SaveIQ
       - key: PRODUCTION_NOINDEX
         value: "true"
       - key: STAGING_NOINDEX

@@ -3,5 +3,5 @@ export function getApiBaseUrl() {
 }
 
 export function getBrandName() {
-  return process.env.NEXT_PUBLIC_BRAND_NAME ?? "DealHunter";
+  return process.env.NEXT_PUBLIC_BRAND_NAME ?? "SaveIQ";
 }

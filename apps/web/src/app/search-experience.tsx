@@ -872,7 +872,7 @@ export function SearchExperience({ searchEndpoint }: SearchExperienceProps) {
     <section className="search-workspace" aria-labelledby="search-heading">
       <div className="search-copy">
         <p className="eyebrow">Mock affiliate search</p>
-        <h1 id="search-heading">Find normalized DealHunter offers</h1>
+        <h1 id="search-heading">Find normalized SaveIQ offers</h1>
         <p className="search-subtitle">
           Search the seeded mock feed by product, merchant, brand, category,
           coupon, cashback, and freshness.

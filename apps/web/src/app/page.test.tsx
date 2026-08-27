@@ -25,7 +25,7 @@ describe("Home", () => {
   it("renders the public search shell", () => {
     const text = collectText(Home()).replace(/\s+/g, " ");
 
-    expect(text).toContain("DealHunter");
+    expect(text).toContain("SaveIQ");
     expect(text).toContain("Find a better deal");
     expect(text).toContain(HOME_AFFILIATE_DISCLOSURE);
     expect(text).toContain("Privacy");
