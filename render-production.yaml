@@ -37,7 +37,7 @@ services:
       - key: LOG_LEVEL
         value: info
       - key: API_CORS_ORIGINS
-        value: "https://dealhunter-production-web.onrender.com"
+        value: "https://dealhunter-production-web.onrender.com,https://saveiq.ca,https://www.saveiq.ca"
       - key: ADMIN_API_TOKEN
         sync: false
       - key: DATABASE_URL
@@ -179,6 +179,10 @@ services:
         value: "true"
       - key: STAGING_NOINDEX
         value: "true"
+      - key: INTERNAL_TOOLS_USER
+        sync: false
+      - key: INTERNAL_TOOLS_PASSWORD
+        sync: false
 
   - type: keyvalue
     name: dealhunter-production-redis

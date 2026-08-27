@@ -148,6 +148,10 @@ services:
         value: SaveIQ
       - key: STAGING_NOINDEX
         value: "true"
+      - key: INTERNAL_TOOLS_USER
+        sync: false
+      - key: INTERNAL_TOOLS_PASSWORD
+        sync: false
 
   - type: keyvalue
     name: dealhunter-staging-redis
