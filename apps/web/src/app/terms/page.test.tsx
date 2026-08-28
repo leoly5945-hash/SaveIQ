@@ -1,7 +1,7 @@
 import { isValidElement, type ReactNode } from "react";
 import { describe, expect, it } from "vitest";
 
-import PrivacyPage from "./page";
+import TermsPage from "./page";
 
 function collectText(node: ReactNode): string {
   if (typeof node === "string" || typeof node === "number") {
@@ -19,15 +19,17 @@ function collectText(node: ReactNode): string {
   return "";
 }
 
-describe("Privacy", () => {
-  it("renders the privacy policy", () => {
-    const text = collectText(PrivacyPage()).replace(/\s+/g, " ");
+describe("Terms", () => {
+  it("renders the terms of use", () => {
+    const text = collectText(TermsPage()).replace(/\s+/g, " ");
 
     expect(text).toContain("Last updated");
-    expect(text).toContain("do not sell personal information");
-    expect(text).toContain("leoly5945@gmail.com");
     expect(text).toContain("Nextwave Software Company");
-    expect(text).toContain("anonymous identifier");
-    expect(text).toContain("PIPEDA");
+    expect(text).toContain("Before you buy, read the retailer");
+    expect(text).toContain("intermediary between shoppers");
+    expect(text).toContain("is not a store and does not sell anything");
+    expect(text).toContain("affiliate links");
+    expect(text).toContain("British Columbia");
+    expect(text).toContain("leoly5945@gmail.com");
   });
 });

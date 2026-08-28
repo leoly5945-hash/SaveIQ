@@ -35,6 +35,7 @@ export default function Home() {
             {brandName}
           </p>
           <nav className="home-nav">
+            <a href="#how-it-works">How it works</a>
             <Link href="/privacy">Privacy</Link>
           </nav>
         </div>
@@ -59,6 +60,51 @@ export default function Home() {
         <HomeSearch />
         <HotDeals />
 
+        <section className="home-how" id="how-it-works">
+          <div className="home-how-head">
+            <h2>How SaveIQ works</h2>
+            <p>
+              SaveIQ sits between you and well-known retailers. You bring the
+              intent; our AI Router does the price hunting — so you buy from
+              names you already trust, at the best price we can find.
+            </p>
+          </div>
+          <ol className="home-how-steps">
+            <li>
+              <span className="home-how-num" aria-hidden="true">
+                1
+              </span>
+              <h3>Tell it what you want</h3>
+              <p>
+                Describe the product in plain words. No account, no sign-up, no
+                fee.
+              </p>
+            </li>
+            <li>
+              <span className="home-how-num" aria-hidden="true">
+                2
+              </span>
+              <h3>The AI Router hunts</h3>
+              <p>
+                It reads your intent and searches trusted retailers at once,
+                weighing price, coupons and cashback to find the real
+                bottom-line cost.
+              </p>
+            </li>
+            <li>
+              <span className="home-how-num" aria-hidden="true">
+                3
+              </span>
+              <h3>You buy at the best price</h3>
+              <p>
+                Get one ranked list and check out directly with the retailer.
+                SaveIQ never adds a markup — we earn a commission from the
+                retailer instead.
+              </p>
+            </li>
+          </ol>
+        </section>
+
         <footer className="home-footer">
           <div className="home-footer-org">
             <p className="home-footer-brand">{brandName}</p>
@@ -66,11 +112,14 @@ export default function Home() {
               Operated by <strong>Nextwave Software Company</strong>
               <br />
               4641 Dunbar St, Vancouver, BC, Canada
+              <br />
+              Contact: Leo Do —{" "}
+              <a href="mailto:leoly5945@gmail.com">leoly5945@gmail.com</a>
             </p>
             <p className="home-footer-links">
-              <a href="mailto:info@saveiq.ca">info@saveiq.ca</a>
-              <span aria-hidden="true"> · </span>
               <Link href="/privacy">Privacy</Link>
+              <span aria-hidden="true"> · </span>
+              <Link href="/terms">Terms</Link>
             </p>
           </div>
           <p>{HOME_AFFILIATE_DISCLOSURE}</p>
