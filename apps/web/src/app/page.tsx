@@ -107,8 +107,8 @@ export default function Home() {
           <div className="home-footer-org">
             <p className="home-footer-brand">{brandName}</p>
             <p>
-              Operated by <strong>Nextwave Software Company</strong> (a company
-              registered in Vietnam), from Vancouver, BC, Canada
+              <strong>Nextwave Software Company</strong> (registered in Vietnam)
+              {" · "}Vancouver, BC, Canada
               <br />
               Contact: Leo Do —{" "}
               <a href="mailto:leoly5945@gmail.com">leoly5945@gmail.com</a>
