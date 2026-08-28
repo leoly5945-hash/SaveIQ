@@ -1310,20 +1310,19 @@ h3 {
   align-items: center;
   display: flex;
   font-family: var(--display-font);
-  font-size: 1.15rem;
+  font-size: 1.4rem;
   font-weight: 900;
-  gap: 10px;
+  gap: 12px;
   letter-spacing: -0.01em;
 }
 
 .home-brand-mark {
   align-items: center;
-  background: #ffffff;
-  border-radius: 7px;
   display: inline-flex;
-  height: 28px;
+  flex-shrink: 0;
+  height: 40px;
   justify-content: center;
-  width: 28px;
+  width: 40px;
 }
 
 .home-nav {
@@ -1573,10 +1572,10 @@ h3 {
   color: var(--muted);
   display: grid;
   font-size: 0.88rem;
-  gap: 10px;
-  line-height: 1.55;
+  gap: 16px;
+  line-height: 1.6;
   margin-top: 8px;
-  padding-top: 20px;
+  padding-top: 24px;
 }
 
 .home-footer p,
@@ -1589,6 +1588,30 @@ h3 {
 .privacy-page a {
   color: var(--accent-strong);
   font-weight: 700;
+}
+
+.home-footer-org {
+  display: grid;
+  gap: 6px;
+}
+
+.home-footer-brand {
+  color: var(--foreground);
+  font-family: var(--display-font);
+  font-size: 1rem;
+  font-weight: 900;
+  letter-spacing: -0.01em;
+}
+
+.home-footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.home-footer-legal {
+  color: #98a1ad;
+  font-size: 0.8rem;
 }
 
 .privacy-draft-banner {
