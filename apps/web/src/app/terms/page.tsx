@@ -38,24 +38,23 @@ export default function TermsPage() {
       <section className="legal-callout">
         <p>
           <strong>
-            Before you buy, check the details on the retailer&apos;s own
-            website:
+            Before you buy, read the retailer&apos;s own terms carefully
           </strong>{" "}
-          the current price, the payment terms, the estimated delivery time,
-          and the return and refund policy. Those are all set and handled by
-          the retailer — {brandName} only points you to the offer and is not
-          part of the sale.
+          — their current price, payment terms, delivery time, and return and
+          refund policy. Those are all set and handled by the retailer;{" "}
+          {brandName} only points you to the offer and is not part of the sale.
         </p>
       </section>
 
       <section className="privacy-section">
         <h2>What {brandName} does</h2>
         <p>
-          {brandName} is a free tool that helps you discover product deals and
-          affiliate offers from retailers in Canada. It is free to use — there
-          are no fees, no account, and no sign-up — and we do not collect
-          personal information through the site (see our{" "}
-          <Link href="/privacy">Privacy Policy</Link>).
+          {brandName} is an intermediary between shoppers and well-known
+          retailers in Canada: you tell it what you want, and the AI routing
+          system we built searches across retailers to surface the product at
+          the best available price. It is free to use — there are no fees, no
+          account, and no sign-up — and we do not collect personal information
+          through the site (see our <Link href="/privacy">Privacy Policy</Link>).
         </p>
       </section>
 

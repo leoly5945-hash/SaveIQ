@@ -25,7 +25,8 @@ describe("Terms", () => {
 
     expect(text).toContain("Last updated");
     expect(text).toContain("Nextwave Software Company");
-    expect(text).toContain("Before you buy, check the details");
+    expect(text).toContain("Before you buy, read the retailer");
+    expect(text).toContain("intermediary between shoppers");
     expect(text).toContain("is not a store and does not sell anything");
     expect(text).toContain("affiliate links");
     expect(text).toContain("British Columbia");

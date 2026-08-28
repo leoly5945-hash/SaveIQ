@@ -29,10 +29,11 @@ export default function PrivacyPage() {
       <section className="privacy-section">
         <h2>Who we are</h2>
         <p>
-          {brandName} ({`https://saveiq.ca`}) helps people discover product and
-          affiliate offers in Canada. It is operated by {OPERATOR_NAME}
-          {" "}(4641 Dunbar St, Vancouver, BC, Canada). We do not offer user
-          accounts, login, or sign-up on this site.
+          {brandName} ({`https://saveiq.ca`}) is an intermediary between
+          shoppers and well-known retailers in Canada, using an AI routing
+          system to help you find products at the best available price. It is
+          operated by {OPERATOR_NAME} (4641 Dunbar St, Vancouver, BC, Canada).
+          We do not offer user accounts, login, or sign-up on this site.
         </p>
       </section>
 
