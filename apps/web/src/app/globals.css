@@ -1567,6 +1567,72 @@ h3 {
   margin: 2px 0 0;
 }
 
+.home-how {
+  display: grid;
+  gap: 18px;
+  margin-top: 20px;
+  scroll-margin-top: 16px;
+}
+
+.home-how-head h2 {
+  font-family: var(--display-font);
+  font-size: 1.4rem;
+  font-weight: 900;
+}
+
+.home-how-head p {
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  margin: 6px 0 0;
+  max-width: 620px;
+}
+
+.home-how-steps {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.home-how-steps li {
+  align-content: start;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  display: grid;
+  gap: 8px;
+  padding: 20px;
+}
+
+.home-how-num {
+  align-items: center;
+  background: var(--promo-soft);
+  border-radius: 999px;
+  color: var(--promo-strong);
+  display: inline-flex;
+  font-family: var(--display-font);
+  font-size: 0.95rem;
+  font-weight: 900;
+  height: 30px;
+  justify-content: center;
+  width: 30px;
+}
+
+.home-how-steps h3 {
+  font-size: 1.02rem;
+  font-weight: 800;
+}
+
+.home-how-steps p {
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.55;
+  margin: 0;
+}
+
 .home-footer {
   border-top: 1px solid var(--border);
   color: var(--muted);
