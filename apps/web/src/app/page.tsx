@@ -4,7 +4,6 @@ import { getBrandName } from "@/lib/config";
 import { HOME_AFFILIATE_DISCLOSURE } from "@/lib/home-recommendations";
 
 import { HomeSearch } from "./home-search";
-import { HotDeals } from "./hot-deals";
 
 export default function Home() {
   const brandName = getBrandName();
@@ -58,7 +57,6 @@ export default function Home() {
         </p>
 
         <HomeSearch />
-        <HotDeals />
 
         <section className="home-how" id="how-it-works">
           <div className="home-how-head">
@@ -109,9 +107,10 @@ export default function Home() {
           <div className="home-footer-org">
             <p className="home-footer-brand">{brandName}</p>
             <p>
-              Operated by <strong>Nextwave Software Company</strong>
+              Operated by <strong>Nextwave Software Company</strong> (a company
+              registered in Vietnam)
               <br />
-              4641 Dunbar St, Vancouver, BC, Canada
+              Canadian address: 4641 Dunbar St, Vancouver, BC, Canada
               <br />
               Contact: Leo Do —{" "}
               <a href="mailto:leoly5945@gmail.com">leoly5945@gmail.com</a>
