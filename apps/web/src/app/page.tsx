@@ -15,7 +15,7 @@ export default function Home() {
         <div className="home-header-inner">
           <p className="home-brand">
             <span className="home-brand-mark" aria-hidden="true">
-              <svg width="30" height="30" viewBox="0 0 44 44">
+              <svg width="40" height="40" viewBox="0 0 44 44">
                 <rect width="44" height="44" rx="13" fill="#ffffff" />
                 <text
                   x="22"
@@ -60,9 +60,22 @@ export default function Home() {
         <HotDeals />
 
         <footer className="home-footer">
+          <div className="home-footer-org">
+            <p className="home-footer-brand">{brandName}</p>
+            <p>
+              Operated by <strong>Nextwave Software Company</strong>
+              <br />
+              4641 Dunbar St, Vancouver, BC, Canada
+            </p>
+            <p className="home-footer-links">
+              <a href="mailto:info@saveiq.ca">info@saveiq.ca</a>
+              <span aria-hidden="true"> · </span>
+              <Link href="/privacy">Privacy</Link>
+            </p>
+          </div>
           <p>{HOME_AFFILIATE_DISCLOSURE}</p>
-          <p>
-            <Link href="/privacy">Privacy</Link>
+          <p className="home-footer-legal">
+            © 2026 Nextwave Software Company. All rights reserved.
           </p>
         </footer>
       </main>
