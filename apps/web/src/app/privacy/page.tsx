@@ -5,9 +5,9 @@ import { getBrandName } from "@/lib/config";
 
 const brandName = getBrandName();
 
-const CONTACT_EMAIL = "luongdoduy@me.com";
-const OPERATOR_NAME = "Duy Luong";
-const LAST_UPDATED = "August 27, 2026";
+const CONTACT_EMAIL = "info@saveiq.ca";
+const OPERATOR_NAME = "Nextwave Software Company";
+const LAST_UPDATED = "August 28, 2026";
 
 export const metadata: Metadata = {
   title: `Privacy — ${brandName}`,
@@ -19,6 +19,8 @@ export default function PrivacyPage() {
     <main className="home-shell privacy-page">
       <p>
         <Link href="/">Back to {brandName}</Link>
+        {" · "}
+        <Link href="/terms">Terms of Use</Link>
       </p>
       <h1 className="home-title">Privacy Policy</h1>
       <p className="privacy-note">Last updated: {LAST_UPDATED}</p>
@@ -27,9 +29,9 @@ export default function PrivacyPage() {
         <h2>Who we are</h2>
         <p>
           {brandName} ({`https://saveiq.ca`}) helps people discover product and
-          affiliate offers in Canada. It is currently operated by an individual,
-          {" "}{OPERATOR_NAME}, rather than a registered company. We do not offer
-          user accounts, login, or sign-up on this site.
+          affiliate offers in Canada. It is operated by {OPERATOR_NAME}
+          {" "}(4641 Dunbar St, Vancouver, BC, Canada). We do not offer user
+          accounts, login, or sign-up on this site.
         </p>
       </section>
 

@@ -71,6 +71,8 @@ export default function Home() {
               <a href="mailto:info@saveiq.ca">info@saveiq.ca</a>
               <span aria-hidden="true"> · </span>
               <Link href="/privacy">Privacy</Link>
+              <span aria-hidden="true"> · </span>
+              <Link href="/terms">Terms</Link>
             </p>
           </div>
           <p>{HOME_AFFILIATE_DISCLOSURE}</p>
