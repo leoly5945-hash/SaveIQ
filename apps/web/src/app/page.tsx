@@ -108,9 +108,7 @@ export default function Home() {
             <p className="home-footer-brand">{brandName}</p>
             <p>
               Operated by <strong>Nextwave Software Company</strong> (a company
-              registered in Vietnam)
-              <br />
-              Canadian address: 4641 Dunbar St, Vancouver, BC, Canada
+              registered in Vietnam), from Vancouver, BC, Canada
               <br />
               Contact: Leo Do —{" "}
               <a href="mailto:leoly5945@gmail.com">leoly5945@gmail.com</a>

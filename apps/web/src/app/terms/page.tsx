@@ -30,9 +30,9 @@ export default function TermsPage() {
         <h2>About these terms</h2>
         <p>
           {brandName} ({`https://saveiq.ca`}) is operated by {OPERATOR_NAME}, a
-          company registered in Vietnam, from 4641 Dunbar St, Vancouver, BC,
-          Canada. By using the site you agree to these terms. If you do not
-          agree, please do not use the site.
+          company registered in Vietnam, from Vancouver, BC, Canada. By using
+          the site you agree to these terms. If you do not agree, please do not
+          use the site.
         </p>
       </section>
 

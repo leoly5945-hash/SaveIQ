@@ -33,8 +33,8 @@ export default function PrivacyPage() {
           shoppers and well-known retailers in Canada, using an AI routing
           system to help you find products at the best available price. It is
           operated by {OPERATOR_NAME}, a company registered in Vietnam, from
-          4641 Dunbar St, Vancouver, BC, Canada. We do not offer user accounts,
-          login, or sign-up on this site.
+          Vancouver, BC, Canada. We do not offer user accounts, login, or
+          sign-up on this site.
         </p>
       </section>
 
