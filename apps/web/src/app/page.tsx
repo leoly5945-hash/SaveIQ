@@ -66,10 +66,11 @@ export default function Home() {
               Operated by <strong>Nextwave Software Company</strong>
               <br />
               4641 Dunbar St, Vancouver, BC, Canada
+              <br />
+              Contact: Leo Do —{" "}
+              <a href="mailto:leoly5945@gmail.com">leoly5945@gmail.com</a>
             </p>
             <p className="home-footer-links">
-              <a href="mailto:info@saveiq.ca">info@saveiq.ca</a>
-              <span aria-hidden="true"> · </span>
               <Link href="/privacy">Privacy</Link>
               <span aria-hidden="true"> · </span>
               <Link href="/terms">Terms</Link>

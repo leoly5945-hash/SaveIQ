@@ -25,7 +25,7 @@ describe("Privacy", () => {
 
     expect(text).toContain("Last updated");
     expect(text).toContain("do not sell personal information");
-    expect(text).toContain("info@saveiq.ca");
+    expect(text).toContain("leoly5945@gmail.com");
     expect(text).toContain("Nextwave Software Company");
     expect(text).toContain("anonymous identifier");
     expect(text).toContain("PIPEDA");

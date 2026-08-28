@@ -5,7 +5,8 @@ import { getBrandName } from "@/lib/config";
 
 const brandName = getBrandName();
 
-const CONTACT_EMAIL = "info@saveiq.ca";
+const CONTACT_NAME = "Leo Do";
+const CONTACT_EMAIL = "leoly5945@gmail.com";
 const OPERATOR_NAME = "Nextwave Software Company";
 const LAST_UPDATED = "August 28, 2026";
 
@@ -34,6 +35,19 @@ export default function TermsPage() {
         </p>
       </section>
 
+      <section className="legal-callout">
+        <p>
+          <strong>
+            Before you buy, check the details on the retailer&apos;s own
+            website:
+          </strong>{" "}
+          the current price, the payment terms, the estimated delivery time,
+          and the return and refund policy. Those are all set and handled by
+          the retailer — {brandName} only points you to the offer and is not
+          part of the sale.
+        </p>
+      </section>
+
       <section className="privacy-section">
         <h2>What {brandName} does</h2>
         <p>
@@ -49,10 +63,11 @@ export default function TermsPage() {
         <h2>Prices and offers come from third parties</h2>
         <p>
           Prices, discounts, coupons, availability, and product details are
-          gathered from retailers and affiliate networks and can change or be
-          out of date at any time. Always confirm the current price and details
-          on the retailer&apos;s own website before you buy. {brandName} does not
-          guarantee any price, saving, or that an offer is still available.
+          gathered from retailers and affiliate networks and can change, sell
+          out, or be out of date at any time. Always confirm the current price,
+          taxes, shipping cost, and delivery estimate on the retailer&apos;s own
+          website before you buy. {brandName} does not guarantee any price,
+          saving, delivery time, or that an offer is still available.
         </p>
       </section>
 
@@ -61,10 +76,11 @@ export default function TermsPage() {
         <p>
           {brandName} is not a store and does not sell anything. When you follow
           an outbound link and make a purchase, that purchase is solely between
-          you and the retailer. The retailer&apos;s own terms govern payment,
-          shipping and delivery, warranties, returns, refunds, and customer
-          support. Please direct any order, product, or return issues to the
-          retailer, not to {brandName}.
+          you and the retailer. The retailer&apos;s own terms — which you should
+          read before ordering — govern payment, shipping and delivery times,
+          warranties, returns, refunds, and customer support. Please direct any
+          order, product, payment, delivery, or return issue to the retailer,
+          not to {brandName}.
         </p>
       </section>
 
@@ -117,7 +133,8 @@ export default function TermsPage() {
       <section className="privacy-section">
         <h2>Contact</h2>
         <p>
-          Questions about these terms: <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.
+          Questions about these terms: {CONTACT_NAME},{" "}
+          <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.
         </p>
       </section>
     </main>

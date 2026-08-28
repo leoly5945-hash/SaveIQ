@@ -5,7 +5,8 @@ import { getBrandName } from "@/lib/config";
 
 const brandName = getBrandName();
 
-const CONTACT_EMAIL = "info@saveiq.ca";
+const CONTACT_NAME = "Leo Do";
+const CONTACT_EMAIL = "leoly5945@gmail.com";
 const OPERATOR_NAME = "Nextwave Software Company";
 const LAST_UPDATED = "August 28, 2026";
 
@@ -110,7 +111,8 @@ export default function PrivacyPage() {
       <section className="privacy-section">
         <h2>Contact</h2>
         <p>
-          Questions about this policy: <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.
+          Questions about this policy: {CONTACT_NAME},{" "}
+          <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.
         </p>
       </section>
     </main>

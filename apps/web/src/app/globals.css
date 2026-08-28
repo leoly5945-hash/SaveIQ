@@ -1635,6 +1635,21 @@ h3 {
   color: var(--foreground);
 }
 
+.legal-callout {
+  background: var(--accent-soft);
+  border: 1px solid #b9e2db;
+  border-radius: 8px;
+  color: var(--foreground);
+  display: grid;
+  gap: 8px;
+  line-height: 1.6;
+  padding: 14px 16px;
+}
+
+.legal-callout p {
+  margin: 0;
+}
+
 @media (max-width: 760px) {
   .home-shell {
     padding: 40px 16px 48px;
