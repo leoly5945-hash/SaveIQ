@@ -26,7 +26,8 @@ describe("Home", () => {
     const text = collectText(Home()).replace(/\s+/g, " ");
 
     expect(text).toContain("SaveIQ");
-    expect(text).toContain("Find a better deal");
+    expect(text).toContain("Stop overpaying.");
+    expect(text).toContain("Know the real lowest price.");
     expect(text).toContain(HOME_AFFILIATE_DISCLOSURE);
     expect(text).toContain("Privacy");
     expect(text).not.toContain("Staging mock data only");
