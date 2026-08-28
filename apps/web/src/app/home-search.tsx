@@ -59,7 +59,7 @@ export function HomeSearch() {
           />
         </label>
         <button className="home-submit" disabled={!canSubmit} type="submit">
-          {status === "loading" ? "Searching…" : "Search"}
+          {status === "loading" ? "Searching…" : "Find deals"}
         </button>
       </form>
 
@@ -87,16 +87,27 @@ export function HomeSearch() {
           {offers.map((offer) => {
             const link = dealLink(offer);
             const price = offer.sale_price_cents ?? offer.price_cents;
+            const percentOff =
+              offer.sale_price_cents && offer.price_cents > 0
+                ? Math.round(
+                    (1 - offer.sale_price_cents / offer.price_cents) * 100
+                  )
+                : 0;
             return (
               <li className="home-result-card" key={offer.offer_id}>
+                {percentOff > 0 ? (
+                  <span className="home-discount">−{percentOff}%</span>
+                ) : null}
                 <p className="merchant-name">{offer.merchant}</p>
                 <h2>{offer.offer_title || offer.title}</h2>
-                <p className="price">{formatMoney(price, offer.currency)}</p>
-                {offer.sale_price_cents ? (
-                  <p className="compare-price">
-                    was {formatMoney(offer.price_cents, offer.currency)}
-                  </p>
-                ) : null}
+                <div className="home-price-row">
+                  <p className="price">{formatMoney(price, offer.currency)}</p>
+                  {offer.sale_price_cents ? (
+                    <p className="compare-price">
+                      was {formatMoney(offer.price_cents, offer.currency)}
+                    </p>
+                  ) : null}
+                </div>
                 <div className="badge-row">
                   {offer.has_coupon ? <span>Coupon</span> : null}
                   {offer.has_cashback ? <span>Cashback</span> : null}

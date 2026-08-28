@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 44">
+  <rect width="44" height="44" rx="13" fill="#0f766e" />
+  <text
+    x="22"
+    y="31"
+    text-anchor="middle"
+    font-family="Arial, Helvetica, sans-serif"
+    font-weight="700"
+    font-size="21"
+    letter-spacing="-1"
+    fill="#ffffff"
+  >iQ</text>
+  <circle cx="14.6" cy="12" r="2.6" fill="#f97316" />
+</svg>
