@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   dealLink,
   requestHomeRecommendations,
-  trackHomeDealClick,
+  withAnonymousId,
 } from "./home-recommendations";
 
 describe("requestHomeRecommendations", () => {
@@ -96,59 +96,48 @@ describe("requestHomeRecommendations", () => {
   });
 });
 
-describe("trackHomeDealClick", () => {
-  it("fires /api/clicks without waiting for the response", () => {
-    let resolveFetch: ((value: Response) => void) | undefined;
-    const fetchImpl = vi.fn(
-      () =>
-        new Promise<Response>((resolve) => {
-          resolveFetch = resolve;
-        })
-    );
+describe("dealLink", () => {
+  const base = {
+    offer_id: 1,
+    title: "Item",
+    offer_title: "Item",
+    merchant: "Shop",
+    price_cents: 100,
+    sale_price_cents: null,
+    currency: "CAD",
+    has_coupon: false,
+    has_cashback: false,
+  };
 
-    const started = Date.now();
-    trackHomeDealClick({
-      offerId: 9,
-      targetType: "product",
-      anonymousUserId: "anon_TestUserIdentifier",
-      fetchImpl,
-    });
-    const elapsed = Date.now() - started;
-
-    expect(elapsed).toBeLessThan(50);
-    expect(fetchImpl).toHaveBeenCalledWith(
-      "/api/clicks",
-      expect.objectContaining({
-        keepalive: true,
-        method: "POST",
-        body: JSON.stringify({
-          offer_id: 9,
-          target_type: "product",
-          referrer: undefined,
-          anonymous_user_id: "anon_TestUserIdentifier",
-        }),
+  it("routes through /go with the product target when a product_url exists", () => {
+    expect(
+      dealLink({
+        ...base,
+        product_url: "https://example.test/p",
+        affiliate_url: "https://example.test/a",
       })
-    );
-    resolveFetch?.(new Response("{}", { status: 201 }));
+    ).toEqual({ href: "/go/1?t=product", targetType: "product" });
+  });
+
+  it("falls back to the affiliate target when only affiliate_url exists", () => {
+    expect(
+      dealLink({ ...base, product_url: null, affiliate_url: "https://example.test/a" })
+    ).toEqual({ href: "/go/1?t=affiliate", targetType: "affiliate" });
+  });
+
+  it("returns null when the offer has no destination", () => {
+    expect(dealLink({ ...base, product_url: null })).toBeNull();
   });
 });
 
-describe("dealLink", () => {
-  it("prefers product_url and product click type", () => {
-    expect(
-      dealLink({
-        offer_id: 1,
-        title: "Item",
-        offer_title: "Item",
-        merchant: "Shop",
-        price_cents: 100,
-        sale_price_cents: null,
-        currency: "CAD",
-        product_url: "https://example.test/p",
-        affiliate_url: "https://example.test/a",
-        has_coupon: false,
-        has_cashback: false,
-      })
-    ).toEqual({ href: "https://example.test/p", targetType: "product" });
+describe("withAnonymousId", () => {
+  it("appends aid to a href that already has a query string", () => {
+    expect(withAnonymousId("/go/1?t=product", "anon_TestUserIdentifier")).toBe(
+      "/go/1?t=product&aid=anon_TestUserIdentifier"
+    );
+  });
+
+  it("returns the href unchanged when there is no anonymous id", () => {
+    expect(withAnonymousId("/go/1?t=product", "")).toBe("/go/1?t=product");
   });
 });

@@ -37,13 +37,18 @@ export function formatMoney(cents: number, currency: string) {
 export function dealLink(
   offer: HomeOffer
 ): { href: string; targetType: ClickTargetType } | null {
+  let targetType: ClickTargetType | null = null;
   if (offer.product_url) {
-    return { href: offer.product_url, targetType: "product" };
+    targetType = "product";
+  } else if (offer.affiliate_url) {
+    targetType = "affiliate";
   }
-  if (offer.affiliate_url) {
-    return { href: offer.affiliate_url, targetType: "affiliate" };
+  if (!targetType) {
+    return null;
   }
-  return null;
+  // Route through our first-party /go redirect so the click is logged
+  // server-side and the outbound URL gets our SubID for reconciliation.
+  return { href: `/go/${offer.offer_id}?t=${targetType}`, targetType };
 }
 
 export async function requestHomeRecommendations(input: {
@@ -83,28 +88,11 @@ export async function requestHomeRecommendations(input: {
   }
 }
 
-export function trackHomeDealClick(input: {
-  offerId: number;
-  targetType: ClickTargetType;
-  anonymousUserId: string;
-  fetchImpl?: typeof fetch;
-}): void {
-  const fetchImpl = input.fetchImpl ?? fetch;
-  const referrer = typeof window === "undefined" ? undefined : window.location.href;
-  void fetchImpl("/api/clicks", {
-    body: JSON.stringify({
-      offer_id: input.offerId,
-      target_type: input.targetType,
-      referrer,
-      anonymous_user_id: input.anonymousUserId,
-    }),
-    headers: {
-      Accept: "application/json",
-      "content-type": "application/json",
-    },
-    keepalive: true,
-    method: "POST",
-  }).catch(() => {
-    // Fire-and-forget: never block opening the deal URL.
-  });
+/** Append the anonymous id so the /go redirect can attribute the click. */
+export function withAnonymousId(href: string, anonymousUserId: string): string {
+  if (!anonymousUserId) {
+    return href;
+  }
+  const separator = href.includes("?") ? "&" : "?";
+  return `${href}${separator}aid=${encodeURIComponent(anonymousUserId)}`;
 }

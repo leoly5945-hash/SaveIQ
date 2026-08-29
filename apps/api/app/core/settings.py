@@ -20,6 +20,14 @@ class Settings(BaseSettings):
     )
     log_level: str = Field(default="info", validation_alias="LOG_LEVEL")
     admin_api_token: str = Field(default="dev-admin-token", validation_alias="ADMIN_API_TOKEN")
+    affiliate_postback_secret: str | None = Field(
+        default=None,
+        validation_alias="AFFILIATE_POSTBACK_SECRET",
+    )
+    affiliate_redirect_dedup_seconds: int = Field(
+        default=10,
+        validation_alias="AFFILIATE_REDIRECT_DEDUP_SECONDS",
+    )
     feature_llm_intent_parser: bool = Field(
         default=False,
         validation_alias="FEATURE_LLM_INTENT_PARSER",
