@@ -52,6 +52,23 @@ describe("GET /go/[offerId]", () => {
     expect(response.headers.get("location")).toBe("https://saveiq.ca/");
   });
 
+  it("uses the forwarded host for the home fallback (behind a proxy)", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(new Response("not found", { status: 404 }))
+    );
+    const response = await GET(
+      new Request("http://localhost:10000/go/999", {
+        headers: {
+          "x-forwarded-host": "www.saveiq.ca",
+          "x-forwarded-proto": "https",
+        },
+      }),
+      ctx("999")
+    );
+    expect(response.headers.get("location")).toBe("https://www.saveiq.ca/");
+  });
+
   it("redirects home when the API is unreachable", async () => {
     vi.stubGlobal(
       "fetch",
