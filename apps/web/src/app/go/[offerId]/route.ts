@@ -32,7 +32,16 @@ const REDIRECT_HEADERS = {
 export async function GET(request: Request, context: RouteContext) {
   const { offerId } = await context.params;
   const requestUrl = new URL(request.url);
-  const home = new URL("/", requestUrl.origin);
+
+  // Behind Render/Cloudflare the request URL is http://localhost:<port>; the
+  // real public origin is in the forwarded headers.
+  const forwardedHost =
+    request.headers.get("x-forwarded-host") ?? request.headers.get("host");
+  const forwardedProto = request.headers.get("x-forwarded-proto") ?? "https";
+  const publicOrigin = forwardedHost
+    ? `${forwardedProto}://${forwardedHost}`
+    : requestUrl.origin;
+  const home = new URL("/", publicOrigin);
 
   const upstream = new URL(`/go/${encodeURIComponent(offerId)}`, getApiBaseUrl());
   const target = requestUrl.searchParams.get("t");
