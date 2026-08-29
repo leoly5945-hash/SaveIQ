@@ -10,8 +10,10 @@ from app.api.routes.admin_rate_limit import router as admin_rate_limit_router
 from app.api.routes.admin_router import router as admin_router_status
 from app.api.routes.admin_safety import router as admin_safety_router
 from app.api.routes.admin_users import router as admin_users_router
+from app.api.routes.affiliate_postback import router as affiliate_postback_router
 from app.api.routes.bandit import router as bandit_router
 from app.api.routes.clicks import router as clicks_router
+from app.api.routes.go import router as go_router
 from app.api.routes.health import router as health_router
 from app.api.routes.metrics import router as metrics_router
 from app.api.routes.personalization import router as personalization_router
@@ -49,6 +51,8 @@ def create_app() -> FastAPI:
     app.include_router(health_router)
     app.include_router(metrics_router)
     app.include_router(clicks_router)
+    app.include_router(go_router)
+    app.include_router(affiliate_postback_router)
     app.include_router(search_router)
     app.include_router(recommendations_router)
     app.include_router(bandit_router)

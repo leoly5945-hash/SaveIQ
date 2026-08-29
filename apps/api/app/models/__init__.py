@@ -2,6 +2,7 @@
 
 from app.models.affiliate import (
     AffiliateClickEvent,
+    AffiliateConversion,
     AffiliateLink,
     AffiliateProvider,
     AffiliateSyncError,
@@ -11,6 +12,7 @@ from app.models.affiliate import (
     CashbackOffer,
     Category,
     ClickTargetType,
+    ConversionStatus,
     Coupon,
     FreshnessStatus,
     Merchant,
@@ -29,6 +31,7 @@ from app.models.user import AnonymousUser, UserEvent
 
 __all__ = [
     "AffiliateClickEvent",
+    "AffiliateConversion",
     "AffiliateLink",
     "AffiliateProvider",
     "AffiliateSyncError",
@@ -40,6 +43,7 @@ __all__ = [
     "CanonicalProduct",
     "Category",
     "ClickTargetType",
+    "ConversionStatus",
     "Coupon",
     "FreshnessStatus",
     "Merchant",

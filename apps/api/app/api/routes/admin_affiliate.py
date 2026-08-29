@@ -25,6 +25,7 @@ from app.models import (
     RecommendationFeedbackEvent,
     RecommendationTraceEvent,
 )
+from app.services.affiliate.attribution import reconciliation_report
 from app.services.affiliate.ingestion import AffiliateIngestionService
 from app.services.affiliate.registry import registry
 from app.services.llm_intent_contract import LLM_INTENT_GUARDRAILS
@@ -485,7 +486,12 @@ def list_click_events(db: DbSession) -> list[dict[str, Any]]:
             "offer_title": event.offer.title if event.offer else None,
             "target_type": event.target_type,
             "target_url": event.target_url,
+            "landing_url": event.landing_url,
             "provider_source": event.provider_source,
+            "network": event.network,
+            "click_id": event.click_id,
+            "subid": event.subid,
+            "is_bot": event.is_bot,
             "source_record_id": event.source_record_id,
             "market": event.market,
             "referrer": event.referrer,
@@ -570,6 +576,18 @@ def get_click_analytics(db: DbSession) -> dict[str, Any]:
             for event in recent_events
         ],
     }
+
+
+@router.get("/reconciliation")
+def get_affiliate_reconciliation(db: DbSession, days: int = 30) -> dict[str, Any]:
+    """Per network/merchant: clicks we sent vs conversions the networks reported.
+
+    ``conversion_rate`` and ``epc_cents`` use billable (non-bot) clicks.
+    ``discrepancy`` flags rows worth raising with the network; the click log is
+    the supporting evidence.
+    """
+    days = max(1, min(days, 365))
+    return reconciliation_report(db, days=days)
 
 
 @router.get("/recommendation-traces")

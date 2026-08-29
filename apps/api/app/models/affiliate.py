@@ -67,6 +67,12 @@ class ClickTargetType(StrEnum):
     affiliate = "affiliate"
 
 
+class ConversionStatus(StrEnum):
+    pending = "pending"
+    approved = "approved"
+    reversed = "reversed"
+
+
 class RecommendationFeedbackRating(StrEnum):
     helpful = "helpful"
     not_helpful = "not_helpful"
@@ -361,6 +367,16 @@ class AffiliateClickEvent(Base):
     user_agent: Mapped[str | None] = mapped_column(String(512))
     referrer: Mapped[str | None] = mapped_column(String(2048))
     anonymous_user_id: Mapped[str | None] = mapped_column(String(64), index=True)
+    # Audit / reconciliation: a per-click id we also hand to the network as its
+    # SubID, the network it maps to, the exact URL we redirected to (with the
+    # SubID), a salted IP hash for fraud defence, and a best-effort bot flag so
+    # non-human clicks can be excluded from billable counts.
+    click_id: Mapped[str | None] = mapped_column(String(36), unique=True)
+    subid: Mapped[str | None] = mapped_column(String(80))
+    network: Mapped[str | None] = mapped_column(String(64), index=True)
+    landing_url: Mapped[str | None] = mapped_column(String(2048))
+    ip_hash: Mapped[str | None] = mapped_column(String(64))
+    is_bot: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="0")
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
@@ -372,6 +388,44 @@ class AffiliateClickEvent(Base):
     listing: Mapped[MerchantListing | None] = relationship()
 
     __table_args__ = (Index("ix_affiliate_click_events_offer_created", "offer_id", "created_at"),)
+
+
+class AffiliateConversion(Base):
+    """A conversion reported by an affiliate network (S2S postback or API pull).
+
+    Matched back to an :class:`AffiliateClickEvent` by ``subid`` / ``click_id``
+    so payouts can be reconciled against the clicks we actually sent. The raw
+    provider payload is kept verbatim as dispute evidence.
+    """
+
+    __tablename__ = "affiliate_conversions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    network: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    subid: Mapped[str | None] = mapped_column(String(80), index=True)
+    click_event_id: Mapped[int | None] = mapped_column(
+        ForeignKey("affiliate_click_events.id", ondelete="SET NULL")
+    )
+    external_id: Mapped[str | None] = mapped_column(String(160))
+    order_id: Mapped[str | None] = mapped_column(String(160))
+    status: Mapped[str] = enum_column(ConversionStatus, default=ConversionStatus.pending)
+    order_value_cents: Mapped[int | None] = mapped_column(Integer)
+    commission_cents: Mapped[int | None] = mapped_column(Integer)
+    currency: Mapped[str | None] = mapped_column(String(3))
+    reported_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    raw_payload: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )
+
+    click_event: Mapped[AffiliateClickEvent | None] = relationship()
+
+    __table_args__ = (
+        UniqueConstraint("network", "external_id", name="uq_affiliate_conversions_network_ext"),
+        Index("ix_affiliate_conversions_reported", "network", "reported_at"),
+    )
 
 
 class RecommendationTraceEvent(Base):

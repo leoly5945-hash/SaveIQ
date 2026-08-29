@@ -8,7 +8,7 @@ import {
   formatMoney,
   HOME_INTENT_PLACEHOLDER,
   requestHomeRecommendations,
-  trackHomeDealClick,
+  withAnonymousId,
   type HomeOffer,
 } from "@/lib/home-recommendations";
 
@@ -115,14 +115,7 @@ export function HomeSearch() {
                 {link ? (
                   <a
                     className="source-link"
-                    href={link.href}
-                    onClick={() =>
-                      trackHomeDealClick({
-                        offerId: offer.offer_id,
-                        targetType: link.targetType,
-                        anonymousUserId: getOrCreateAnonymousUserId(),
-                      })
-                    }
+                    href={withAnonymousId(link.href, getOrCreateAnonymousUserId())}
                     rel="noreferrer"
                     target="_blank"
                   >
