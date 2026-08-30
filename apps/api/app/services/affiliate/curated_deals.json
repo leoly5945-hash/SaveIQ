@@ -1,0 +1,210 @@
+{
+  "retailer": "Amazon.ca",
+  "retailer_slug": "amazon-ca",
+  "retailer_url": "https://www.amazon.ca",
+  "currency": "CAD",
+  "market": "CA",
+  "note": "Hand-picked real products on Amazon.ca. Prices are a point-in-time snapshot taken on the price_checked date and are not guaranteed - always confirm the current price at the retailer. No fabricated discounts or 'lowest price' claims. Add rows here to grow the featured set.",
+  "deals": [
+    {
+      "asin": "B088NRLMPV",
+      "title": "Anker USB-C to USB-C Cable, 60W, 6 ft",
+      "brand": "Anker",
+      "category": "Electronics",
+      "category_slug": "electronics",
+      "price_cents": 1699,
+      "price_checked": "2026-08-29",
+      "blurb": "Nylon-braided 60W USB-C charging cable, 6 ft. 4.6 stars from 60,000+ ratings."
+    },
+    {
+      "asin": "B0B2MM1W65",
+      "title": "Anker 511 Charger (Nano 3), 30W USB-C",
+      "brand": "Anker",
+      "category": "Electronics",
+      "category_slug": "electronics",
+      "price_cents": 1997,
+      "price_checked": "2026-08-29",
+      "blurb": "Compact 30W GaN wall charger for phones and tablets."
+    },
+    {
+      "asin": "B00004OCIP",
+      "title": "OXO Good Grips Swivel Peeler",
+      "brand": "OXO",
+      "category": "Kitchen",
+      "category_slug": "kitchen",
+      "price_cents": 1199,
+      "price_checked": "2026-08-29",
+      "blurb": "Stainless swivel blade with a soft non-slip handle. 4.8 stars."
+    },
+    {
+      "asin": "B00LW1APOC",
+      "title": "Command Medium Picture Hanging Strips",
+      "brand": "Command",
+      "category": "Home",
+      "category_slug": "home",
+      "price_cents": 1039,
+      "price_checked": "2026-08-29",
+      "blurb": "Damage-free picture hanging - no nails, no tools."
+    },
+    {
+      "asin": "B00006IFHD",
+      "title": "Sharpie Fine Point Permanent Markers, Black, 12-count",
+      "brand": "Sharpie",
+      "category": "Office",
+      "category_slug": "office",
+      "price_cents": 1129,
+      "price_checked": "2026-08-29",
+      "blurb": "Classic fine-point permanent markers, box of 12."
+    },
+    {
+      "asin": "B06XRGW8KJ",
+      "title": "BIC Cristal Xtra Smooth Ballpoint Pens, 24-count",
+      "brand": "BIC",
+      "category": "Office",
+      "category_slug": "office",
+      "price_cents": 1055,
+      "price_checked": "2026-08-29",
+      "blurb": "Everyday 1.0 mm medium-point ballpoint pens, 24-count."
+    },
+    {
+      "asin": "B0BZ9YWN35",
+      "title": "Gorilla Super Glue Gel, Anti-Clog Cap",
+      "brand": "Gorilla",
+      "category": "Home",
+      "category_slug": "home",
+      "price_cents": 997,
+      "price_checked": "2026-08-29",
+      "blurb": "Fast-setting no-run gel formula with an anti-clog cap."
+    },
+    {
+      "asin": "B00565V1GG",
+      "title": "Scotch-Brite Non-Scratch Scrub Sponge, 6-pack",
+      "brand": "Scotch-Brite",
+      "category": "Home",
+      "category_slug": "home",
+      "price_cents": 798,
+      "price_checked": "2026-08-29",
+      "blurb": "Non-scratch scrub sponges for everyday dishes, 6-pack."
+    },
+    {
+      "asin": "B014I8SSD0",
+      "title": "Amazon Basics High-Speed HDMI Cable, 6 ft",
+      "brand": "Amazon Basics",
+      "category": "Electronics",
+      "category_slug": "electronics",
+      "price_cents": 1151,
+      "price_checked": "2026-08-29",
+      "blurb": "18 Gbps, 4K/60Hz HDMI cable, 6 ft."
+    },
+    {
+      "asin": "B005GIQXCU",
+      "title": "Energizer MAX AA Alkaline Batteries, 20-count",
+      "brand": "Energizer",
+      "category": "Home",
+      "category_slug": "home",
+      "price_cents": 1198,
+      "price_checked": "2026-08-29",
+      "blurb": "20-pack of AA alkaline batteries. 4.8 stars."
+    },
+    {
+      "asin": "B07B8W2KHZ",
+      "title": "Kasa Smart Wi-Fi Plug (HS103P2), 2-pack",
+      "brand": "Kasa",
+      "category": "Electronics",
+      "category_slug": "electronics",
+      "price_cents": 1999,
+      "price_checked": "2026-08-29",
+      "blurb": "Wi-Fi smart plugs that work with Alexa and Google Home. 2-pack."
+    },
+    {
+      "asin": "B0F16FT36C",
+      "title": "Contigo West Loop 3.0 Stainless Steel Travel Mug",
+      "brand": "Contigo",
+      "category": "Kitchen",
+      "category_slug": "kitchen",
+      "price_cents": 2317,
+      "price_checked": "2026-08-29",
+      "blurb": "Vacuum-insulated travel mug with a spill-proof AUTOSEAL lid."
+    },
+    {
+      "asin": "B083GGFTPW",
+      "title": "CeraVe Moisturizing Cream, 539 g",
+      "brand": "CeraVe",
+      "category": "Personal Care",
+      "category_slug": "personal-care",
+      "price_cents": 2797,
+      "price_checked": "2026-08-29",
+      "blurb": "Fragrance-free daily face and body moisturizing cream, 539 g tub."
+    },
+    {
+      "asin": "B0BPF3F2NP",
+      "title": "Crest 3D White Advanced Whitening Toothpaste, 4-count",
+      "brand": "Crest",
+      "category": "Personal Care",
+      "category_slug": "personal-care",
+      "price_cents": 1299,
+      "price_checked": "2026-08-29",
+      "blurb": "Fluoride whitening toothpaste, pack of 4."
+    },
+    {
+      "asin": "B01M2C5GTU",
+      "title": "Oral-B Indicator Toothbrush, Soft, 4-count",
+      "brand": "Oral-B",
+      "category": "Personal Care",
+      "category_slug": "personal-care",
+      "price_cents": 897,
+      "price_checked": "2026-08-29",
+      "blurb": "Soft manual toothbrushes with a bristle wear indicator, 4-pack."
+    },
+    {
+      "asin": "B0052EH8OA",
+      "title": "Logitech M185 Wireless Mouse",
+      "brand": "Logitech",
+      "category": "Electronics",
+      "category_slug": "electronics",
+      "price_cents": 2399,
+      "price_checked": "2026-08-29",
+      "blurb": "Compact 2.4 GHz wireless mouse with a USB nano receiver."
+    },
+    {
+      "asin": "B0DB18QHMS",
+      "title": "Anker Soundcore Select 4 Go Bluetooth Speaker",
+      "brand": "Anker",
+      "category": "Electronics",
+      "category_slug": "electronics",
+      "price_cents": 2999,
+      "price_checked": "2026-08-29",
+      "blurb": "Pocket-size IP67 waterproof speaker with a 20-hour battery."
+    },
+    {
+      "asin": "B00NJ2M33I",
+      "title": "Sony MDR-ZX110 Wired Headphones, Black",
+      "brand": "Sony",
+      "category": "Electronics",
+      "category_slug": "electronics",
+      "price_cents": 1999,
+      "price_checked": "2026-08-29",
+      "blurb": "Lightweight foldable wired over-ear headphones."
+    },
+    {
+      "asin": "B0000AQNPB",
+      "title": "Ticonderoga No. 2 Pencils, Box of 24",
+      "brand": "Ticonderoga",
+      "category": "Office",
+      "category_slug": "office",
+      "price_cents": 800,
+      "price_checked": "2026-08-29",
+      "blurb": "Wood-cased #2 HB pencils, box of 24. 4.7 stars."
+    },
+    {
+      "asin": "B00006JNNE",
+      "title": "Post-it Notes, 3 x 3 in, Canary Yellow, 12 pads",
+      "brand": "Post-it",
+      "category": "Office",
+      "category_slug": "office",
+      "price_cents": 2299,
+      "price_checked": "2026-08-29",
+      "blurb": "Original 3 x 3 in sticky notes, 12 pads."
+    }
+  ]
+}

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { getBrandName } from "@/lib/config";
 import { HOME_AFFILIATE_DISCLOSURE } from "@/lib/home-recommendations";
 
+import { FeaturedDeals } from "./featured-deals";
 import { HomeSearch } from "./home-search";
 
 export default function Home() {
@@ -57,6 +58,8 @@ export default function Home() {
         </p>
 
         <HomeSearch />
+
+        <FeaturedDeals />
 
         <section className="home-how" id="how-it-works">
           <div className="home-how-head">

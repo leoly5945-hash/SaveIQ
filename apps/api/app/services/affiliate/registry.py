@@ -1,3 +1,4 @@
+from app.services.affiliate.curated_provider import CuratedAmazonProvider
 from app.services.affiliate.mock_provider import MockAffiliateProvider
 from app.services.affiliate.schemas import AffiliateProviderAdapter
 
@@ -18,3 +19,4 @@ class AffiliateProviderRegistry:
 
 registry = AffiliateProviderRegistry()
 registry.register(MockAffiliateProvider())
+registry.register(CuratedAmazonProvider())

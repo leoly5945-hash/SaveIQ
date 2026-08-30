@@ -269,6 +269,23 @@ async def run_mock_sync(db: DbSession) -> SyncResultResponse:
     )
 
 
+@router.post("/sync/curated", response_model=SyncResultResponse)
+async def run_curated_sync(db: DbSession) -> SyncResultResponse:
+    """Ingest the hand-picked real Amazon.ca products (``curated_deals.json``).
+
+    Idempotent: re-running refreshes prices/titles in place. Safe to run on
+    production - the catalogue is version-controlled real data, not fixtures.
+    """
+    provider = registry.get("amazon_ca")
+    result = await AffiliateIngestionService(db, provider).run_sync()
+    return SyncResultResponse(
+        job_id=result.job_id,
+        provider_source=result.provider_source,
+        status=result.status,
+        stats=SyncStatsResponse(**result.stats.__dict__),
+    )
+
+
 @router.get("/sync/jobs")
 def list_sync_jobs(db: DbSession) -> list[dict[str, Any]]:
     jobs = db.scalars(select(AffiliateSyncJob).order_by(AffiliateSyncJob.id.desc())).all()
