@@ -365,8 +365,9 @@ def validate_env(
             fail("production API must set AI_ROUTER_MODE", profile=profile)
         if api_env.get("RATE_LIMIT_ENABLED", {}).get("value") != "true":
             fail("production RATE_LIMIT_ENABLED must be true", profile=profile)
-        if web_env.get("PRODUCTION_NOINDEX", {}).get("value") != "true":
-            fail("web service must set PRODUCTION_NOINDEX=true", profile=profile)
+        # Public launch (2026-08-29): production is intentionally indexable.
+        if web_env.get("PRODUCTION_NOINDEX", {}).get("value") != "false":
+            fail("web service must set PRODUCTION_NOINDEX=false", profile=profile)
     else:
         if web_env.get("STAGING_NOINDEX", {}).get("value") != "true":
             fail("web service must set STAGING_NOINDEX=true", profile=profile)

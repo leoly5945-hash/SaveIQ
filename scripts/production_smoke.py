@@ -147,10 +147,12 @@ def main() -> None:
         fail("web health is not ok")
     checks.append(Check("web_health", "ok"))
 
+    # Public launch (2026-08-29): production is indexable, so the noindex
+    # X-Robots-Tag must be gone.
     robots = get_headers(f"{web_url}/api/health").get("x-robots-tag", "")
-    if "noindex" not in robots.lower():
-        fail("production web must send X-Robots-Tag noindex until public launch")
-    checks.append(Check("production_noindex", robots or "present"))
+    if "noindex" in robots.lower():
+        fail("production web must not send X-Robots-Tag noindex after public launch")
+    checks.append(Check("production_indexable", robots or "absent"))
 
     bandit = get_json(f"{api_url}/bandit/status")
     # At canary >0%, sticky cohort can enable bandit logging (active=true, mode=logging)
