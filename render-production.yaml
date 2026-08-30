@@ -178,7 +178,13 @@ services:
       # Public launch (2026-08-29): the site is now indexable. Flipping this
       # back to "true" also requires reverting the guardrails in
       # scripts/validate_render_blueprint.py and scripts/production_smoke.py.
+      # Both keys must be pinned to "false": proxy.ts emits noindex if EITHER
+      # is "true", and Render does not delete an env var when it is removed
+      # from the blueprint (a leftover STAGING_NOINDEX=true kept the site
+      # noindex after the first launch sync).
       - key: PRODUCTION_NOINDEX
+        value: "false"
+      - key: STAGING_NOINDEX
         value: "false"
       - key: INTERNAL_TOOLS_USER
         sync: false
