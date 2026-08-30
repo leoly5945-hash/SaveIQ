@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { Archivo } from "next/font/google";
 import "./globals.css";
 
-import { getBrandName } from "@/lib/config";
+import { getBrandName, getSiteUrl } from "@/lib/config";
 
 const brandName = getBrandName();
 
@@ -15,8 +15,10 @@ const archivo = Archivo({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(getSiteUrl()),
   title: brandName,
   description: "Find product deals and affiliate offers in Canada.",
+  alternates: { canonical: "/" },
 };
 
 // Site-verification <meta> tags. Impact.com's crawler reads the `value`

@@ -175,10 +175,11 @@ services:
         value: "https://dealhunter-production-api.onrender.com"
       - key: NEXT_PUBLIC_BRAND_NAME
         value: SaveIQ
+      # Public launch (2026-08-29): the site is now indexable. Flipping this
+      # back to "true" also requires reverting the guardrails in
+      # scripts/validate_render_blueprint.py and scripts/production_smoke.py.
       - key: PRODUCTION_NOINDEX
-        value: "true"
-      - key: STAGING_NOINDEX
-        value: "true"
+        value: "false"
       - key: INTERNAL_TOOLS_USER
         sync: false
       - key: INTERNAL_TOOLS_PASSWORD
