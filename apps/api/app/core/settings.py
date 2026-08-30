@@ -28,6 +28,10 @@ class Settings(BaseSettings):
         default=10,
         validation_alias="AFFILIATE_REDIRECT_DEDUP_SECONDS",
     )
+    amazon_associate_tag: str = Field(
+        default="saveiq-20",
+        validation_alias="AMAZON_ASSOCIATE_TAG",
+    )
     feature_llm_intent_parser: bool = Field(
         default=False,
         validation_alias="FEATURE_LLM_INTENT_PARSER",
