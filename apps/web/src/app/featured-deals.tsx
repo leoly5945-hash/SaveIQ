@@ -1,18 +1,18 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
-import { getOrCreateAnonymousUserId } from "@/lib/anonymous-user";
 import {
   AMAZON_ASSOCIATE_DISCLOSURE,
+  dealPath,
   FEATURED_DEALS_BLURB,
   FEATURED_DEALS_HEADING,
-  featuredDealHref,
+  formatMoney,
   formatPriceCheckedDate,
   requestFeaturedDeals,
   type FeaturedDeal,
 } from "@/lib/featured-deals";
-import { formatMoney, withAnonymousId } from "@/lib/home-recommendations";
 
 export function FeaturedDeals() {
   const [deals, setDeals] = useState<FeaturedDeal[]>([]);
@@ -49,7 +49,9 @@ export function FeaturedDeals() {
           return (
             <li className="home-featured-card" key={deal.offer_id}>
               <p className="merchant-name">{deal.merchant}</p>
-              <h3>{deal.title}</h3>
+              <h3>
+                <Link href={dealPath(deal)}>{deal.title}</Link>
+              </h3>
               {deal.blurb ? (
                 <p className="home-featured-blurb">{deal.blurb}</p>
               ) : null}
@@ -59,22 +61,17 @@ export function FeaturedDeals() {
                   Price checked {checked} — confirm at {deal.merchant}
                 </p>
               ) : null}
-              <a
-                className="source-link"
-                href={withAnonymousId(
-                  featuredDealHref(deal),
-                  getOrCreateAnonymousUserId()
-                )}
-                rel="sponsored noreferrer"
-                target="_blank"
-              >
-                View deal
-              </a>
+              <Link className="source-link" href={dealPath(deal)}>
+                See details
+              </Link>
             </li>
           );
         })}
       </ul>
 
+      <p className="home-featured-more">
+        <Link href="/deals">Browse all deals →</Link>
+      </p>
       <p className="home-featured-disclosure">{AMAZON_ASSOCIATE_DISCLOSURE}</p>
     </section>
   );

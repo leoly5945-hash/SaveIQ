@@ -70,6 +70,47 @@ def test_curated_sync_populates_featured_deals() -> None:
         session.close()
 
 
+def test_featured_deal_slug_and_detail_lookup() -> None:
+    client, session = make_client()
+    try:
+        client.post("/admin/affiliate/sync/curated", headers=ADMIN)
+        deals = client.get("/featured-deals").json()["deals"]
+        slugs = [d["slug"] for d in deals]
+        assert all(slugs), "every deal has a slug"
+        assert len(set(slugs)) == len(slugs), "slugs are unique"
+        assert "-" in slugs[0] and slugs[0] == slugs[0].lower()
+
+        first = deals[0]
+        detail = client.get(f"/featured-deals/{first['slug']}")
+        assert detail.status_code == 200
+        assert detail.json()["offer_id"] == first["offer_id"]
+        assert detail.json()["title"] == first["title"]
+
+        assert client.get("/featured-deals/no-such-deal").status_code == 404
+    finally:
+        app.dependency_overrides.clear()
+        session.close()
+
+
+def test_featured_deal_categories() -> None:
+    client, session = make_client()
+    try:
+        client.post("/admin/affiliate/sync/curated", headers=ADMIN)
+        body = client.get("/featured-deals/categories").json()
+        assert body["count"] >= 4
+        by_slug = {c["slug"]: c for c in body["categories"]}
+        assert "electronics" in by_slug
+        assert by_slug["electronics"]["count"] >= 1
+        assert sum(c["count"] for c in body["categories"]) == EXPECTED_DEAL_COUNT
+
+        elec = client.get("/featured-deals?category=electronics").json()
+        assert elec["count"] == by_slug["electronics"]["count"]
+        assert all(d["category_slug"] == "electronics" for d in elec["deals"])
+    finally:
+        app.dependency_overrides.clear()
+        session.close()
+
+
 def test_featured_deal_click_carries_amazon_tag_and_subid() -> None:
     client, session = make_client()
     try:

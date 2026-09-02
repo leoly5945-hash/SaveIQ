@@ -35,6 +35,7 @@ export default function Home() {
             {brandName}
           </p>
           <nav className="home-nav">
+            <Link href="/deals">Deals</Link>
             <a href="#how-it-works">How it works</a>
             <Link href="/privacy">Privacy</Link>
           </nav>
@@ -117,6 +118,8 @@ export default function Home() {
               <a href="mailto:leoly5945@gmail.com">leoly5945@gmail.com</a>
             </p>
             <p className="home-footer-links">
+              <Link href="/deals">Deals</Link>
+              <span aria-hidden="true"> · </span>
               <Link href="/privacy">Privacy</Link>
               <span aria-hidden="true"> · </span>
               <Link href="/terms">Terms</Link>
