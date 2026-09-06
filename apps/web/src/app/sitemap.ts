@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 
 import { getSiteUrl } from "@/lib/config";
 import { fetchDealCategories, fetchDeals } from "@/lib/featured-deals";
+import { GUIDES } from "@/lib/guides";
 
 // Build fresh each request so newly-added deals/categories appear immediately.
 export const dynamic = "force-dynamic";
@@ -17,6 +18,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: now,
       changeFrequency: "daily",
       priority: 0.9,
+    },
+    {
+      url: `${site}/guides`,
+      lastModified: now,
+      changeFrequency: "weekly",
+      priority: 0.7,
     },
     {
       url: `${site}/privacy`,
@@ -51,5 +58,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.6,
   }));
 
-  return [...staticPages, ...categoryPages, ...dealPages];
+  const guidePages: MetadataRoute.Sitemap = GUIDES.map((guide) => ({
+    url: `${site}/guide/${guide.slug}`,
+    lastModified: new Date(`${guide.updated}T00:00:00Z`),
+    changeFrequency: "monthly",
+    priority: 0.6,
+  }));
+
+  return [...staticPages, ...guidePages, ...categoryPages, ...dealPages];
 }

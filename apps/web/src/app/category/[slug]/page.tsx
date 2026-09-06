@@ -10,6 +10,7 @@ import {
   fetchDealCategories,
   fetchDeals,
 } from "@/lib/featured-deals";
+import { guidePath, guidesForCategory } from "@/lib/guides";
 
 export const revalidate = 3600;
 
@@ -47,6 +48,7 @@ export default async function CategoryPage({ params }: Params) {
   }
 
   const deals = await fetchDeals({ category: slug });
+  const guides = guidesForCategory(slug);
 
   return (
     <main className="home-shell category-page">
@@ -69,9 +71,24 @@ export default async function CategoryPage({ params }: Params) {
         <p className="state-message">No deals in this category right now.</p>
       )}
 
+      {guides.length > 0 ? (
+        <section className="guide-related">
+          <h2>Guides</h2>
+          <ul className="category-guide-list">
+            {guides.map((g) => (
+              <li key={g.slug}>
+                <Link href={guidePath(g.slug)}>{g.title}</Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
       <p className="category-page-disclosure">{AMAZON_ASSOCIATE_DISCLOSURE}</p>
       <p className="deal-page-back">
         <Link href="/deals">← All deals</Link>
+        {" · "}
+        <Link href="/guides">All guides</Link>
       </p>
     </main>
   );

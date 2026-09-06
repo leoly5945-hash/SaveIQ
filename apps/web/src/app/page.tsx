@@ -36,6 +36,7 @@ export default function Home() {
           </p>
           <nav className="home-nav">
             <Link href="/deals">Deals</Link>
+            <Link href="/guides">Guides</Link>
             <a href="#how-it-works">How it works</a>
             <Link href="/privacy">Privacy</Link>
           </nav>
@@ -119,6 +120,8 @@ export default function Home() {
             </p>
             <p className="home-footer-links">
               <Link href="/deals">Deals</Link>
+              <span aria-hidden="true"> · </span>
+              <Link href="/guides">Guides</Link>
               <span aria-hidden="true"> · </span>
               <Link href="/privacy">Privacy</Link>
               <span aria-hidden="true"> · </span>
