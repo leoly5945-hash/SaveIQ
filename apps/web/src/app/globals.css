@@ -2008,6 +2008,21 @@ h3 {
   color: var(--foreground);
 }
 
+.privacy-section ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 20px;
+}
+
+.privacy-section li {
+  line-height: 1.6;
+}
+
+.about-page .crumbs {
+  margin-bottom: 4px;
+}
+
 .legal-callout {
   background: var(--accent-soft);
   border: 1px solid #b9e2db;
