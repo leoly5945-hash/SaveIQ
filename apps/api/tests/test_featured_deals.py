@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from collections.abc import Generator
 from urllib.parse import parse_qs, urlsplit
 
@@ -14,7 +15,7 @@ from app.db.session import get_db
 from app.main import app
 
 ADMIN = {"X-Admin-Token": "dev-admin-token"}
-EXPECTED_DEAL_COUNT = 20
+EXPECTED_DEAL_COUNT = 68
 
 
 def make_client() -> tuple[TestClient, Session]:
@@ -59,7 +60,7 @@ def test_curated_sync_populates_featured_deals() -> None:
         first = body["deals"][0]
         assert first["merchant"] == "Amazon.ca"
         assert first["currency"] == "CAD"
-        assert first["price_checked"] == "2026-08-29"
+        assert re.fullmatch(r"\d{4}-\d{2}-\d{2}", first["price_checked"])
         assert first["blurb"]
         assert first["product_url"].startswith("https://www.amazon.ca/dp/")
 

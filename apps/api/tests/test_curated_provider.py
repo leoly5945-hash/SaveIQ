@@ -10,7 +10,7 @@ from app.models import AffiliateLink, MerchantListing, Offer
 from app.services.affiliate.curated_provider import CURATED_DEALS_PATH, CuratedAmazonProvider
 from app.services.affiliate.ingestion import AffiliateIngestionService
 
-EXPECTED_DEAL_COUNT = 20
+EXPECTED_DEAL_COUNT = 68
 
 
 def test_catalogue_file_is_well_formed() -> None:

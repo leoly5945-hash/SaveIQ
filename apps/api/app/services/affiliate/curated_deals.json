@@ -205,6 +205,486 @@
       "price_cents": 2299,
       "price_checked": "2026-08-29",
       "blurb": "Original 3 x 3 in sticky notes, 12 pads."
+    },
+    {
+      "asin": "B0BWJ87T9P",
+      "title": "Anker Power Bank, 10,000mAh Portable Charger (PowerCore PIQ)",
+      "brand": "Anker",
+      "category": "Electronics",
+      "category_slug": "electronics",
+      "price_cents": 4599,
+      "price_checked": "2026-09-02",
+      "blurb": "10,000mAh portable charger with PowerIQ fast charging. 4.4 stars."
+    },
+    {
+      "asin": "B015CH1PJU",
+      "title": "SanDisk Ultra Flair USB 3.0 Flash Drive, 128GB",
+      "brand": "SanDisk",
+      "category": "Electronics",
+      "category_slug": "electronics",
+      "price_cents": 3610,
+      "price_checked": "2026-09-02",
+      "blurb": "128GB USB 3.0 drive with a durable metal casing, up to 150MB/s reads. 4.6 stars."
+    },
+    {
+      "asin": "B003ELVLKU",
+      "title": "Logitech K120 Full-Size Wired Keyboard",
+      "brand": "Logitech",
+      "category": "Electronics",
+      "category_slug": "electronics",
+      "price_cents": 1998,
+      "price_checked": "2026-09-02",
+      "blurb": "Plug-and-play USB keyboard, spill-resistant, quiet keys. 4.4 stars."
+    },
+    {
+      "asin": "B09HLG4T1Z",
+      "title": "JLab Go Air Pop True Wireless Earbuds",
+      "brand": "JLab",
+      "category": "Electronics",
+      "category_slug": "electronics",
+      "price_cents": 2796,
+      "price_checked": "2026-09-02",
+      "blurb": "Budget true-wireless earbuds with dual connect and three EQ presets."
+    },
+    {
+      "asin": "B07CRR32TV",
+      "title": "TP-Link AC1750 Wi-Fi Range Extender (RE450)",
+      "brand": "TP-Link",
+      "category": "Electronics",
+      "category_slug": "electronics",
+      "price_cents": 3471,
+      "price_checked": "2026-09-02",
+      "blurb": "Dual-band Wi-Fi extender rated up to 1750 Mbps with signal indicators."
+    },
+    {
+      "asin": "B00LH3DMUO",
+      "title": "Amazon Basics AAA Alkaline Batteries, 36-Pack",
+      "brand": "Amazon Basics",
+      "category": "Home",
+      "category_slug": "home",
+      "price_cents": 1871,
+      "price_checked": "2026-09-02",
+      "blurb": "36-pack of AAA alkaline batteries with a 10-year shelf life. 4.6 stars."
+    },
+    {
+      "asin": "B0057405KE",
+      "title": "Command Utility Hooks Value Pack (6 Hooks, 12 Strips)",
+      "brand": "Command",
+      "category": "Home",
+      "category_slug": "home",
+      "price_cents": 1197,
+      "price_checked": "2026-09-02",
+      "blurb": "Damage-free adhesive utility hooks that hold up to 2.3 kg each."
+    },
+    {
+      "asin": "B009FUF6DM",
+      "title": "Amazon Basics Microfiber Cleaning Cloths",
+      "brand": "Amazon Basics",
+      "category": "Home",
+      "category_slug": "home",
+      "price_cents": 1759,
+      "price_checked": "2026-09-02",
+      "blurb": "Lint-free, streak-free microfiber cloths for general cleaning. 4.6 stars."
+    },
+    {
+      "asin": "B071JBMY54",
+      "title": "Philips 60W-Equivalent A19 LED Bulbs, Soft White, 4-Pack",
+      "brand": "Philips",
+      "category": "Home",
+      "category_slug": "home",
+      "price_cents": 998,
+      "price_checked": "2026-09-02",
+      "blurb": "Non-dimmable 2700K soft-white LED bulbs, 60W equivalent, 4-pack. 4.6 stars."
+    },
+    {
+      "asin": "B00LGLHU0K",
+      "title": "Pyrex Prepware 2-Cup Glass Measuring Cup",
+      "brand": "Pyrex",
+      "category": "Kitchen",
+      "category_slug": "kitchen",
+      "price_cents": 2999,
+      "price_checked": "2026-09-02",
+      "blurb": "Tempered glass measuring cup with dishwasher-safe markings. 4.7 stars."
+    },
+    {
+      "asin": "B00008GKDG",
+      "title": "Lodge 8-Inch Pre-Seasoned Cast-Iron Skillet",
+      "brand": "Lodge",
+      "category": "Kitchen",
+      "category_slug": "kitchen",
+      "price_cents": 3797,
+      "price_checked": "2026-09-02",
+      "blurb": "Pre-seasoned cast iron, oven-safe, made in the USA. 4.5 stars."
+    },
+    {
+      "asin": "B004NBYADU",
+      "title": "Bodum Brazil 34 oz (8-Cup) French Press",
+      "brand": "Bodum",
+      "category": "Kitchen",
+      "category_slug": "kitchen",
+      "price_cents": 3895,
+      "price_checked": "2026-09-02",
+      "blurb": "8-cup French press with a borosilicate glass carafe and stainless mesh filter."
+    },
+    {
+      "asin": "B00004OCKR",
+      "title": "OXO Good Grips Salad Spinner",
+      "brand": "OXO",
+      "category": "Kitchen",
+      "category_slug": "kitchen",
+      "price_cents": 3595,
+      "price_checked": "2026-09-02",
+      "blurb": "One-hand pump spinner with a brake button and non-slip base. 4.5 stars."
+    },
+    {
+      "asin": "B096T6KMFR",
+      "title": "KitchenAid Slotted Silicone Turner",
+      "brand": "KitchenAid",
+      "category": "Kitchen",
+      "category_slug": "kitchen",
+      "price_cents": 999,
+      "price_checked": "2026-09-02",
+      "blurb": "Heat-resistant silicone turner that is safe for nonstick pans. 4.7 stars."
+    },
+    {
+      "asin": "B00XK69NRW",
+      "title": "Utopia Kitchen Flour Sack Towels, 12-Pack",
+      "brand": "Utopia Kitchen",
+      "category": "Kitchen",
+      "category_slug": "kitchen",
+      "price_cents": 2849,
+      "price_checked": "2026-09-02",
+      "blurb": "100% cotton flour-sack tea towels, 28 x 28 in, pack of 12. 4.6 stars."
+    },
+    {
+      "asin": "B0B3GS15GL",
+      "title": "Brita 10-Cup Water Filter Pitcher with Indicator",
+      "brand": "Brita",
+      "category": "Kitchen",
+      "category_slug": "kitchen",
+      "price_cents": 3597,
+      "price_checked": "2026-09-02",
+      "blurb": "10-cup pitcher with a filter-change light; reduces chlorine taste and odour."
+    },
+    {
+      "asin": "B000087KUA",
+      "title": "Scotch Heavy Duty Shipping Tape, 1.88 in x 50 m, 6 Rolls",
+      "brand": "Scotch",
+      "category": "Office",
+      "category_slug": "office",
+      "price_cents": 4499,
+      "price_checked": "2026-09-02",
+      "blurb": "Six rolls of heavy-duty clear packing tape, 1.88 in x 50 m. 4.6 stars."
+    },
+    {
+      "asin": "B0006VO194",
+      "title": "Paper Mate Flair Felt Tip Pens, Black, 12-Count",
+      "brand": "Paper Mate",
+      "category": "Office",
+      "category_slug": "office",
+      "price_cents": 1799,
+      "price_checked": "2026-09-02",
+      "blurb": "Medium-point felt-tip pens that resist bleed-through. 4.5 stars."
+    },
+    {
+      "asin": "B0058NN4C0",
+      "title": "Pilot G2 Retractable Gel Pens, Fine Point, Black, 5-Pack",
+      "brand": "Pilot",
+      "category": "Office",
+      "category_slug": "office",
+      "price_cents": 1385,
+      "price_checked": "2026-09-02",
+      "blurb": "Retractable gel-ink rollerball pens, 0.7 mm fine point, 5-pack. 4.7 stars."
+    },
+    {
+      "asin": "B00BMJTOSW",
+      "title": "Cetaphil Gentle Skin Cleanser, 473 ml",
+      "brand": "Cetaphil",
+      "category": "Personal Care",
+      "category_slug": "personal-care",
+      "price_cents": 1597,
+      "price_checked": "2026-09-02",
+      "blurb": "Fragrance-free, non-foaming cleanser for face and body, dermatologist-recommended."
+    },
+    {
+      "asin": "B00YPBGIIS",
+      "title": "Neutrogena Hydro Boost Gel Cream Moisturizer, 47 mL",
+      "brand": "Neutrogena",
+      "category": "Personal Care",
+      "category_slug": "personal-care",
+      "price_cents": 2148,
+      "price_checked": "2026-09-02",
+      "blurb": "Lightweight hyaluronic-acid gel-cream for normal to dry skin. 4.5 stars."
+    },
+    {
+      "asin": "B081KKY6X7",
+      "title": "Aquaphor Healing Ointment, Multipurpose",
+      "brand": "Aquaphor",
+      "category": "Personal Care",
+      "category_slug": "personal-care",
+      "price_cents": 1546,
+      "price_checked": "2026-09-02",
+      "blurb": "Petrolatum-based ointment for dry, cracked skin, chapped lips and minor cuts."
+    },
+    {
+      "asin": "B0843XSMMM",
+      "title": "CeraVe Foaming Face Wash, 473 mL",
+      "brand": "CeraVe",
+      "category": "Personal Care",
+      "category_slug": "personal-care",
+      "price_cents": 1759,
+      "price_checked": "2026-09-02",
+      "blurb": "Foaming cleanser with niacinamide and hyaluronic acid for normal to oily skin."
+    },
+    {
+      "asin": "B01MDTVZTZ",
+      "title": "The Ordinary Niacinamide 10% + Zinc 1% Serum, 30 ml",
+      "brand": "The Ordinary",
+      "category": "Personal Care",
+      "category_slug": "personal-care",
+      "price_cents": 660,
+      "price_checked": "2026-09-02",
+      "blurb": "The brand's best-known blemish-focused serum. 4.6 stars."
+    },
+    {
+      "asin": "B081ZQQV9H",
+      "title": "Listerine Ultraclean Alcohol-Free Antiseptic Mouthwash",
+      "brand": "Listerine",
+      "category": "Personal Care",
+      "category_slug": "personal-care",
+      "price_cents": 896,
+      "price_checked": "2026-09-02",
+      "blurb": "Alcohol-free antiseptic mouthwash for gum protection. 4.7 stars."
+    },
+    {
+      "asin": "B07SHWRHTL",
+      "title": "BalanceFrom All-Purpose 1/2-Inch Extra Thick Yoga Mat",
+      "brand": "BalanceFrom",
+      "category": "Sports & Outdoors",
+      "category_slug": "sports-outdoors",
+      "price_cents": 3026,
+      "price_checked": "2026-09-02",
+      "blurb": "High-density 1/2-inch exercise mat with a carrying strap. 4.4 stars."
+    },
+    {
+      "asin": "B01AVDVHTI",
+      "title": "Fit Simplify Resistance Loop Exercise Bands, Set of 5",
+      "brand": "Fit Simplify",
+      "category": "Sports & Outdoors",
+      "category_slug": "sports-outdoors",
+      "price_cents": 1399,
+      "price_checked": "2026-09-02",
+      "blurb": "Five graduated resistance loop bands with an instruction guide and carry bag."
+    },
+    {
+      "asin": "B08LF175VC",
+      "title": "Nalgene 32 oz Wide Mouth Water Bottle",
+      "brand": "Nalgene",
+      "category": "Sports & Outdoors",
+      "category_slug": "sports-outdoors",
+      "price_cents": 1576,
+      "price_checked": "2026-09-02",
+      "blurb": "BPA-free, leak-proof 1L bottle that is famously hard to break. 4.8 stars."
+    },
+    {
+      "asin": "B00339C3RI",
+      "title": "Coleman Camping Chair with Built-in 4-Can Cooler",
+      "brand": "Coleman",
+      "category": "Sports & Outdoors",
+      "category_slug": "sports-outdoors",
+      "price_cents": 8666,
+      "price_checked": "2026-09-02",
+      "blurb": "Folding quad chair with an insulated cooler pouch, cup holder and carry bag."
+    },
+    {
+      "asin": "B004VBC0FM",
+      "title": "KONG Classic Dog Toy",
+      "brand": "KONG",
+      "category": "Pet Supplies",
+      "category_slug": "pet-supplies",
+      "price_cents": 1585,
+      "price_checked": "2026-09-02",
+      "blurb": "Natural-rubber chew and fetch toy that can be stuffed with treats. 4.5 stars."
+    },
+    {
+      "asin": "B00006IX59",
+      "title": "Chuckit! Classic Ball Launcher, Medium (26 in)",
+      "brand": "Chuckit!",
+      "category": "Pet Supplies",
+      "category_slug": "pet-supplies",
+      "price_cents": 1598,
+      "price_checked": "2026-09-02",
+      "blurb": "Hands-free ball launcher for fetch; fits standard tennis balls."
+    },
+    {
+      "asin": "B07MZBX5ZW",
+      "title": "FURminator Undercoat Deshedding Tool for Dogs",
+      "brand": "FURminator",
+      "category": "Pet Supplies",
+      "category_slug": "pet-supplies",
+      "price_cents": 4519,
+      "price_checked": "2026-09-02",
+      "blurb": "Reaches through the topcoat to pull loose undercoat; reduces shedding. 4.7 stars."
+    },
+    {
+      "asin": "B000KAHPZ8",
+      "title": "Greenies Adult Dog Dental Treats, 340 g",
+      "brand": "Greenies",
+      "category": "Pet Supplies",
+      "category_slug": "pet-supplies",
+      "price_cents": 1993,
+      "price_checked": "2026-09-02",
+      "blurb": "Vet-recommended chews that clean down to the gumline. 4.7 stars."
+    },
+    {
+      "asin": "B0006342ZK",
+      "title": "SmartyKat Super Scratcher Corrugated Cat Scratcher",
+      "brand": "SmartyKat",
+      "category": "Pet Supplies",
+      "category_slug": "pet-supplies",
+      "price_cents": 2999,
+      "price_checked": "2026-09-02",
+      "blurb": "Two-sided corrugated cardboard scratcher with catnip. 4.6 stars."
+    },
+    {
+      "asin": "B00FFA7TGS",
+      "title": "Stanley PowerLock II Tape Measure, 25 ft",
+      "brand": "Stanley",
+      "category": "Tools",
+      "category_slug": "tools",
+      "price_cents": 3304,
+      "price_checked": "2026-09-02",
+      "blurb": "25 ft x 1 in tape with a Tru-Zero end hook and blade coating. 4.6 stars."
+    },
+    {
+      "asin": "B07VFGM8BR",
+      "title": "WD-40 Multi-Use Product, 311 g with Big Blast Spray",
+      "brand": "WD-40",
+      "category": "Tools",
+      "category_slug": "tools",
+      "price_cents": 748,
+      "price_checked": "2026-09-02",
+      "blurb": "The classic penetrating oil that loosens rust and displaces moisture. 4.7 stars."
+    },
+    {
+      "asin": "B000EHP9QE",
+      "title": "Irwin Self-Retracting Safety Utility Knife",
+      "brand": "Irwin",
+      "category": "Tools",
+      "category_slug": "tools",
+      "price_cents": 1859,
+      "price_checked": "2026-09-02",
+      "blurb": "Blade auto-retracts when it leaves the cut, for safer box opening. 4.5 stars."
+    },
+    {
+      "asin": "B00KCKNZ2I",
+      "title": "Gorilla Wood Glue, 118 mL",
+      "brand": "Gorilla",
+      "category": "Tools",
+      "category_slug": "tools",
+      "price_cents": 627,
+      "price_checked": "2026-09-02",
+      "blurb": "Water-resistant PVA wood glue for indoor and outdoor projects. 4.6 stars."
+    },
+    {
+      "asin": "B0006HX2MK",
+      "title": "Duck All-Purpose Duct Tape, Silver, 45 yd",
+      "brand": "Duck",
+      "category": "Tools",
+      "category_slug": "tools",
+      "price_cents": 1262,
+      "price_checked": "2026-09-02",
+      "blurb": "1.88 in x 45 yd all-purpose cloth duct tape. 4.5 stars."
+    },
+    {
+      "asin": "B00JM5GW10",
+      "title": "Play-Doh Modeling Compound 10-Pack Case of Colors",
+      "brand": "Play-Doh",
+      "category": "Toys & Games",
+      "category_slug": "toys-games",
+      "price_cents": 1299,
+      "price_checked": "2026-09-02",
+      "blurb": "Ten 2-oz cans of non-toxic modeling compound. 4.6 stars."
+    },
+    {
+      "asin": "B00NHQFA1I",
+      "title": "LEGO Classic Medium Creative Brick Box 10696",
+      "brand": "LEGO",
+      "category": "Toys & Games",
+      "category_slug": "toys-games",
+      "price_cents": 4274,
+      "price_checked": "2026-09-02",
+      "blurb": "484-piece open-ended brick set with a stackable storage box. 4.8 stars."
+    },
+    {
+      "asin": "B09Z347MVL",
+      "title": "Crayola Crayons, 24 Colours (2 Boxes)",
+      "brand": "Crayola",
+      "category": "Toys & Games",
+      "category_slug": "toys-games",
+      "price_cents": 538,
+      "price_checked": "2026-09-02",
+      "blurb": "Two 24-count boxes of classic wax crayons. 4.7 stars."
+    },
+    {
+      "asin": "B092W7D64G",
+      "title": "Rubik's Cube, The Original 3x3",
+      "brand": "Rubik's",
+      "category": "Toys & Games",
+      "category_slug": "toys-games",
+      "price_cents": 2044,
+      "price_checked": "2026-09-02",
+      "blurb": "The original colour-matching puzzle cube. 4.7 stars."
+    },
+    {
+      "asin": "B00CTH0A1Q",
+      "title": "Mattel Games UNO Card Game",
+      "brand": "Mattel",
+      "category": "Toys & Games",
+      "category_slug": "toys-games",
+      "price_cents": 800,
+      "price_checked": "2026-09-02",
+      "blurb": "The classic 112-card family card game. 4.8 stars."
+    },
+    {
+      "asin": "B01845QH7M",
+      "title": "Dr. Brown's Options+ Anti-Colic Narrow Baby Bottle, 8 oz",
+      "brand": "Dr. Brown's",
+      "category": "Baby",
+      "category_slug": "baby",
+      "price_cents": 2697,
+      "price_checked": "2026-09-02",
+      "blurb": "Internal vent system designed to reduce colic, gas and spit-up. 4.6 stars."
+    },
+    {
+      "asin": "B07TDN9MKC",
+      "title": "Philips Avent Soothie Pacifier, 0-3 Months",
+      "brand": "Philips Avent",
+      "category": "Baby",
+      "category_slug": "baby",
+      "price_cents": 1076,
+      "price_checked": "2026-09-02",
+      "blurb": "One-piece 100% silicone pacifier used in many hospitals. 4.5 stars."
+    },
+    {
+      "asin": "B004L5JCZ4",
+      "title": "Aveeno Baby Wash & Shampoo, 532 mL",
+      "brand": "Aveeno",
+      "category": "Baby",
+      "category_slug": "baby",
+      "price_cents": 1642,
+      "price_checked": "2026-09-02",
+      "blurb": "Tear-free, soap-free 2-in-1 baby wash and shampoo with oat extract. 4.7 stars."
+    },
+    {
+      "asin": "B082N71R8B",
+      "title": "Boon Grass Countertop Baby Bottle Drying Rack",
+      "brand": "Boon",
+      "category": "Baby",
+      "category_slug": "baby",
+      "price_cents": 2599,
+      "price_checked": "2026-09-02",
+      "blurb": "Countertop rack for drying bottles, pump parts and cups. 4.8 stars."
     }
   ]
 }
