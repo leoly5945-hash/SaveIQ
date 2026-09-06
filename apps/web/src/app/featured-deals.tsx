@@ -5,28 +5,35 @@ import { useEffect, useState } from "react";
 
 import {
   AMAZON_ASSOCIATE_DISCLOSURE,
+  categoryPath,
   dealPath,
   FEATURED_DEALS_BLURB,
   FEATURED_DEALS_HEADING,
   formatMoney,
   formatPriceCheckedDate,
+  requestDealCategories,
   requestFeaturedDeals,
+  type DealCategory,
   type FeaturedDeal,
 } from "@/lib/featured-deals";
 
 export function FeaturedDeals() {
   const [deals, setDeals] = useState<FeaturedDeal[]>([]);
+  const [categories, setCategories] = useState<DealCategory[]>([]);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     let active = true;
-    void requestFeaturedDeals().then((result) => {
-      if (!active) {
-        return;
+    void Promise.all([requestFeaturedDeals(), requestDealCategories()]).then(
+      ([dealResult, categoryResult]) => {
+        if (!active) {
+          return;
+        }
+        setDeals(dealResult);
+        setCategories(categoryResult);
+        setLoaded(true);
       }
-      setDeals(result);
-      setLoaded(true);
-    });
+    );
     return () => {
       active = false;
     };
@@ -42,6 +49,20 @@ export function FeaturedDeals() {
         <h2 id="featured-deals-heading">{FEATURED_DEALS_HEADING}</h2>
         <p>{FEATURED_DEALS_BLURB}</p>
       </div>
+
+      {categories.length > 0 ? (
+        <nav className="home-featured-cats" aria-label="Browse deals by category">
+          {categories.map((cat) => (
+            <Link key={cat.slug} href={categoryPath(cat.slug)}>
+              {cat.name}
+              <span aria-hidden="true"> {cat.count}</span>
+            </Link>
+          ))}
+          <Link className="home-featured-cats-all" href="/deals">
+            All deals →
+          </Link>
+        </nav>
+      ) : null}
 
       <ul className="home-featured-list">
         {deals.map((deal) => {
