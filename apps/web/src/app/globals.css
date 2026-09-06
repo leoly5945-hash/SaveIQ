@@ -1517,6 +1517,35 @@ h3 {
   max-width: 60ch;
 }
 
+.home-featured-cats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.home-featured-cats a {
+  background: var(--promo-soft);
+  border-radius: 999px;
+  color: var(--promo-strong);
+  font-size: 0.85rem;
+  font-weight: 700;
+  padding: 6px 12px;
+  text-decoration: none;
+}
+
+.home-featured-cats a:hover {
+  background: #ffe1cc;
+}
+
+.home-featured-cats a span {
+  color: #b06a3c;
+  font-weight: 600;
+}
+
+.home-featured-cats-all {
+  background: none !important;
+}
+
 .home-featured-list {
   display: grid;
   gap: 12px;

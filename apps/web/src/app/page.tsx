@@ -43,20 +43,21 @@ export default function Home() {
         </div>
         <p className="home-valueprop">
           <span className="home-valueprop-dot" aria-hidden="true" />
-          No fees. No account. No markup — just the lowest verified price.
+          No fees. No account. No markup.
         </p>
       </header>
 
       <main className="home-shell">
-        <p className="home-eyebrow">AI deal finder · Canada</p>
+        <p className="home-eyebrow">Deal finder · Canada</p>
         <h1 className="home-title">
           Stop overpaying.
           <br />
-          <span>Know the real lowest price.</span>
+          <span>See the real price, not the list price.</span>
         </h1>
         <p className="home-sub">
-          Tell {brandName} what you want. It scans retailers, stacks coupons and
-          cashback, and ranks the true bottom-line price.
+          {brandName} is a hand-checked deal list for Canadian shoppers. We pick
+          real products, verify the current price ourselves, and link you
+          straight to the retailer. Search the list, or browse by category.
         </p>
 
         <HomeSearch />
@@ -67,9 +68,8 @@ export default function Home() {
           <div className="home-how-head">
             <h2>How SaveIQ works</h2>
             <p>
-              SaveIQ sits between you and well-known retailers. You bring the
-              intent; our AI Router does the price hunting — so you buy from
-              names you already trust, at the best price we can find.
+              {brandName} is a shortlist, not a store. We do the price-checking;
+              you buy from the retailer you already trust.
             </p>
           </div>
           <ol className="home-how-steps">
@@ -77,32 +77,32 @@ export default function Home() {
               <span className="home-how-num" aria-hidden="true">
                 1
               </span>
-              <h3>Tell it what you want</h3>
+              <h3>We hand-pick and price-check</h3>
               <p>
-                Describe the product in plain words. No account, no sign-up, no
-                fee.
+                We choose real products across everyday categories and check the
+                current price on Amazon.ca ourselves. Every listing shows the
+                price we found and the date we checked it.
               </p>
             </li>
             <li>
               <span className="home-how-num" aria-hidden="true">
                 2
               </span>
-              <h3>The AI Router hunts</h3>
+              <h3>You search or browse</h3>
               <p>
-                It reads your intent and searches trusted retailers at once,
-                weighing price, coupons and cashback to find the real
-                bottom-line cost.
+                Type what you&apos;re after, or browse by category. No account,
+                no sign-up, no fee.
               </p>
             </li>
             <li>
               <span className="home-how-num" aria-hidden="true">
                 3
               </span>
-              <h3>You buy at the best price</h3>
+              <h3>You buy from the retailer</h3>
               <p>
-                Get one ranked list and check out directly with the retailer.
-                SaveIQ never adds a markup — we earn a commission from the
-                retailer instead.
+                Checkout happens on the retailer&apos;s own site, at the
+                retailer&apos;s price. SaveIQ never adds a markup — a retailer
+                affiliate commission is how we&apos;re paid.
               </p>
             </li>
           </ol>

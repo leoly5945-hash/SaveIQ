@@ -56,6 +56,23 @@ export async function requestFeaturedDeals(
   }
 }
 
+export async function requestDealCategories(
+  fetchImpl: typeof fetch = fetch
+): Promise<DealCategory[]> {
+  try {
+    const response = await fetchImpl("/api/featured-deals/categories", {
+      headers: { Accept: "application/json" },
+    });
+    if (!response.ok) {
+      return [];
+    }
+    const payload = (await response.json()) as DealCategoriesPayload;
+    return Array.isArray(payload.categories) ? payload.categories : [];
+  } catch {
+    return [];
+  }
+}
+
 // --- server — talks to the API directly, used by the SEO pages ---------------
 
 async function apiJson<T>(path: string): Promise<T | null> {
