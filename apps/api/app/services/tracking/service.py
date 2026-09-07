@@ -19,8 +19,10 @@ from app.models.tracking import (
     PriceObservation,
     TrackedProduct,
 )
+from app.providers import ProviderError
 from app.providers.registry import ProviderRegistry
 from app.services.decision.assess import assess_from_provider
+from app.services.decision.price_check import PriceCheckError, resolve_target
 from app.services.tracking.email import EmailMessage, EmailSender
 
 logger = logging.getLogger(__name__)
@@ -188,6 +190,66 @@ def create_alert(
     db.add(alert)
     db.flush()
     return alert
+
+
+async def track_and_alert(
+    db: Session,
+    registry: ProviderRegistry,
+    *,
+    email: str,
+    kind: AlertKind,
+    threshold_cents: int | None = None,
+    product_id: str | None = None,
+    url: str | None = None,
+) -> tuple[PriceAlert, TrackedProduct]:
+    """Full flow: (URL | id) -> provider -> tracked product + one observation +
+    a new alert. Raises :class:`PriceCheckError` (status + detail) on any gate.
+    """
+
+    resolved_id, hint = resolve_target(product_id, url)
+    adapter = registry.try_get(hint or "keepa") or registry.try_get("keepa")
+    if adapter is None:
+        raise PriceCheckError(503, "no keepa provider configured")
+
+    try:
+        product = await adapter.get_product(resolved_id)
+        price = await adapter.get_price(resolved_id)
+        history = await adapter.get_price_history(resolved_id, days=90)
+    except ProviderError as exc:
+        raise PriceCheckError(502, f"provider error: {exc}") from exc
+
+    tracked = get_or_create_tracked_product(
+        db,
+        provider=adapter.name,
+        provider_product_id=resolved_id,
+        market=adapter.market,
+        title=product.title if product else None,
+        product_url=product.product_url if product else None,
+    )
+
+    if price is not None and price.price_cents is not None and history is not None:
+        assessment = assess_from_provider(price, history)
+        avg90 = verdict = score = None
+        if assessment is not None:
+            avg90 = (assessment.intelligence.provider_stats or {}).get("avg90_cents")
+            verdict = assessment.verdict.value
+            score = assessment.score
+        record_observation(
+            db,
+            tracked,
+            effective_price_cents=price.price_cents,
+            currency=price.currency,
+            source=price.source,
+            avg90_cents=avg90,
+            verdict=verdict,
+            score=score,
+        )
+
+    try:
+        alert = create_alert(db, tracked, email=email, kind=kind, threshold_cents=threshold_cents)
+    except TrackingError as exc:
+        raise PriceCheckError(422, str(exc)) from exc
+    return alert, tracked
 
 
 def unsubscribe(db: Session, token: str) -> bool:

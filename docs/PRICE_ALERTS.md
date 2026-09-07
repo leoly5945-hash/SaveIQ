@@ -52,12 +52,14 @@ URL under `PUBLIC_SITE_URL`.
 
 | endpoint | auth | purpose |
 | --- | --- | --- |
-| `POST /admin/alerts` | admin | create a tracked product + alert from `{email, url \| product_id, kind, threshold_cents?}`; does one initial observation |
+| `POST /alerts` | **public** (CP16) | create from `{email, url \| product_id, kind, threshold_cents?}`; per-IP rate limited (`ALERT_CREATE_RATE_PER_MINUTE`, only when `RATE_LIMIT_ENABLED`) |
+| `POST /admin/alerts` | admin | same, no rate limit |
 | `GET /admin/alerts` | admin | list alerts (latest 200) |
 | `POST /admin/alerts/run` | admin | run one `run_alert_cycle`, returns `CycleStats` |
 | `GET /alerts/unsubscribe?token=` | **public** | deactivate an alert; same response whether the token matched |
 
-Public alert creation + rate limiting + the `/check` UI is CP16.
+Both create paths go through `track_and_alert()`. The `/check` web UI is the
+remaining CP16 piece.
 
 ## Scheduled run
 

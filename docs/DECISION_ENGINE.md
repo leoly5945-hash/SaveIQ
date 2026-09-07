@@ -123,18 +123,21 @@ product_id, keepa_domain, source_url}`. TLD picks the market (`.ca` → CA / Kee
 domain 6). `amzn.to` / `a.co` short links resolve only when `follow_redirects` is
 set (one HEAD, no body). Non-Amazon hosts and search/listing pages return `None`.
 
-## Trying it
+## Endpoints
 
-`GET /admin/providers/price-check` (admin token) live-fetches and returns a full
-`DealAssessment`. Pass **either**:
+The flow `(url | product_id) → provider fetch → engine` lives in
+`app/services/decision/price_check.py::run_price_check` and is shared by:
 
-* `product_id=<ASIN>` — a raw provider id, or
-* `url=<amazon.ca product URL>` — parsed by CP6; a non-`.ca` marketplace is
-  rejected with 422 until a provider covers it.
+| endpoint | auth | notes |
+| --- | --- | --- |
+| `GET /check?url=…` or `?product_id=…` | **public** (CP16) | per-IP rate limited (`CHECK_RATE_PER_MINUTE`, only when `RATE_LIMIT_ENABLED`); each call spends a provider token |
+| `GET /admin/providers/price-check` | admin | same, plus `debug=1` for the raw provider shape |
 
-Plus optional `provider=`, `days=` (7–365), `debug=1` (raw provider shape).
-Staging surface until the public price-checker UI (CP16). Each call spends
-provider tokens (Keepa: ~1 `/product` call).
+Both take optional `days=` (7–365). A non-`.ca` marketplace URL is rejected with
+422 until a provider covers it.
+
+`POST /alerts` (public, `ALERT_CREATE_RATE_PER_MINUTE`) creates a tracked product
++ one observation + a price alert in the same call (see `docs/PRICE_ALERTS.md`).
 
 ## Not yet
 
