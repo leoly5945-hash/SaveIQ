@@ -1,16 +1,23 @@
-"""Admin: inspect registered product data providers (CP4).
+"""Admin: inspect product data providers + run a live deal assessment (CP4, CP9–CP11).
 
-Read-only. Confirms which providers are wired and configured on a deploy without
-exposing any secret — the verification surface for ``KEEPA_API_KEY`` being set.
+Read-only. `GET /admin/providers` confirms which providers are wired without
+exposing a secret. `GET /admin/providers/price-check` live-fetches one product
+and runs the deterministic decision engine over it — the staging surface for
+"show me it works on real data" before the public price-checker (CP16) exists.
 """
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
 from app.api.dependencies import require_admin
-from app.providers import get_provider_registry
+from app.providers import ProviderCapability, ProviderError, get_provider_registry
+from app.providers.base import ProductDataProvider
+from app.services.decision.assess import assess_from_provider
+from app.services.decision.deal_score import DealAssessment
 
 router = APIRouter(
     prefix="/admin/providers",
@@ -32,6 +39,14 @@ class ProviderListResponse(BaseModel):
     providers: list[ProviderInfo]
 
 
+class PriceCheckResponse(BaseModel):
+    provider: str
+    provider_product_id: str
+    title: str | None
+    product_url: str | None
+    assessment: DealAssessment
+
+
 @router.get("", response_model=ProviderListResponse)
 def list_providers() -> ProviderListResponse:
     registry = get_provider_registry()
@@ -47,3 +62,54 @@ def list_providers() -> ProviderListResponse:
     ]
     infos.sort(key=lambda info: info.name)
     return ProviderListResponse(count=len(infos), providers=infos)
+
+
+def _pick_provider(name: str | None) -> ProductDataProvider:
+    registry = get_provider_registry()
+    if name:
+        provider = registry.try_get(name)
+        if provider is None:
+            raise HTTPException(status_code=404, detail=f"no provider named {name!r}")
+        return provider
+    for provider in registry.list():
+        caps = provider.capabilities
+        if ProviderCapability.get_price in caps and ProviderCapability.price_history in caps:
+            return provider
+    raise HTTPException(
+        status_code=503,
+        detail="no configured provider can answer get_price + price_history",
+    )
+
+
+@router.get("/price-check", response_model=PriceCheckResponse)
+async def price_check(
+    product_id: Annotated[
+        str, Query(min_length=3, max_length=32, description="ASIN / provider product id")
+    ],
+    provider: Annotated[str | None, Query()] = None,
+    days: Annotated[int, Query(ge=7, le=365)] = 90,
+) -> PriceCheckResponse:
+    adapter = _pick_provider(provider)
+    try:
+        price = await adapter.get_price(product_id)
+        if price is None:
+            raise HTTPException(status_code=404, detail="provider has no price for that id")
+        history = await adapter.get_price_history(product_id, days=days)
+        product = await adapter.get_product(product_id)
+    except ProviderError as exc:
+        raise HTTPException(status_code=502, detail=f"provider error: {exc}") from exc
+
+    if history is None:
+        raise HTTPException(status_code=404, detail="provider has no price history for that id")
+
+    assessment = assess_from_provider(price, history)
+    if assessment is None:
+        raise HTTPException(status_code=422, detail="no current price to assess")
+
+    return PriceCheckResponse(
+        provider=adapter.name,
+        provider_product_id=product_id,
+        title=product.title if product else None,
+        product_url=product.product_url if product else None,
+        assessment=assessment,
+    )
