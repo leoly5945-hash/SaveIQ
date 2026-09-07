@@ -269,6 +269,39 @@ async def test_get_price_history_decodes_and_filters() -> None:
 
 
 @pytest.mark.asyncio
+async def test_price_history_tolerates_malformed_csv_slots() -> None:
+    product = _product(with_offers=False)
+    # Real Keepa never sends null inside a csv row, but a defensive decode must
+    # not raise if it does — skip the bad slot, keep the good ones.
+    product["csv"][0] = [
+        _keepa_minutes(_ago(10)),
+        None,  # malformed price
+        _keepa_minutes(_ago(5)),
+        4400,
+        "oops",  # malformed time
+        4300,
+    ]
+    provider = _provider(_envelope(product))
+    history = await provider.get_price_history("B09VPHVT9Z", days=90)
+    assert history is not None
+    amazon = [p.price_cents for p in history.points if p.kind == "amazon"]
+    assert amazon == [4400]
+
+
+@pytest.mark.asyncio
+async def test_get_price_survives_null_stats_entries() -> None:
+    product = _product(with_offers=False)
+    product["stats"]["current"] = [None] * 19  # all unknown
+    product["csv"][18] = []
+    product["csv"][0] = [_keepa_minutes(_ago(3)), 4250]
+    provider = _provider(_envelope(product))
+    price = await provider.get_price("B09VPHVT9Z")
+    assert price is not None
+    assert price.source == "keepa:amazon"
+    assert price.price_cents == 4250
+
+
+@pytest.mark.asyncio
 async def test_request_raises_on_keepa_error_object() -> None:
     provider = _provider({"error": {"message": "Invalid api key"}, "tokensLeft": -1})
     with pytest.raises(ProviderError, match="Invalid api key"):
