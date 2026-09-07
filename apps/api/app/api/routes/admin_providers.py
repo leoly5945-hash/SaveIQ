@@ -17,9 +17,12 @@ from pydantic import BaseModel
 from app.api.dependencies import require_admin
 from app.providers import ProviderCapability, ProviderError, get_provider_registry
 from app.providers.base import ProductDataProvider
-from app.services.decision.assess import assess_from_provider
 from app.services.decision.deal_score import DealAssessment
-from app.services.product_url import extract_product_ref
+from app.services.decision.price_check import (
+    PriceCheckError,
+    resolve_target,
+    run_price_check,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -85,28 +88,6 @@ def _pick_provider(name: str | None) -> ProductDataProvider:
     )
 
 
-def _resolve_target(
-    product_id: str | None,
-    url: str | None,
-) -> tuple[str, str | None]:
-    """(provider_product_id, provider_name_hint) from either a raw id or a URL."""
-
-    if url:
-        ref = extract_product_ref(url, follow_redirects=True)
-        if ref is None:
-            raise HTTPException(status_code=422, detail="could not find a product id in that URL")
-        hint = "keepa" if ref.keepa_domain == 6 else None
-        if ref.market not in ("", "CA"):
-            raise HTTPException(
-                status_code=422,
-                detail=f"{ref.retailer} {ref.market} is not covered yet — only Amazon.ca",
-            )
-        return ref.product_id, hint
-    if product_id:
-        return product_id, None
-    raise HTTPException(status_code=422, detail="pass product_id or url")
-
-
 @router.get("/price-check")
 async def price_check(
     product_id: Annotated[
@@ -119,52 +100,44 @@ async def price_check(
         bool, Query(description="return raw provider data, not an assessment")
     ] = False,
 ) -> object:
-    product_id, provider_hint = _resolve_target(product_id, url)
-    if provider:
-        adapter = _pick_provider(provider)  # explicit: 404 if missing
-    elif provider_hint and provider_hint in get_provider_registry():
-        adapter = _pick_provider(provider_hint)
-    else:
-        adapter = _pick_provider(None)  # capability-based auto-pick
+    registry = get_provider_registry()
+
     if debug:
+        try:
+            resolved_id, hint = resolve_target(product_id, url)
+        except PriceCheckError as exc:
+            raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+        adapter: ProductDataProvider
+        if provider:
+            adapter = _pick_provider(provider)
+        elif hint and hint in registry:
+            adapter = _pick_provider(hint)
+        else:
+            adapter = _pick_provider(None)
         describe = getattr(adapter, "describe", None)
         if describe is None:
             raise HTTPException(status_code=400, detail=f"{adapter.name} has no debug describe()")
         try:
-            return await describe(product_id)
+            return await describe(resolved_id)
         except ProviderError as exc:
             raise HTTPException(status_code=502, detail=f"provider error: {exc}") from exc
         except Exception as exc:  # noqa: BLE001
-            logger.exception("describe failed", extra={"product_id": product_id})
+            logger.exception("describe failed", extra={"product_id": resolved_id})
             raise HTTPException(
                 status_code=502, detail=f"describe failed: {type(exc).__name__}: {exc}"
             ) from exc
-    try:
-        price = await adapter.get_price(product_id)
-        if price is None:
-            raise HTTPException(status_code=404, detail="provider has no price for that id")
-        history = await adapter.get_price_history(product_id, days=days)
-        if history is None:
-            raise HTTPException(status_code=404, detail="provider has no price history for that id")
-        product = await adapter.get_product(product_id)
-        assessment = assess_from_provider(price, history)
-    except HTTPException:
-        raise
-    except ProviderError as exc:
-        raise HTTPException(status_code=502, detail=f"provider error: {exc}") from exc
-    except Exception as exc:  # noqa: BLE001 - surface the real cause, don't 500 blank
-        logger.exception("price-check failed", extra={"product_id": product_id})
-        raise HTTPException(
-            status_code=502, detail=f"assessment failed: {type(exc).__name__}: {exc}"
-        ) from exc
 
-    if assessment is None:
-        raise HTTPException(status_code=422, detail="no current price to assess")
+    try:
+        result = await run_price_check(
+            registry, product_id=product_id, url=url, provider=provider, days=days
+        )
+    except PriceCheckError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
 
     return PriceCheckResponse(
-        provider=adapter.name,
-        provider_product_id=product_id,
-        title=product.title if product else None,
-        product_url=product.product_url if product else None,
-        assessment=assessment,
+        provider=result.provider,
+        provider_product_id=result.provider_product_id,
+        title=result.title,
+        product_url=result.product_url,
+        assessment=result.assessment,
     )

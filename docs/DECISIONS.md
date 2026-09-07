@@ -344,5 +344,16 @@ body carries the `?tag=` affiliate link. `run_alert_cycle` re-checks every track
 provider, records an observation, and fires due alerts; one bad product is skipped, not fatal.
 `POST /admin/alerts`, `GET /admin/alerts`, `POST /admin/alerts/run` (admin); `GET
 /alerts/unsubscribe?token=` (public). `python -m app.workers.price_poll` is the cron entrypoint —
-blueprint cron wiring is a follow-up. Public alert creation + UI is CP16. Details in
-`docs/PRICE_ALERTS.md`.
+blueprint cron wiring is a follow-up. Details in `docs/PRICE_ALERTS.md`.
+
+## 2026-09-07: CP16 (API) Adds Public /check and /alerts
+
+Status: Accepted
+
+The `(url | product_id) -> provider -> decision engine` flow is factored into
+`app/services/decision/price_check.py::run_price_check`, and the track+alert flow into
+`app/services/tracking/service.py::track_and_alert`, both shared with the admin surfaces so they
+cannot drift. `GET /check` and `POST /alerts` are unauthenticated and per-IP rate limited via
+`app/services/endpoint_limit.py` (fixed 60s window on the existing Redis / in-memory store), gated
+on `RATE_LIMIT_ENABLED` so local/tests are unaffected. New settings `CHECK_RATE_PER_MINUTE` (20),
+`ALERT_CREATE_RATE_PER_MINUTE` (10). The `/check` web page is the remaining CP16 piece.

@@ -1,0 +1,222 @@
+"""CP16 — public /check and /alerts (no auth, IP rate limited)."""
+
+from __future__ import annotations
+
+from collections.abc import Generator
+from datetime import UTC, datetime, timedelta
+
+import pytest
+from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.pool import StaticPool
+
+import app.models  # noqa: F401
+from app.db.base import Base
+from app.db.session import get_db
+from app.main import app
+from app.providers import registry as registry_module
+from app.providers.base import (
+    ProviderCapability,
+    ProviderPrice,
+    ProviderPriceHistory,
+    ProviderPricePoint,
+    ProviderProduct,
+)
+from app.providers.registry import ProviderRegistry
+from app.services import endpoint_limit
+
+NOW = datetime(2026, 9, 7, 12, 0, tzinfo=UTC)
+
+
+class FakeKeepa:
+    name = "keepa"
+    market = "CA"
+    currency = "CAD"
+    capabilities = frozenset(
+        {
+            ProviderCapability.get_price,
+            ProviderCapability.get_product,
+            ProviderCapability.price_history,
+        }
+    )
+
+    def is_configured(self) -> bool:
+        return True
+
+    async def get_product(self, pid: str) -> ProviderProduct | None:
+        return ProviderProduct(
+            provider="keepa",
+            provider_product_id=pid,
+            title="Anker 737 Power Bank",
+            market="CA",
+            currency="CAD",
+            product_url=f"https://www.amazon.ca/dp/{pid}",
+        )
+
+    async def get_price(self, pid: str) -> ProviderPrice | None:
+        return ProviderPrice(
+            provider="keepa",
+            provider_product_id=pid,
+            price_cents=4300,
+            currency="CAD",
+            observed_at=NOW,
+            source="keepa:buy_box",
+        )
+
+    async def get_price_history(self, pid: str, *, days: int = 180) -> ProviderPriceHistory | None:
+        pts = [
+            ProviderPricePoint(
+                observed_at=NOW - timedelta(days=d), price_cents=5000 - (d % 3) * 40, kind="buy_box"
+            )
+            for d in range(0, 90)
+        ]
+        return ProviderPriceHistory(
+            provider="keepa",
+            provider_product_id=pid,
+            currency="CAD",
+            points=pts,
+            metadata={"base_kind": "buy_box", "keepa_stats": {"avg90_cents": 4600}},
+        )
+
+
+def _client(monkeypatch, *, provider: object | None = FakeKeepa()) -> tuple[TestClient, Session]:
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(engine)
+    session = sessionmaker(bind=engine, autoflush=False, autocommit=False)()
+
+    def override_db() -> Generator[Session, None, None]:
+        yield session
+
+    app.dependency_overrides[get_db] = override_db
+    reg = ProviderRegistry()
+    if provider is not None:
+        reg.register(provider)
+    monkeypatch.setattr(registry_module, "_default_registry", reg)
+    endpoint_limit.reset_for_tests()
+    return TestClient(app), session
+
+
+def test_public_check_from_url(monkeypatch) -> None:
+    client, session = _client(monkeypatch)
+    try:
+        resp = client.get(
+            "/check", params={"url": "https://www.amazon.ca/Anker-737/dp/B09VPHVT9Z/ref=x"}
+        )
+        assert resp.status_code == 200, resp.text
+        body = resp.json()
+        assert body["provider"] == "keepa"
+        assert body["provider_product_id"] == "B09VPHVT9Z"
+        assert body["title"] == "Anker 737 Power Bank"
+        assert body["assessment"]["verdict"] in {"BUY", "FAIR", "WAIT", "UNKNOWN"}
+        assert body["assessment"]["reasons"]
+    finally:
+        app.dependency_overrides.clear()
+        session.close()
+
+
+def test_public_check_rejects_non_ca(monkeypatch) -> None:
+    client, session = _client(monkeypatch)
+    try:
+        resp = client.get("/check", params={"url": "https://www.amazon.com/dp/B09VPHVT9Z"})
+        assert resp.status_code == 422
+        assert "Amazon.ca" in resp.json()["detail"]
+    finally:
+        app.dependency_overrides.clear()
+        session.close()
+
+
+def test_public_check_needs_input(monkeypatch) -> None:
+    client, session = _client(monkeypatch)
+    try:
+        assert client.get("/check").status_code == 422
+    finally:
+        app.dependency_overrides.clear()
+        session.close()
+
+
+def test_endpoint_limit_allows_then_blocks(monkeypatch) -> None:
+    from app.core import settings as settings_module
+
+    class _S:
+        rate_limit_enabled = True
+        redis_url = "redis://localhost:6379/0"
+
+    monkeypatch.setattr(settings_module, "get_settings", lambda: _S())
+    monkeypatch.setattr(endpoint_limit, "get_settings", lambda: _S())
+    endpoint_limit.reset_for_tests()
+
+    assert endpoint_limit.allow("t", "1.2.3.4", per_minute=2) is True
+    assert endpoint_limit.allow("t", "1.2.3.4", per_minute=2) is True
+    assert endpoint_limit.allow("t", "1.2.3.4", per_minute=2) is False
+    # A different identity has its own window.
+    assert endpoint_limit.allow("t", "9.9.9.9", per_minute=2) is True
+
+
+def test_endpoint_limit_off_when_disabled(monkeypatch) -> None:
+    class _S:
+        rate_limit_enabled = False
+        redis_url = "redis://localhost:6379/0"
+
+    monkeypatch.setattr(endpoint_limit, "get_settings", lambda: _S())
+    endpoint_limit.reset_for_tests()
+    for _ in range(50):
+        assert endpoint_limit.allow("t", "1.2.3.4", per_minute=1) is True
+
+
+def test_public_create_alert_and_unsubscribe(monkeypatch) -> None:
+    client, session = _client(monkeypatch)
+    try:
+        created = client.post(
+            "/alerts",
+            json={
+                "email": "shopper@example.com",
+                "url": "https://www.amazon.ca/dp/B09VPHVT9Z",
+                "kind": "any_drop",
+            },
+        )
+        assert created.status_code == 201, created.text
+        body = created.json()
+        assert body["baseline_cents"] == 4300
+        assert body["provider_product_id"] == "B09VPHVT9Z"
+        token = body["unsubscribe_url"].split("token=")[1]
+
+        r = client.get("/alerts/unsubscribe", params={"token": token})
+        assert r.status_code == 200 and r.json()["ok"] is True
+    finally:
+        app.dependency_overrides.clear()
+        session.close()
+
+
+def test_public_create_alert_rejects_bad_email(monkeypatch) -> None:
+    client, session = _client(monkeypatch)
+    try:
+        resp = client.post(
+            "/alerts",
+            json={"email": "nope", "product_id": "B09VPHVT9Z"},
+        )
+        assert resp.status_code == 422
+    finally:
+        app.dependency_overrides.clear()
+        session.close()
+
+
+@pytest.mark.parametrize("route", ["/check", "/alerts"])
+def test_public_routes_are_unauthenticated(monkeypatch, route: str) -> None:
+    # No X-Admin-Token header at all — must not 401.
+    client, session = _client(monkeypatch)
+    try:
+        if route == "/check":
+            code = client.get(route, params={"product_id": "B09VPHVT9Z"}).status_code
+        else:
+            code = client.post(
+                route, json={"email": "a@b.co", "product_id": "B09VPHVT9Z"}
+            ).status_code
+        assert code != 401
+    finally:
+        app.dependency_overrides.clear()
+        session.close()

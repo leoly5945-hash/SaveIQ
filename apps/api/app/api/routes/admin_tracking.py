@@ -18,17 +18,13 @@ from app.api.dependencies import require_admin
 from app.core.settings import Settings, get_settings
 from app.db.session import get_db
 from app.models.tracking import AlertKind, PriceAlert, TrackedProduct
-from app.providers import ProviderError, get_provider_registry
-from app.services.decision.assess import assess_from_provider
-from app.services.product_url import extract_product_ref
+from app.providers import get_provider_registry
+from app.services.decision.price_check import PriceCheckError
 from app.services.tracking.email import get_email_sender
 from app.services.tracking.service import (
     CycleStats,
-    TrackingError,
-    create_alert,
-    get_or_create_tracked_product,
-    record_observation,
     run_alert_cycle,
+    track_and_alert,
 )
 
 logger = logging.getLogger(__name__)
@@ -96,73 +92,18 @@ async def create_price_alert(
     db: DbSession,
     settings: AppSettings,
 ) -> AlertResponse:
-    if not body.url and not body.product_id:
-        raise HTTPException(status_code=422, detail="pass url or product_id")
-
-    asin = (body.product_id or "").strip().upper()
-    market = "CA"
-    if body.url:
-        ref = extract_product_ref(body.url, follow_redirects=True)
-        if ref is None:
-            raise HTTPException(status_code=422, detail="could not find a product id in that URL")
-        if ref.market not in ("", "CA"):
-            raise HTTPException(status_code=422, detail="only Amazon.ca is covered right now")
-        asin = ref.product_id
-        market = ref.market or "CA"
-    if not asin:
-        raise HTTPException(status_code=422, detail="no product id")
-
-    registry = get_provider_registry()
-    adapter = registry.try_get("keepa")
-    if adapter is None:
-        raise HTTPException(status_code=503, detail="no keepa provider configured")
-
     try:
-        product = await adapter.get_product(asin)
-        price = await adapter.get_price(asin)
-        history = await adapter.get_price_history(asin, days=90)
-    except ProviderError as exc:
-        raise HTTPException(status_code=502, detail=f"provider error: {exc}") from exc
-
-    tracked = get_or_create_tracked_product(
-        db,
-        provider="keepa",
-        provider_product_id=asin,
-        market=market,
-        title=product.title if product else None,
-        product_url=product.product_url if product else None,
-    )
-
-    if price is not None and price.price_cents is not None and history is not None:
-        assessment = assess_from_provider(price, history)
-        avg90 = None
-        verdict = None
-        score = None
-        if assessment is not None:
-            avg90 = (assessment.intelligence.provider_stats or {}).get("avg90_cents")
-            verdict = assessment.verdict.value
-            score = assessment.score
-        record_observation(
+        alert, tracked = await track_and_alert(
             db,
-            tracked,
-            effective_price_cents=price.price_cents,
-            currency=price.currency,
-            source=price.source,
-            avg90_cents=avg90,
-            verdict=verdict,
-            score=score,
-        )
-
-    try:
-        alert = create_alert(
-            db,
-            tracked,
+            get_provider_registry(),
             email=body.email,
             kind=body.kind,
             threshold_cents=body.threshold_cents,
+            product_id=body.product_id,
+            url=body.url,
         )
-    except TrackingError as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except PriceCheckError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
 
     db.commit()
     return _to_response(alert, tracked, settings)

@@ -15,6 +15,7 @@ from app.api.routes.admin_users import router as admin_users_router
 from app.api.routes.affiliate_postback import router as affiliate_postback_router
 from app.api.routes.alerts import router as alerts_router
 from app.api.routes.bandit import router as bandit_router
+from app.api.routes.check import router as check_router
 from app.api.routes.clicks import router as clicks_router
 from app.api.routes.featured_deals import router as featured_deals_router
 from app.api.routes.go import router as go_router
@@ -59,6 +60,7 @@ def create_app() -> FastAPI:
     app.include_router(affiliate_postback_router)
     app.include_router(search_router)
     app.include_router(featured_deals_router)
+    app.include_router(check_router)
     app.include_router(alerts_router)
     app.include_router(recommendations_router)
     app.include_router(bandit_router)

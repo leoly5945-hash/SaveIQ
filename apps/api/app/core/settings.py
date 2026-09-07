@@ -57,6 +57,16 @@ class Settings(BaseSettings):
         default=1.0,
         validation_alias="ALERT_MIN_DROP_PCT",
     )
+    # CP16 — public price-check + alert endpoints (per-IP, only when
+    # RATE_LIMIT_ENABLED). Each check spends a provider token.
+    check_rate_per_minute: int = Field(
+        default=20,
+        validation_alias="CHECK_RATE_PER_MINUTE",
+    )
+    alert_create_rate_per_minute: int = Field(
+        default=10,
+        validation_alias="ALERT_CREATE_RATE_PER_MINUTE",
+    )
     feature_llm_intent_parser: bool = Field(
         default=False,
         validation_alias="FEATURE_LLM_INTENT_PARSER",
