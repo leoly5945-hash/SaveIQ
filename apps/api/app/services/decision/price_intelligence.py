@@ -56,6 +56,13 @@ class PriceIntelligence(BaseModel):
     days_since_price_this_low: int | None = None
     # How many distinct observations in 90d were <= current * 1.02.
     times_this_low_90d: int = 0
+    # Real provider price *changes* in the window / over the product's whole life
+    # — distinct from ``total_points``, which for Keepa is a densified daily fill.
+    source_observations: int | None = None
+    lifetime_observations: int | None = None
+    # Provider-computed stats (e.g. Keepa avg30/avg90/avg180 + min/max), which use
+    # the provider's full data rather than our window. Authoritative when present.
+    provider_stats: dict[str, int | None] = Field(default_factory=dict)
 
     def window(self, days: int) -> WindowStat | None:
         return self.windows.get(days)
@@ -110,10 +117,14 @@ def summarize_points(
     prefer_kind: str | None = None,
     windows: Sequence[int] = DEFAULT_WINDOWS,
     now: datetime | None = None,
+    source_observations: int | None = None,
+    lifetime_observations: int | None = None,
+    provider_stats: dict[str, int | None] | None = None,
 ) -> PriceIntelligence:
     """Build :class:`PriceIntelligence` from mixed-kind price points."""
 
     now = now or datetime.now(tz=UTC)
+    stats = {k: v for k, v in (provider_stats or {}).items() if v is not None}
     kind, series = _select_series(points, prefer_kind=prefer_kind)
 
     if not series:
@@ -123,6 +134,9 @@ def summarize_points(
             total_points=0,
             current_cents=current_cents,
             windows={int(d): WindowStat(days=int(d), sample_count=0) for d in windows},
+            source_observations=source_observations,
+            lifetime_observations=lifetime_observations,
+            provider_stats=stats,
         )
 
     prices_all = [p.price_cents for p in series]
@@ -183,6 +197,9 @@ def summarize_points(
         is_all_time_low=is_all_time_low,
         days_since_price_this_low=days_since_this_low,
         times_this_low_90d=times_low_90d,
+        source_observations=source_observations,
+        lifetime_observations=lifetime_observations,
+        provider_stats=stats,
     )
 
 
@@ -194,13 +211,23 @@ def summarize_history(
     windows: Sequence[int] = DEFAULT_WINDOWS,
     now: datetime | None = None,
 ) -> PriceIntelligence:
-    """Convenience wrapper over :func:`summarize_points` for a provider result."""
+    """Convenience wrapper over :func:`summarize_points` for a provider result.
 
+    Threads the provider's own metadata (base series kind, real observation
+    counts, precomputed stats) through so the score engine can prefer it.
+    """
+
+    meta = history.metadata or {}
+    keepa_stats = meta.get("keepa_stats")
+    provider_stats = keepa_stats if isinstance(keepa_stats, dict) else None
     return summarize_points(
         history.points,
         currency=history.currency,
         current_cents=current_cents,
-        prefer_kind=prefer_kind,
+        prefer_kind=prefer_kind or meta.get("base_kind"),
         windows=windows,
         now=now,
+        source_observations=meta.get("source_observations"),
+        lifetime_observations=meta.get("lifetime_observations"),
+        provider_stats=provider_stats,
     )

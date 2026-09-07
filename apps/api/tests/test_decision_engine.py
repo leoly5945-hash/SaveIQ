@@ -160,6 +160,60 @@ def test_verdict_unknown_when_history_is_thin() -> None:
     assert result.confidence == Confidence.low
 
 
+def test_flat_price_returns_fair_with_a_clear_reason() -> None:
+    # A product whose price has not moved in 90 days: no dip to wait for.
+    pairs = [(float(d), 4000) for d in range(1, 90, 3)]
+    intel = _intel_from(pairs, current=4000)
+    ep = compute_effective_price(4000, currency="CAD")
+    result = score_deal(ep, intel)
+    assert result.verdict == Verdict.fair
+    assert any("held at" in r for r in result.reasons)
+
+
+def test_flat_price_above_standing_price_says_wait() -> None:
+    pairs = [(float(d), 4000) for d in range(1, 90, 3)]
+    intel = _intel_from(pairs, current=4300)
+    ep = compute_effective_price(4300, currency="CAD")
+    result = score_deal(ep, intel)
+    assert result.verdict == Verdict.wait
+
+
+def test_provider_stats_are_used_when_the_window_is_sparse() -> None:
+    # Only one densified-ish point in the window, but the provider handed us its
+    # own 90-day band — the score must use that, not bail to UNKNOWN.
+    intel = summarize_points(
+        _pts((1.0, 4300)),
+        currency="CAD",
+        current_cents=4300,
+        now=NOW,
+        source_observations=0,
+        lifetime_observations=50,
+        provider_stats={"avg90_cents": 5000, "min_cents": 4200, "max_cents": 5600},
+    )
+    ep = compute_effective_price(4300, currency="CAD")
+    result = score_deal(ep, intel)
+    assert result.verdict != Verdict.unknown
+    assert any("5000" in r or "50.00" in r for r in result.reasons)
+
+
+def test_confidence_uses_lifetime_observations() -> None:
+    intel = summarize_points(
+        [
+            ProviderPricePoint(observed_at=NOW - timedelta(days=d), price_cents=4000 + d, kind="a")
+            for d in range(0, 90)
+        ],
+        currency="CAD",
+        current_cents=4000,
+        now=NOW,
+        source_observations=0,
+        lifetime_observations=60,
+    )
+    ep = compute_effective_price(4000, currency="CAD")
+    result = score_deal(ep, intel)
+    # 0 recent changes but a long tracked history + 90d coverage -> not "low".
+    assert result.confidence in {Confidence.medium, Confidence.high}
+
+
 def test_score_has_no_commission_input() -> None:
     # Guard against a future regression: score_deal takes exactly the price and
     # the intelligence — nothing merchant/payout related.

@@ -10,10 +10,30 @@ weights, and **no input for merchant commission or affiliate payout anywhere in
 the scoring path** — a higher-paying merchant cannot earn a better score because
 there is nowhere to express that (spec §24).
 
+## Step-function history (Keepa)
+
+Keepa records a point only when the price **changes**. A product whose price has
+been flat for months therefore has *no* raw points in a recent window even though
+its price is perfectly known. `KeepaProvider._parse_history` handles this before
+the engine sees it:
+
+* it decodes the full change-point history for the deepest of the AMAZON / NEW /
+  BUY_BOX series (`base_kind`),
+* forward-fills it to **one point per day** across the requested window
+  (`_densify_daily`),
+* and carries through Keepa's own `avg30/avg90/avg180` + `min/max` as
+  `metadata.keepa_stats`, plus `source_observations` (real changes in the window)
+  and `lifetime_observations` (changes over the whole tracked history).
+
+So `PriceIntelligence.total_points` is a dense daily count; **confidence and the
+thin-data gate use `source_observations` / `lifetime_observations` instead**, and
+the score prefers `provider_stats` over the windowed numbers when present.
+
 ## CP9 — price intelligence (`price_intelligence.py`)
 
 `summarize_points(points, *, currency, current_cents=None, prefer_kind=None,
-windows=(7,30,90,180), now=None) -> PriceIntelligence`
+windows=(7,30,90,180), now=None, source_observations=None,
+lifetime_observations=None, provider_stats=None) -> PriceIntelligence`
 
 * Selects one coherent series from mixed-kind points. `prefer_kind` wins if it
   has points (the orchestrator passes the kind matching the current price's
@@ -49,14 +69,20 @@ shipping.
 
 **Score** (0–100, higher = better time to buy):
 
-1. Thin history (90-day window has < 3 samples, or no avg/min) → `UNKNOWN`,
-   score 50, confidence `low`. No pretend verdict.
-2. Start at 50. `score += 250 × (avg90 − effective) / avg90` — i.e. +2.5 points
-   per 1 % below the 90-day average, symmetric.
-3. `+15` if effective ≤ 90-day low × 1.02.
-4. `+10` if `is_all_time_low`.
-5. `−15` if effective ≥ 90-day high × 0.98.
-6. Clamp to 0–100.
+1. No usable 90-day band (no window samples **and** no `provider_stats`), or
+   degenerate numbers → `UNKNOWN`, score 50, confidence `low`. No pretend verdict.
+2. Flat window (`min90 == max90`) → `FAIR` at score 55 with the reason "the price
+   has held at $X for 90 days — no recent dips to wait for" (or `WAIT` at 40 if
+   the effective price is above that standing price). No dip exists to score.
+3. Otherwise start at 50. `score += 250 × (avg90 − effective) / avg90` — i.e.
+   +2.5 points per 1 % below the 90-day average, symmetric.
+4. `+15` if effective ≤ 90-day low × 1.02.
+5. `+10` if `is_all_time_low`.
+6. `−15` if effective ≥ 90-day high × 0.98.
+7. Clamp to 0–100.
+
+The 90-day `avg` / `min` / `max` come from `provider_stats` when the provider
+computed them (Keepa does), else from the densified window.
 
 **Verdict:**
 
@@ -66,14 +92,16 @@ shipping.
 | score ≤ 36 **or** effective ≥ 90-day avg × 1.15 | `WAIT` |
 | otherwise | `FAIR` |
 
-**Confidence** (Keepa records a point per price *change*, so coverage matters
-more than raw count):
+**Confidence** (based on real price *changes*, not densified points):
 
 | confidence | needs |
 | --- | --- |
-| `high` | ≥ 60 coverage days **and** ≥ 8 points |
-| `medium` | ≥ 21 coverage days **and** ≥ 4 points |
+| `high` | ≥ 60 coverage days **and** (≥ 8 recent changes **or** ≥ 40 lifetime changes) |
+| `medium` | ≥ 21 coverage days **and** (≥ 3 recent changes **or** ≥ 15 lifetime changes) |
 | `low` | otherwise |
+
+`recent` = `source_observations` (falls back to `total_points` when the provider
+gives no change count); `lifetime` = `lifetime_observations`.
 
 Every rule that fires appends a human `reason` string.
 

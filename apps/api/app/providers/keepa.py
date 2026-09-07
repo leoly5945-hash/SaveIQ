@@ -203,6 +203,43 @@ def _decode_series(row: Sequence[Any] | None, *, triplet: bool) -> list[tuple[da
     return out
 
 
+def _densify_daily(
+    change_points: Sequence[tuple[datetime, int]],
+    *,
+    start: datetime,
+    end: datetime,
+) -> list[tuple[datetime, int]]:
+    """Forward-fill Keepa's step function into one point per day in ``[start, end]``.
+
+    Keepa only records a point when the price *changes*; between changes the price
+    is the value at the last change. So a product whose price has not moved for
+    months has no csv points in a recent window even though its price is known —
+    this fills that gap by carrying the last known value forward.
+    """
+
+    if not change_points:
+        return []
+    ordered = sorted(change_points, key=lambda cp: cp[0])
+    out: list[tuple[datetime, int]] = []
+    idx = 0
+    current: int | None = None
+    day = start
+    one_day = timedelta(days=1)
+    while day <= end:
+        while idx < len(ordered) and ordered[idx][0] <= day:
+            current = ordered[idx][1]
+            idx += 1
+        if current is not None:
+            out.append((day, current))
+        day += one_day
+    while idx < len(ordered):  # a change between the last sample and `end`
+        current = ordered[idx][1]
+        idx += 1
+    if current is not None and (not out or out[-1][0] < end):
+        out.append((end, current))
+    return out
+
+
 def _stat_value(stats: Mapping[str, Any] | None, key: str, index: int) -> int | None:
     if not stats:
         return None
@@ -589,30 +626,33 @@ class KeepaProvider:
         days: int,
     ) -> ProviderPriceHistory:
         asin = asin.strip().upper()
-        csv = raw.get("csv")
-        cutoff = self._now_dt() - timedelta(days=max(days, 1))
-        points: list[ProviderPricePoint] = []
-        if isinstance(csv, list):
-            for index, kind in (
-                (_CSV_AMAZON, "amazon"),
-                (_CSV_NEW, "new"),
-                (_CSV_USED, "used"),
-                (_CSV_BUY_BOX, "buy_box"),
-            ):
-                if index >= len(csv):
-                    continue
-                for observed_at, price_cents in _decode_series(
-                    csv[index], triplet=index in _TRIPLET_INDICES
-                ):
-                    if observed_at >= cutoff:
-                        points.append(
-                            ProviderPricePoint(
-                                observed_at=observed_at,
-                                price_cents=price_cents,
-                                kind=kind,
-                            )
-                        )
-        points.sort(key=lambda p: (p.observed_at, p.kind))
+        raw_csv = raw.get("csv")
+        csv: list[Any] = raw_csv if isinstance(raw_csv, list) else []
+        end = self._now_dt()
+        start = end - timedelta(days=max(days, 1))
+
+        # Decode the full change-point history for each candidate base series and
+        # pick the deepest — Keepa's AMAZON series is usually richest, but a
+        # marketplace-only item has more depth on NEW.
+        candidates: dict[str, list[tuple[datetime, int]]] = {}
+        for index, kind in (
+            (_CSV_AMAZON, "amazon"),
+            (_CSV_NEW, "new"),
+            (_CSV_BUY_BOX, "buy_box"),
+        ):
+            if index < len(csv):
+                series = _decode_series(csv[index], triplet=index in _TRIPLET_INDICES)
+                if series:
+                    candidates[kind] = series
+
+        base_kind = max(candidates, key=lambda k: len(candidates[k]), default="")
+        base = candidates.get(base_kind, [])
+        changes_in_window = sum(1 for ts, _ in base if ts >= start)
+
+        points = [
+            ProviderPricePoint(observed_at=d, price_cents=p, kind=base_kind or "unknown")
+            for d, p in _densify_daily(base, start=start, end=end)
+        ]
 
         stats = self._current_stats(raw)
         return ProviderPriceHistory(
@@ -624,15 +664,23 @@ class KeepaProvider:
             covers_to=points[-1].observed_at if points else None,
             metadata={
                 "requested_days": days,
+                "base_kind": base_kind or None,
+                # Real price changes inside the window (vs. the densified daily
+                # points) and over the product's whole tracked life.
+                "source_observations": changes_in_window,
+                "lifetime_observations": len(base),
                 "keepa_stats": {
                     "avg30_cents": _stat_value(stats, "avg30", _CSV_AMAZON)
                     or _stat_value(stats, "avg30", _CSV_NEW),
                     "avg90_cents": _stat_value(stats, "avg90", _CSV_AMAZON)
                     or _stat_value(stats, "avg90", _CSV_NEW),
+                    "avg180_cents": _stat_value(stats, "avg180", _CSV_AMAZON)
+                    or _stat_value(stats, "avg180", _CSV_NEW),
                     "min_cents": _stat_pair(stats, "min", _CSV_AMAZON)
                     or _stat_pair(stats, "min", _CSV_NEW),
                     "max_cents": _stat_pair(stats, "max", _CSV_AMAZON)
                     or _stat_pair(stats, "max", _CSV_NEW),
+                    "is_lowest_90d": _stat_value(stats, "isLowest90", _CSV_AMAZON),
                 },
             },
         )
