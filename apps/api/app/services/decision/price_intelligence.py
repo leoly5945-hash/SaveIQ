@@ -169,8 +169,10 @@ def summarize_points(
         percentile_90d = round(strictly_below / len(window_90), 4)
         times_low_90d = sum(1 for v in window_90 if v <= round(effective_current * 1.02))
 
-    all_time_min = min(prices_all)
-    all_time_max = max(prices_all)
+    # The provider's own lifetime min/max (Keepa's stats.min/max) beat what we can
+    # see in a densified window that only spans the requested days.
+    all_time_min = stats.get("min_cents") or min(prices_all)
+    all_time_max = stats.get("max_cents") or max(prices_all)
     is_all_time_low = effective_current is not None and effective_current <= round(
         all_time_min * 1.005
     )
