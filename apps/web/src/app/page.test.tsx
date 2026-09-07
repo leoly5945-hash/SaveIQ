@@ -26,15 +26,16 @@ describe("Home", () => {
     const text = collectText(Home()).replace(/\s+/g, " ");
 
     expect(text).toContain("SaveIQ");
-    expect(text).toContain("Stop overpaying.");
-    expect(text).toContain("See the real price, not the list price.");
-    expect(text).toContain("How SaveIQ works");
+    expect(text).toContain("Paste an Amazon.ca link.");
+    expect(text).toContain("We'll tell you: buy, or wait.");
+    expect(text).toContain("How the check works");
     expect(text).toContain(HOME_AFFILIATE_DISCLOSURE);
     expect(text).toContain("Privacy");
     expect(text).not.toContain("Staging mock data only");
     expect(text).not.toContain("Admin token");
-    // No overclaims: SaveIQ has one retailer and no coupon/cashback stacking today.
+    // No overclaims: the verdict is deterministic and merchant-blind.
     expect(text).not.toContain("AI Router");
     expect(text).not.toContain("stacks coupons and cashback");
+    expect(text).toContain("No merchant pays for a better verdict");
   });
 });
