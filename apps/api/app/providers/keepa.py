@@ -300,6 +300,40 @@ class KeepaProvider:
             return None
         return self._parse_product(raw)
 
+    async def describe(self, provider_product_id: str) -> dict[str, Any]:
+        """Diagnostic: what did Keepa actually return for this id? (admin use)
+
+        Trims the huge ``csv`` arrays down to lengths so the payload is readable.
+        """
+
+        params: dict[str, Any] = {
+            "asin": provider_product_id.strip().upper(),
+            "history": 1,
+            "stats": 90,
+            "buybox": 1,
+        }
+        payload = await self._request("product", params)
+        products = payload.get("products")
+        if not isinstance(products, list) or not products or not isinstance(products[0], Mapping):
+            return {"found": False, "keepa_keys": sorted(payload.keys())}
+        raw = products[0]
+        raw_stats = raw.get("stats")
+        stats = raw_stats if isinstance(raw_stats, Mapping) else None
+        raw_csv = raw.get("csv")
+        csv: list[Any] = raw_csv if isinstance(raw_csv, list) else []
+        return {
+            "found": True,
+            "asin": raw.get("asin"),
+            "title": raw.get("title"),
+            "keepa_keys": sorted(raw.keys()),
+            "csv_index_lengths": {
+                i: (len(row) if isinstance(row, list) else None) for i, row in enumerate(csv)
+            },
+            "stats_current": stats.get("current") if stats else None,
+            "stats_keys": sorted(stats.keys()) if stats else None,
+            "tokens_left": payload.get("tokensLeft"),
+        }
+
     async def get_offers(self, provider_product_id: str) -> list[ProviderOffer]:
         raw = await self._fetch_product(provider_product_id, offers=True, stats_days=90)
         if raw is None:

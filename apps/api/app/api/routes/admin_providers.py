@@ -84,15 +84,31 @@ def _pick_provider(name: str | None) -> ProductDataProvider:
     )
 
 
-@router.get("/price-check", response_model=PriceCheckResponse)
+@router.get("/price-check")
 async def price_check(
     product_id: Annotated[
         str, Query(min_length=3, max_length=32, description="ASIN / provider product id")
     ],
     provider: Annotated[str | None, Query()] = None,
     days: Annotated[int, Query(ge=7, le=365)] = 90,
-) -> PriceCheckResponse:
+    debug: Annotated[
+        bool, Query(description="return raw provider data, not an assessment")
+    ] = False,
+) -> object:
     adapter = _pick_provider(provider)
+    if debug:
+        describe = getattr(adapter, "describe", None)
+        if describe is None:
+            raise HTTPException(status_code=400, detail=f"{adapter.name} has no debug describe()")
+        try:
+            return await describe(product_id)
+        except ProviderError as exc:
+            raise HTTPException(status_code=502, detail=f"provider error: {exc}") from exc
+        except Exception as exc:  # noqa: BLE001
+            logger.exception("describe failed", extra={"product_id": product_id})
+            raise HTTPException(
+                status_code=502, detail=f"describe failed: {type(exc).__name__}: {exc}"
+            ) from exc
     try:
         price = await adapter.get_price(product_id)
         if price is None:
