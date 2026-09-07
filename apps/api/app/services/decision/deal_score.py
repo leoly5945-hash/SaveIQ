@@ -88,7 +88,14 @@ def score_deal(
     max_90 = window_90.max_cents if window_90 else None
 
     # Not enough history to judge against — report the price, don't pretend.
-    if avg_90 is None or min_90 is None or (window_90 and window_90.sample_count < 3):
+    # A non-positive average or effective price is degenerate data: same handling.
+    if (
+        avg_90 is None
+        or min_90 is None
+        or avg_90 <= 0
+        or effective <= 0
+        or (window_90 and window_90.sample_count < 3)
+    ):
         reasons.append(
             "Not enough price history yet to judge this price — we'll know more "
             "as we keep tracking it."

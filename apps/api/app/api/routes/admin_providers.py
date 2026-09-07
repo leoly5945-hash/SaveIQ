@@ -8,6 +8,7 @@ and runs the deterministic decision engine over it — the staging surface for
 
 from __future__ import annotations
 
+import logging
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -18,6 +19,8 @@ from app.providers import ProviderCapability, ProviderError, get_provider_regist
 from app.providers.base import ProductDataProvider
 from app.services.decision.assess import assess_from_provider
 from app.services.decision.deal_score import DealAssessment
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/admin/providers",
@@ -95,14 +98,20 @@ async def price_check(
         if price is None:
             raise HTTPException(status_code=404, detail="provider has no price for that id")
         history = await adapter.get_price_history(product_id, days=days)
+        if history is None:
+            raise HTTPException(status_code=404, detail="provider has no price history for that id")
         product = await adapter.get_product(product_id)
+        assessment = assess_from_provider(price, history)
+    except HTTPException:
+        raise
     except ProviderError as exc:
         raise HTTPException(status_code=502, detail=f"provider error: {exc}") from exc
+    except Exception as exc:  # noqa: BLE001 - surface the real cause, don't 500 blank
+        logger.exception("price-check failed", extra={"product_id": product_id})
+        raise HTTPException(
+            status_code=502, detail=f"assessment failed: {type(exc).__name__}: {exc}"
+        ) from exc
 
-    if history is None:
-        raise HTTPException(status_code=404, detail="provider has no price history for that id")
-
-    assessment = assess_from_provider(price, history)
     if assessment is None:
         raise HTTPException(status_code=422, detail="no current price to assess")
 

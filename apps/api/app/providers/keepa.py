@@ -134,15 +134,27 @@ def _safe_http_error_detail(exc: urllib.error.HTTPError) -> str:
     return body[:200]
 
 
-def _keepa_minutes_to_datetime(minutes: int) -> datetime:
+def _keepa_minutes_to_datetime(minutes: int) -> datetime | None:
     unix_seconds = (minutes + _KEEPA_EPOCH_OFFSET_MINUTES) * 60
-    return datetime.fromtimestamp(unix_seconds, tz=UTC)
+    try:
+        return datetime.fromtimestamp(unix_seconds, tz=UTC)
+    except (OverflowError, OSError, ValueError):
+        return None
 
 
-def _decode_series(row: Sequence[int] | None, *, triplet: bool) -> list[tuple[datetime, int]]:
+def _as_int(value: Any) -> int | None:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _decode_series(row: Sequence[Any] | None, *, triplet: bool) -> list[tuple[datetime, int]]:
     """Decode one Keepa csv row into ``(observed_at, price_cents)`` pairs.
 
-    Points with a sentinel ``-1`` price (no data / not in stock) are dropped.
+    Keepa csv rows are flat ``[time, price, time, price, ...]`` (or
+    ``[time, price, shipping, ...]`` triplets). A ``-1`` price means "no data" and
+    is dropped; any malformed slot is skipped rather than raising.
     """
 
     if not row:
@@ -150,15 +162,18 @@ def _decode_series(row: Sequence[int] | None, *, triplet: bool) -> list[tuple[da
     step = 3 if triplet else 2
     out: list[tuple[datetime, int]] = []
     for i in range(0, len(row) - step + 1, step):
-        minutes = int(row[i])
-        price = int(row[i + 1])
-        if price < 0:
+        minutes = _as_int(row[i])
+        price = _as_int(row[i + 1])
+        if minutes is None or price is None or price < 0:
             continue
         if triplet:
-            shipping = int(row[i + 2])
-            if shipping > 0:
+            shipping = _as_int(row[i + 2])
+            if shipping and shipping > 0:
                 price += shipping
-        out.append((_keepa_minutes_to_datetime(minutes), price))
+        observed_at = _keepa_minutes_to_datetime(minutes)
+        if observed_at is None:
+            continue
+        out.append((observed_at, price))
     return out
 
 
@@ -474,17 +489,14 @@ class KeepaProvider:
         shipping_cents: int | None = None
         if isinstance(offer_csv, list) and len(offer_csv) >= 3:
             # Triplets [time, price, shipping]; the last triplet is current.
-            price_cents = int(offer_csv[-2])
-            shipping_cents = int(offer_csv[-1])
-            if price_cents < 0:
+            price_cents = _as_int(offer_csv[-2])
+            shipping_cents = _as_int(offer_csv[-1])
+            if price_cents is not None and price_cents < 0:
                 price_cents = None
             if shipping_cents is not None and shipping_cents < 0:
                 shipping_cents = None
-        condition_code = entry.get("condition")
-        condition = _CONDITION_BY_CODE.get(
-            int(condition_code) if isinstance(condition_code, int) else 0,
-            "unknown",
-        )
+        condition_code = _as_int(entry.get("condition")) or 0
+        condition = _CONDITION_BY_CODE.get(condition_code, "unknown")
         seller_id = entry.get("sellerId")
         is_amazon = bool(entry.get("isAmazon"))
         storefront = self._host.replace("www.", "")
