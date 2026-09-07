@@ -178,22 +178,33 @@ def test_flat_price_above_standing_price_says_wait() -> None:
     assert result.verdict == Verdict.wait
 
 
-def test_provider_stats_are_used_when_the_window_is_sparse() -> None:
-    # Only one densified-ish point in the window, but the provider handed us its
-    # own 90-day band — the score must use that, not bail to UNKNOWN.
+def test_provider_avg90_is_used_for_the_average() -> None:
+    # The densified window averages ~45.50, but Keepa's own avg90 is 50.00 — the
+    # "vs 90-day average" reason must cite the provider figure.
+    pts = [
+        ProviderPricePoint(
+            observed_at=NOW - timedelta(days=d),
+            price_cents=4600 if d % 2 else 4500,
+            kind="a",
+        )
+        for d in range(0, 90)
+    ]
     intel = summarize_points(
-        _pts((1.0, 4300)),
+        pts,
         currency="CAD",
         current_cents=4300,
         now=NOW,
-        source_observations=0,
+        source_observations=5,
         lifetime_observations=50,
-        provider_stats={"avg90_cents": 5000, "min_cents": 4200, "max_cents": 5600},
+        provider_stats={"avg90_cents": 5000, "min_cents": 999, "max_cents": 9999},
     )
     ep = compute_effective_price(4300, currency="CAD")
     result = score_deal(ep, intel)
     assert result.verdict != Verdict.unknown
-    assert any("5000" in r or "50.00" in r for r in result.reasons)
+    assert any("50.00 CAD" in r for r in result.reasons)
+    # Lifetime min/max from the provider land on all_time_*, not the 90-day band.
+    assert intel.all_time_min_cents == 999
+    assert intel.all_time_max_cents == 9999
 
 
 def test_confidence_uses_lifetime_observations() -> None:

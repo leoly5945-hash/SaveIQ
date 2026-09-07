@@ -82,13 +82,19 @@ def _money(cents: int, currency: str) -> str:
 
 
 def _resolve_band(intel: PriceIntelligence) -> tuple[int | None, int | None, int | None, int]:
-    """90-day (avg, min, max, sample_count). Provider-computed stats win when present."""
+    """90-day (avg, min, max, sample_count).
+
+    The average prefers the provider's own 90-day figure (Keepa's ``avg90``);
+    min/max are always the 90-day window's own — the provider's ``min``/``max``
+    are lifetime extremes, not a 90-day band.
+    """
 
     window_90 = intel.window(90)
     ps = intel.provider_stats or {}
-    avg_90 = ps.get("avg90_cents") or (window_90.avg_cents if window_90 else None)
-    min_90 = ps.get("min_cents") or (window_90.min_cents if window_90 else None)
-    max_90 = ps.get("max_cents") or (window_90.max_cents if window_90 else None)
+    win_avg = window_90.avg_cents if window_90 else None
+    avg_90 = ps.get("avg90_cents") or win_avg
+    min_90 = window_90.min_cents if window_90 else None
+    max_90 = window_90.max_cents if window_90 else None
     samples = window_90.sample_count if window_90 else 0
     return avg_90, min_90, max_90, samples
 
@@ -130,8 +136,9 @@ def score_deal(
         )
 
     # The price has not moved across the whole window: there is no dip to wait for
-    # and no discount to call out — it is simply the standing price.
-    if min_90 == max_90:
+    # and no discount to call out — it is simply the standing price. Needs a few
+    # samples so a one-point window isn't mistaken for "flat".
+    if min_90 == max_90 and samples >= 3:
         reasons.append(
             f"The price has held at {_money(min_90, currency)} for the last "
             f"90 days — no recent dips to wait for."
@@ -186,15 +193,23 @@ def score_deal(
             f"({_money(intelligence.all_time_min_cents, currency)})."
         )
 
-    if max_90 is not None and effective >= round(max_90 * 0.98):
+    near_90_high = effective >= round(max_90 * 0.98)
+    if near_90_high:
         score -= 15
         reasons.append(f"At or near the 90-day high of {_money(max_90, currency)}.")
 
-    if intelligence.times_this_low_90d >= 3:
-        reasons.append(
-            f"The price has been this low {intelligence.times_this_low_90d} times "
-            f"in the last 90 days — it comes back."
-        )
+    # "It comes back this low" / "hasn't been this low" only make sense when the
+    # current price is actually in the lower part of the range.
+    below_midpoint = (
+        intelligence.current_percentile_90d is not None
+        and intelligence.current_percentile_90d <= 0.5
+    )
+    if near_90_low or below_midpoint:
+        if intelligence.times_this_low_90d >= 3:
+            reasons.append(
+                f"The price has been this low {intelligence.times_this_low_90d} "
+                f"times in the last 90 days — it comes back."
+            )
     elif (
         intelligence.days_since_price_this_low is not None
         and intelligence.days_since_price_this_low >= 60
