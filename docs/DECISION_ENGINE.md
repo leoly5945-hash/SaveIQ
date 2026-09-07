@@ -113,12 +113,28 @@ offer=None, now=None) -> DealAssessment | None`
 CP10 → CP9 (series kind chosen from `price.source`) → CP11. Returns `None` only
 when there is no current price at all.
 
+## CP6 — URL → product reference (`app/services/product_url.py`)
+
+`extract_product_ref(raw, *, follow_redirects=False) -> ExtractedProductRef | None`
+
+Parses an Amazon URL — `/dp/…`, `/gp/product/…`, `/gp/aw/d/…`, `/-/en/dp/…`,
+`?asin=` / `?pd_rd_i=` — or a bare 10-char ASIN, into `{retailer, market,
+product_id, keepa_domain, source_url}`. TLD picks the market (`.ca` → CA / Keepa
+domain 6). `amzn.to` / `a.co` short links resolve only when `follow_redirects` is
+set (one HEAD, no body). Non-Amazon hosts and search/listing pages return `None`.
+
 ## Trying it
 
-`GET /admin/providers/price-check?product_id=<ASIN>[&provider=keepa][&days=90]`
-(admin token) live-fetches from a provider and returns a full `DealAssessment`.
-This is the staging surface until the public price-checker UI (CP16) lands. Each
-call spends provider tokens (Keepa: ~1 `/product` call).
+`GET /admin/providers/price-check` (admin token) live-fetches and returns a full
+`DealAssessment`. Pass **either**:
+
+* `product_id=<ASIN>` — a raw provider id, or
+* `url=<amazon.ca product URL>` — parsed by CP6; a non-`.ca` marketplace is
+  rejected with 422 until a provider covers it.
+
+Plus optional `provider=`, `days=` (7–365), `debug=1` (raw provider shape).
+Staging surface until the public price-checker UI (CP16). Each call spends
+provider tokens (Keepa: ~1 `/product` call).
 
 ## Not yet
 

@@ -19,6 +19,7 @@ from app.providers import ProviderCapability, ProviderError, get_provider_regist
 from app.providers.base import ProductDataProvider
 from app.services.decision.assess import assess_from_provider
 from app.services.decision.deal_score import DealAssessment
+from app.services.product_url import extract_product_ref
 
 logger = logging.getLogger(__name__)
 
@@ -84,18 +85,47 @@ def _pick_provider(name: str | None) -> ProductDataProvider:
     )
 
 
+def _resolve_target(
+    product_id: str | None,
+    url: str | None,
+) -> tuple[str, str | None]:
+    """(provider_product_id, provider_name_hint) from either a raw id or a URL."""
+
+    if url:
+        ref = extract_product_ref(url, follow_redirects=True)
+        if ref is None:
+            raise HTTPException(status_code=422, detail="could not find a product id in that URL")
+        hint = "keepa" if ref.keepa_domain == 6 else None
+        if ref.market not in ("", "CA"):
+            raise HTTPException(
+                status_code=422,
+                detail=f"{ref.retailer} {ref.market} is not covered yet — only Amazon.ca",
+            )
+        return ref.product_id, hint
+    if product_id:
+        return product_id, None
+    raise HTTPException(status_code=422, detail="pass product_id or url")
+
+
 @router.get("/price-check")
 async def price_check(
     product_id: Annotated[
-        str, Query(min_length=3, max_length=32, description="ASIN / provider product id")
-    ],
+        str | None, Query(min_length=3, max_length=32, description="ASIN / provider product id")
+    ] = None,
+    url: Annotated[str | None, Query(max_length=2048, description="a product URL to parse")] = None,
     provider: Annotated[str | None, Query()] = None,
     days: Annotated[int, Query(ge=7, le=365)] = 90,
     debug: Annotated[
         bool, Query(description="return raw provider data, not an assessment")
     ] = False,
 ) -> object:
-    adapter = _pick_provider(provider)
+    product_id, provider_hint = _resolve_target(product_id, url)
+    if provider:
+        adapter = _pick_provider(provider)  # explicit: 404 if missing
+    elif provider_hint and provider_hint in get_provider_registry():
+        adapter = _pick_provider(provider_hint)
+    else:
+        adapter = _pick_provider(None)  # capability-based auto-pick
     if debug:
         describe = getattr(adapter, "describe", None)
         if describe is None:
