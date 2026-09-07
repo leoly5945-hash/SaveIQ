@@ -252,47 +252,60 @@ async def test_get_offers_synthesises_when_absent() -> None:
 
 
 @pytest.mark.asyncio
-async def test_get_price_history_decodes_and_filters() -> None:
+async def test_get_price_history_densifies_the_deepest_series() -> None:
     provider = _provider(_envelope(_product()))
-    history = await provider.get_price_history("B09VPHVT9Z", days=30)
+    history = await provider.get_price_history("B09VPHVT9Z", days=90)
     assert history is not None
     assert history.currency == "CAD"
-    assert history.points, "expected decoded points"
 
-    kinds = {p.kind for p in history.points}
-    assert "amazon" in kinds
-    assert "buy_box" in kinds
-    # The USED point is ~45 days old and must be filtered out by the 30d window.
-    assert "used" not in kinds
-    # The 60-day-old AMAZON point is filtered; the 20d + 2d ones remain.
-    amazon_points = [p for p in history.points if p.kind == "amazon"]
-    assert [p.price_cents for p in amazon_points] == [4599, 4299]
+    # AMAZON has the most change points (3) -> it is the base series, forward-filled
+    # to one point per day. Every value is one of the three real change values.
+    assert history.metadata["base_kind"] == "amazon"
+    assert {p.kind for p in history.points} == {"amazon"}
+    assert len(history.points) > 60  # ~daily from the first change (~88 days ago)
+    assert {p.price_cents for p in history.points} <= {4999, 4599, 4299}
+    assert history.points[-1].price_cents == 4299  # latest change carried to now
+    assert history.points == sorted(history.points, key=lambda p: p.observed_at)
 
-    assert history.points == sorted(history.points, key=lambda p: (p.observed_at, p.kind))
-    assert history.covers_from is not None and history.covers_to is not None
-    assert history.metadata["keepa_stats"]["min_cents"] == 4299
-    assert history.metadata["keepa_stats"]["max_cents"] == 4999
-    assert history.metadata["keepa_stats"]["avg90_cents"] == 4650
+    assert history.metadata["lifetime_observations"] == 3
+    assert history.metadata["source_observations"] == 3  # all 3 changes are within 90d
+    ks = history.metadata["keepa_stats"]
+    assert ks["min_cents"] == 4299
+    assert ks["max_cents"] == 4999
+    assert ks["avg90_cents"] == 4650
 
 
 @pytest.mark.asyncio
-async def test_price_history_tolerates_malformed_csv_slots() -> None:
-    product = _product(with_offers=False)
-    # Real Keepa never sends null inside a csv row, but a defensive decode must
-    # not raise if it does — skip the bad slot, keep the good ones.
-    product["csv"][0] = [
-        _keepa_minutes(_ago(10)),
-        None,  # malformed price
-        _keepa_minutes(_ago(5)),
-        4400,
-        "oops",  # malformed time
-        4300,
-    ]
-    provider = _provider(_envelope(product))
-    history = await provider.get_price_history("B09VPHVT9Z", days=90)
+async def test_price_history_window_counts_only_recent_changes() -> None:
+    provider = _provider(_envelope(_product()))
+    history = await provider.get_price_history("B09VPHVT9Z", days=15)
     assert history is not None
-    amazon = [p.price_cents for p in history.points if p.kind == "amazon"]
-    assert amazon == [4400]
+    # In a 15-day window only the -2d AMAZON change counts as a real observation,
+    # but the series is still forward-filled across the whole window.
+    assert history.metadata["source_observations"] == 1
+    assert history.metadata["lifetime_observations"] == 3
+    assert len(history.points) >= 14
+
+
+def test_decode_series_skips_malformed_slots() -> None:
+    from app.providers.keepa import _decode_series
+
+    row = [100, None, 200, 4400, "x", 4300, 300, 4200]
+    out = _decode_series(row, triplet=False)
+    assert [price for _, price in out] == [4400, 4200]
+
+
+def test_densify_daily_forward_fills() -> None:
+    from app.providers.keepa import _densify_daily
+
+    start, end = _ago(10), NOW
+    cps = [(_ago(8), 1000), (_ago(3), 900)]
+    out = _densify_daily(cps, start=start, end=end)
+    prices = [price for _, price in out]
+    assert prices[0] == 1000  # carried from the first change
+    assert prices[-1] == 900  # latest change carried to `end`
+    assert set(prices) == {1000, 900}
+    assert out[0][0] >= _ago(8)  # nothing emitted before the first observation
 
 
 @pytest.mark.asyncio

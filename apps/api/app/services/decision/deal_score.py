@@ -19,11 +19,13 @@ from pydantic import BaseModel, Field
 from app.services.decision.effective_price import EffectivePrice
 from app.services.decision.price_intelligence import PriceIntelligence
 
-# Data-sufficiency gates. Keepa records a point on every price *change*, not
-# daily, so coverage (how long we've watched) matters more than raw point count;
-# point count is only a floor to reject near-empty series.
-_MIN_POINTS_MEDIUM = 4
-_MIN_POINTS_HIGH = 8
+# Data-sufficiency gates. "Observations" means real price *changes*
+# (``source_observations`` in the window, ``lifetime_observations`` over the whole
+# tracked history) — not the densified daily point count.
+_MIN_OBS_MEDIUM = 3
+_MIN_OBS_HIGH = 8
+_MIN_LIFETIME_MEDIUM = 15
+_MIN_LIFETIME_HIGH = 40
 _MIN_COVERAGE_DAYS_MEDIUM = 21
 _MIN_COVERAGE_DAYS_HIGH = 60
 
@@ -57,11 +59,19 @@ class DealAssessment(BaseModel):
 
 
 def _confidence(intel: PriceIntelligence) -> Confidence:
-    if intel.total_points >= _MIN_POINTS_HIGH and intel.coverage_days >= _MIN_COVERAGE_DAYS_HIGH:
+    # Recent real observations, falling back to the densified point count only when
+    # the provider gave us no change-count at all.
+    recent = intel.source_observations
+    if recent is None:
+        recent = intel.total_points
+    lifetime = intel.lifetime_observations or 0
+
+    if intel.coverage_days >= _MIN_COVERAGE_DAYS_HIGH and (
+        recent >= _MIN_OBS_HIGH or lifetime >= _MIN_LIFETIME_HIGH
+    ):
         return Confidence.high
-    if (
-        intel.total_points >= _MIN_POINTS_MEDIUM
-        and intel.coverage_days >= _MIN_COVERAGE_DAYS_MEDIUM
+    if intel.coverage_days >= _MIN_COVERAGE_DAYS_MEDIUM and (
+        recent >= _MIN_OBS_MEDIUM or lifetime >= _MIN_LIFETIME_MEDIUM
     ):
         return Confidence.medium
     return Confidence.low
@@ -69,6 +79,18 @@ def _confidence(intel: PriceIntelligence) -> Confidence:
 
 def _money(cents: int, currency: str) -> str:
     return f"{cents / 100:.2f} {currency}"
+
+
+def _resolve_band(intel: PriceIntelligence) -> tuple[int | None, int | None, int | None, int]:
+    """90-day (avg, min, max, sample_count). Provider-computed stats win when present."""
+
+    window_90 = intel.window(90)
+    ps = intel.provider_stats or {}
+    avg_90 = ps.get("avg90_cents") or (window_90.avg_cents if window_90 else None)
+    min_90 = ps.get("min_cents") or (window_90.min_cents if window_90 else None)
+    max_90 = ps.get("max_cents") or (window_90.max_cents if window_90 else None)
+    samples = window_90.sample_count if window_90 else 0
+    return avg_90, min_90, max_90, samples
 
 
 def score_deal(
@@ -82,19 +104,17 @@ def score_deal(
     reasons: list[str] = []
     confidence = _confidence(intelligence)
 
-    window_90 = intelligence.window(90)
-    avg_90 = window_90.avg_cents if window_90 else None
-    min_90 = window_90.min_cents if window_90 else None
-    max_90 = window_90.max_cents if window_90 else None
+    avg_90, min_90, max_90, samples = _resolve_band(intelligence)
 
-    # Not enough history to judge against — report the price, don't pretend.
-    # A non-positive average or effective price is degenerate data: same handling.
+    # Nothing to judge against — a bare price with no usable band, or degenerate
+    # (non-positive) numbers.
     if (
         avg_90 is None
         or min_90 is None
+        or max_90 is None
         or avg_90 <= 0
         or effective <= 0
-        or (window_90 and window_90.sample_count < 3)
+        or (samples < 3 and not intelligence.provider_stats)
     ):
         reasons.append(
             "Not enough price history yet to judge this price — we'll know more "
@@ -105,6 +125,28 @@ def score_deal(
             score=50,
             confidence=Confidence.low,
             reasons=reasons,
+            effective_price=effective_price,
+            intelligence=intelligence,
+        )
+
+    # The price has not moved across the whole window: there is no dip to wait for
+    # and no discount to call out — it is simply the standing price.
+    if min_90 == max_90:
+        reasons.append(
+            f"The price has held at {_money(min_90, currency)} for the last "
+            f"90 days — no recent dips to wait for."
+        )
+        at_standing_price = effective <= round(min_90 * 1.02)
+        return DealAssessment(
+            verdict=Verdict.fair if at_standing_price else Verdict.wait,
+            score=55 if at_standing_price else 40,
+            confidence=confidence,
+            reasons=reasons
+            + (
+                []
+                if at_standing_price
+                else [f"Effective {_money(effective, currency)} is above that standing price."]
+            ),
             effective_price=effective_price,
             intelligence=intelligence,
         )
