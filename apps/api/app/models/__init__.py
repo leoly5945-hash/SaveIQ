@@ -27,6 +27,13 @@ from app.models.affiliate import (
     RecordStatus,
 )
 from app.models.bandit import BanditLog
+from app.models.tracking import (
+    AlertKind,
+    AlertStatus,
+    PriceAlert,
+    PriceObservation,
+    TrackedProduct,
+)
 from app.models.user import AnonymousUser, UserEvent
 
 __all__ = [
@@ -36,6 +43,8 @@ __all__ = [
     "AffiliateProvider",
     "AffiliateSyncError",
     "AffiliateSyncJob",
+    "AlertKind",
+    "AlertStatus",
     "AnonymousUser",
     "BanditLog",
     "Brand",
@@ -49,9 +58,12 @@ __all__ = [
     "Merchant",
     "MerchantListing",
     "Offer",
+    "PriceAlert",
     "PriceHistory",
+    "PriceObservation",
     "ProductIdentifier",
     "RawProviderRecord",
+    "TrackedProduct",
     "RecommendationFeedbackEvent",
     "RecommendationFeedbackRating",
     "RecordStatus",
