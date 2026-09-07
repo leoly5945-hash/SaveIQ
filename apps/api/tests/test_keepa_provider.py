@@ -7,14 +7,21 @@ filter is deterministic.
 
 from __future__ import annotations
 
+import gzip
+import json as _json
 from collections.abc import Mapping
+from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import pytest
 
 from app.providers.base import ProviderCapability, ProviderError
-from app.providers.keepa import _KEEPA_EPOCH_OFFSET_MINUTES, KeepaProvider
+from app.providers.keepa import (
+    _KEEPA_EPOCH_OFFSET_MINUTES,
+    KeepaProvider,
+    UrllibKeepaHttpTransport,
+)
 
 NOW = datetime(2026, 9, 6, 12, 0, tzinfo=UTC)
 
@@ -331,3 +338,40 @@ async def test_search_products_respects_limit() -> None:
     provider = _provider({"tokensLeft": 900, "products": many})
     results = await provider.search_products("x", limit=2)
     assert len(results) == 2
+
+
+class _FakeHTTPResponse:
+    def __init__(self, body: bytes, headers: dict[str, str]) -> None:
+        self._body = body
+        self.headers = headers
+
+    def read(self) -> bytes:
+        return self._body
+
+
+def test_urllib_transport_gunzips_response(monkeypatch) -> None:
+    # Keepa always gzip-compresses its API responses.
+    payload = {"tokensLeft": 42, "products": []}
+    gzipped = gzip.compress(_json.dumps(payload).encode("utf-8"))
+
+    @contextmanager
+    def fake_urlopen(request, timeout):  # noqa: ARG001
+        yield _FakeHTTPResponse(gzipped, {"Content-Encoding": "gzip"})
+
+    monkeypatch.setattr("urllib.request.urlopen", fake_urlopen)
+    result = UrllibKeepaHttpTransport().get_json("https://api.keepa.com/product", timeout_seconds=5)
+    assert result == payload
+
+
+def test_urllib_transport_gunzips_without_header(monkeypatch) -> None:
+    # Some proxies drop the Content-Encoding header — sniff the magic bytes.
+    payload = {"tokensLeft": 1, "products": []}
+    gzipped = gzip.compress(_json.dumps(payload).encode("utf-8"))
+
+    @contextmanager
+    def fake_urlopen(request, timeout):  # noqa: ARG001
+        yield _FakeHTTPResponse(gzipped, {})
+
+    monkeypatch.setattr("urllib.request.urlopen", fake_urlopen)
+    result = UrllibKeepaHttpTransport().get_json("https://api.keepa.com/product", timeout_seconds=5)
+    assert result == payload
