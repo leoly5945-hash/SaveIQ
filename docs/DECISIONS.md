@@ -305,3 +305,17 @@ marketplace per instance via `KEEPA_DOMAIN`, default `6` = Amazon.ca). It is reg
 lookups return empty. `GET /admin/providers` reports what is wired without exposing secrets. A
 Google Shopping vendor for multi-merchant comparison is planned behind the same interface. Details
 in `docs/PRODUCT_DATA_PROVIDERS.md`.
+
+## 2026-09-07: CP9–CP11 Add a Deterministic Decision Engine
+
+Status: Accepted
+
+`app/services/decision/` turns a price-history series + a current price into trailing-window
+statistics (CP9), an effective price = base + shipping + guaranteed components (CP10), and a
+transparent 0–100 score with a BUY / WAIT / FAIR / UNKNOWN verdict and plain-language reasons
+(CP11). It is pure and deterministic — rules only, no ML, and **no input for merchant commission
+or affiliate payout anywhere in the scoring path** (spec §24). Thin history yields UNKNOWN rather
+than a guessed verdict. The engine reads a series it is handed (live `KeepaProvider` result or,
+later, persisted rows); it does not fetch or persist. `GET /admin/providers/price-check` runs it
+live against a provider as the staging surface until the public checker UI (CP16). Details in
+`docs/DECISION_ENGINE.md`.
