@@ -163,3 +163,35 @@ def test_price_check_404_for_unknown_provider(monkeypatch) -> None:
         headers={"X-Admin-Token": "dev-admin-token"},
     )
     assert response.status_code == 404
+
+
+def test_price_check_accepts_an_amazon_ca_url(monkeypatch) -> None:
+    _install_registry(monkeypatch, FakeProvider())
+    client = TestClient(app)
+    response = client.get(
+        "/admin/providers/price-check",
+        params={"url": "https://www.amazon.ca/Anker-737/dp/B0TEST0001/ref=x"},
+        headers={"X-Admin-Token": "dev-admin-token"},
+    )
+    assert response.status_code == 200
+    assert response.json()["provider_product_id"] == "B0TEST0001"
+
+
+def test_price_check_rejects_a_non_ca_url(monkeypatch) -> None:
+    _install_registry(monkeypatch, FakeProvider())
+    client = TestClient(app)
+    response = client.get(
+        "/admin/providers/price-check",
+        params={"url": "https://www.amazon.com/dp/B0TEST0001"},
+        headers={"X-Admin-Token": "dev-admin-token"},
+    )
+    assert response.status_code == 422
+    assert "Amazon.ca" in response.json()["detail"]
+
+
+def test_price_check_needs_id_or_url() -> None:
+    client = TestClient(app)
+    response = client.get(
+        "/admin/providers/price-check", headers={"X-Admin-Token": "dev-admin-token"}
+    )
+    assert response.status_code == 422
