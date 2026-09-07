@@ -17,11 +17,13 @@ at that point". Timestamps are "Keepa minutes" — minutes since 2011-01-01 UTC.
 from __future__ import annotations
 
 import asyncio
+import gzip
 import json
 import logging
 import urllib.error
 import urllib.parse
 import urllib.request
+import zlib
 from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime, timedelta
 from typing import Any, Protocol
@@ -98,17 +100,40 @@ class KeepaHttpTransport(Protocol):
         """Fetch ``url`` and return the decoded JSON object."""
 
 
+def _decompress_body(raw: bytes, content_encoding: str | None) -> bytes:
+    """Keepa always gzip-compresses responses; some proxies re-encode. Be lenient."""
+
+    encoding = (content_encoding or "").lower().strip()
+    if encoding == "gzip" or raw[:2] == b"\x1f\x8b":
+        return gzip.decompress(raw)
+    if encoding == "deflate":
+        try:
+            return zlib.decompress(raw)
+        except zlib.error:
+            return zlib.decompress(raw, -zlib.MAX_WBITS)
+    return raw
+
+
 class UrllibKeepaHttpTransport:
     def get_json(self, url: str, *, timeout_seconds: float) -> Mapping[str, Any]:
-        request = urllib.request.Request(url, method="GET")
+        request = urllib.request.Request(
+            url,
+            method="GET",
+            headers={"Accept": "application/json", "Accept-Encoding": "gzip"},
+        )
         try:
             with urllib.request.urlopen(request, timeout=timeout_seconds) as response:
-                raw_body = response.read().decode("utf-8")
+                raw = response.read()
+                content_encoding = response.headers.get("Content-Encoding")
         except urllib.error.HTTPError as exc:  # 4xx / 5xx
             detail = _safe_http_error_detail(exc)
             raise ProviderError(f"Keepa request failed (HTTP {exc.code}): {detail}") from exc
         except (TimeoutError, OSError, urllib.error.URLError) as exc:
             raise ProviderError("Keepa request failed (transport error)") from exc
+        try:
+            raw_body = _decompress_body(raw, content_encoding).decode("utf-8")
+        except (OSError, zlib.error, UnicodeDecodeError) as exc:
+            raise ProviderError("Keepa returned an undecodable body") from exc
         try:
             decoded = json.loads(raw_body)
         except json.JSONDecodeError as exc:
@@ -120,7 +145,8 @@ class UrllibKeepaHttpTransport:
 
 def _safe_http_error_detail(exc: urllib.error.HTTPError) -> str:
     try:
-        body = exc.read().decode("utf-8")
+        raw = exc.read()
+        body = _decompress_body(raw, exc.headers.get("Content-Encoding")).decode("utf-8")
     except Exception:  # noqa: BLE001 - diagnostics only
         return exc.reason or "unknown error"
     try:
