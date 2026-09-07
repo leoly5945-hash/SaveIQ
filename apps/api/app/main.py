@@ -10,8 +10,10 @@ from app.api.routes.admin_providers import router as admin_providers_router
 from app.api.routes.admin_rate_limit import router as admin_rate_limit_router
 from app.api.routes.admin_router import router as admin_router_status
 from app.api.routes.admin_safety import router as admin_safety_router
+from app.api.routes.admin_tracking import router as admin_tracking_router
 from app.api.routes.admin_users import router as admin_users_router
 from app.api.routes.affiliate_postback import router as affiliate_postback_router
+from app.api.routes.alerts import router as alerts_router
 from app.api.routes.bandit import router as bandit_router
 from app.api.routes.clicks import router as clicks_router
 from app.api.routes.featured_deals import router as featured_deals_router
@@ -57,6 +59,7 @@ def create_app() -> FastAPI:
     app.include_router(affiliate_postback_router)
     app.include_router(search_router)
     app.include_router(featured_deals_router)
+    app.include_router(alerts_router)
     app.include_router(recommendations_router)
     app.include_router(bandit_router)
     app.include_router(personalization_router)
@@ -67,6 +70,7 @@ def create_app() -> FastAPI:
     app.include_router(admin_users_router)
     app.include_router(admin_gate9_router)
     app.include_router(admin_providers_router)
+    app.include_router(admin_tracking_router)
     app.include_router(admin_rate_limit_router)
     app.include_router(admin_canary_router)
     app.include_router(admin_abtest_router)

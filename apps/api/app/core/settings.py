@@ -40,6 +40,23 @@ class Settings(BaseSettings):
         default=20.0,
         validation_alias="KEEPA_TIMEOUT_SECONDS",
     )
+    # CP15 — price alerts.
+    public_site_url: str = Field(
+        default="https://www.saveiq.ca",
+        validation_alias="PUBLIC_SITE_URL",
+    )
+    email_sender: Literal["null", "console"] = Field(
+        default="console",
+        validation_alias="EMAIL_SENDER",
+    )
+    alert_from_email: str = Field(
+        default="alerts@saveiq.ca",
+        validation_alias="ALERT_FROM_EMAIL",
+    )
+    alert_min_drop_pct: float = Field(
+        default=1.0,
+        validation_alias="ALERT_MIN_DROP_PCT",
+    )
     feature_llm_intent_parser: bool = Field(
         default=False,
         validation_alias="FEATURE_LLM_INTENT_PARSER",

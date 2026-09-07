@@ -319,3 +319,30 @@ than a guessed verdict. The engine reads a series it is handed (live `KeepaProvi
 later, persisted rows); it does not fetch or persist. `GET /admin/providers/price-check` runs it
 live against a provider as the staging surface until the public checker UI (CP16). Details in
 `docs/DECISION_ENGINE.md`.
+
+## 2026-09-07: CP6 Parses Retailer URLs Into a Product Reference
+
+Status: Accepted
+
+`app/services/product_url.py::extract_product_ref` turns a pasted Amazon URL (`/dp/`,
+`/gp/product/`, `/gp/aw/d/`, `/-/en/dp/`, `?asin=` / `?pd_rd_i=`) or a bare 10-char ASIN into
+`{retailer, market, product_id, keepa_domain}`. TLD picks the market (`.ca` → CA / Keepa domain
+6). `amzn.to` / `a.co` short links resolve only when `follow_redirects=True` (one HEAD, no body).
+`GET /admin/providers/price-check` accepts `url=` as an alternative to `product_id=`; a non-`.ca`
+marketplace is rejected until a provider covers it.
+
+## 2026-09-07: CP15 Adds Price Alerts (One-Shot, Email-Pluggable)
+
+Status: Accepted
+
+`tracked_products` / `price_observations` / `price_alerts` (migration `202609070001`) let a user
+watch a product by URL and get one email when the price moves. Alert kinds: `any_drop` (vs. the
+baseline at creation, ≥ `ALERT_MIN_DROP_PCT`), `below` (a threshold), `at_or_below_average` (vs.
+the 90-day average). Alerts are one-shot — on firing, status → `fired`; no repeat emails. Email
+goes through an `EmailSender` protocol (`EMAIL_SENDER=console|null`; real SMTP later). The alert
+body carries the `?tag=` affiliate link. `run_alert_cycle` re-checks every tracked product via its
+provider, records an observation, and fires due alerts; one bad product is skipped, not fatal.
+`POST /admin/alerts`, `GET /admin/alerts`, `POST /admin/alerts/run` (admin); `GET
+/alerts/unsubscribe?token=` (public). `python -m app.workers.price_poll` is the cron entrypoint —
+blueprint cron wiring is a follow-up. Public alert creation + UI is CP16. Details in
+`docs/PRICE_ALERTS.md`.
