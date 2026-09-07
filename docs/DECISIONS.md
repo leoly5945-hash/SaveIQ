@@ -290,3 +290,18 @@ feature flags that default to false. Chinese providers cannot be selected unless
 `FEATURE_CHINESE_LLM_PROVIDERS=true` and keys are present. Advanced policies refuse activation
 without their flags. Admin model status exposes key booleans only. Benchmarks may run on
 synthetic data when logs are empty.
+
+## 2026-09-06: CP4 Adds a Read-Side Product Data Provider Abstraction
+
+Status: Accepted
+
+Product/offer/price lookups go through a new `ProductDataProvider` protocol in `app/providers/`
+(`search_products` / `get_product` / `get_offers` / `get_price` / `get_price_history`) plus a
+`ProviderRegistry`. This is separate from the affiliate ingestion pipeline: providers are queried
+on demand by the URL price-checker and the decision engine and never write to the database. The
+first implementation is `KeepaProvider` (Amazon catalogue + multi-year price history, one
+marketplace per instance via `KEEPA_DOMAIN`, default `6` = Amazon.ca). It is registered only when
+`KEEPA_API_KEY` is set (`sync: false`, never committed); with no key the registry is empty and
+lookups return empty. `GET /admin/providers` reports what is wired without exposing secrets. A
+Google Shopping vendor for multi-merchant comparison is planned behind the same interface. Details
+in `docs/PRODUCT_DATA_PROVIDERS.md`.

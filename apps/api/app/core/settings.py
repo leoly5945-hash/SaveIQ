@@ -32,6 +32,14 @@ class Settings(BaseSettings):
         default="saveiq-20",
         validation_alias="AMAZON_ASSOCIATE_TAG",
     )
+    # CP4 — Keepa product data provider (Amazon price + history). Unset => the
+    # provider is not registered and product-data lookups return empty.
+    keepa_api_key: str | None = Field(default=None, validation_alias="KEEPA_API_KEY")
+    keepa_domain: int = Field(default=6, validation_alias="KEEPA_DOMAIN")  # 6 = Amazon.ca
+    keepa_timeout_seconds: float = Field(
+        default=20.0,
+        validation_alias="KEEPA_TIMEOUT_SECONDS",
+    )
     feature_llm_intent_parser: bool = Field(
         default=False,
         validation_alias="FEATURE_LLM_INTENT_PARSER",
@@ -362,6 +370,7 @@ class Settings(BaseSettings):
         "baidu_api_key",
         "baidu_secret_key",
         "metrics_token",
+        "keepa_api_key",
     )
     @classmethod
     def normalize_optional_secret(cls, value: str | None) -> str | None:
