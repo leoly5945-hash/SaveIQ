@@ -45,7 +45,7 @@ class Settings(BaseSettings):
         default="https://www.saveiq.ca",
         validation_alias="PUBLIC_SITE_URL",
     )
-    email_sender: Literal["null", "console"] = Field(
+    email_sender: Literal["null", "console", "smtp"] = Field(
         default="console",
         validation_alias="EMAIL_SENDER",
     )
@@ -53,6 +53,11 @@ class Settings(BaseSettings):
         default="alerts@saveiq.ca",
         validation_alias="ALERT_FROM_EMAIL",
     )
+    smtp_host: str | None = Field(default=None, validation_alias="SMTP_HOST")
+    smtp_port: int = Field(default=587, validation_alias="SMTP_PORT")
+    smtp_username: str | None = Field(default=None, validation_alias="SMTP_USERNAME")
+    smtp_password: str | None = Field(default=None, validation_alias="SMTP_PASSWORD")
+    smtp_use_tls: bool = Field(default=True, validation_alias="SMTP_USE_TLS")
     alert_min_drop_pct: float = Field(
         default=1.0,
         validation_alias="ALERT_MIN_DROP_PCT",
@@ -398,6 +403,9 @@ class Settings(BaseSettings):
         "baidu_secret_key",
         "metrics_token",
         "keepa_api_key",
+        "smtp_host",
+        "smtp_username",
+        "smtp_password",
     )
     @classmethod
     def normalize_optional_secret(cls, value: str | None) -> str | None:

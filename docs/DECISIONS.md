@@ -357,3 +357,17 @@ cannot drift. `GET /check` and `POST /alerts` are unauthenticated and per-IP rat
 `app/services/endpoint_limit.py` (fixed 60s window on the existing Redis / in-memory store), gated
 on `RATE_LIMIT_ENABLED` so local/tests are unaffected. New settings `CHECK_RATE_PER_MINUTE` (20),
 `ALERT_CREATE_RATE_PER_MINUTE` (10). The `/check` web page is the remaining CP16 piece.
+
+## 2026-09-08: Price Poll Runs From GitHub Actions; SMTP Email Sender Added
+
+Status: Accepted
+
+The daily "re-check every tracked product + fire due alerts" cycle runs from
+`.github/workflows/price-poll.yml` (cron `0 13 * * *` + manual dispatch), which POSTs
+`/admin/alerts/run` per environment — no paid Render cron service. Configured by repo
+Variables `STAGING_API_URL` / `PRODUCTION_API_URL` and Secrets
+`STAGING_ADMIN_API_TOKEN` / `PRODUCTION_ADMIN_API_TOKEN`; an unset environment is skipped.
+`app/workers/price_poll.py` stays as the entrypoint for a Render `type: cron` alternative.
+Email gains a third `EMAIL_SENDER` option, `smtp` (`SmtpEmailSender`, stdlib `smtplib` +
+STARTTLS, `SMTP_*` settings); a misconfigured `smtp` falls back to `console` with a warning
+so the cron never crashes on it.
