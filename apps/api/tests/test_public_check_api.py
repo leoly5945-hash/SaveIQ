@@ -81,7 +81,34 @@ class FakeKeepa:
         )
 
 
+def _dfs_offers(provider_product_id: str) -> list[ProviderOffer]:
+    return [
+        ProviderOffer(
+            provider="dataforseo",
+            provider_product_id=provider_product_id,
+            merchant="Walmart Canada",
+            price_cents=3999,
+            currency="CAD",
+            url="https://www.walmart.ca/en/ip/anker-737/1",
+            observed_at=NOW,
+            metadata={"title": "Anker 737 Power Bank PowerCore 24K"},
+        ),
+        ProviderOffer(
+            provider="dataforseo",
+            provider_product_id=provider_product_id,
+            merchant="Best Buy Canada",
+            price_cents=4599,
+            currency="CAD",
+            url="https://www.bestbuy.ca/anker-737",
+            observed_at=NOW,
+            metadata={"title": "Anker 737 Power Bank"},
+        ),
+    ]
+
+
 class FakeDataForSEO:
+    """Task-based DataForSEO stub: submit returns a task id, fetch returns offers."""
+
     name = "dataforseo"
     market = "CA"
     currency = "CAD"
@@ -89,32 +116,26 @@ class FakeDataForSEO:
         {ProviderCapability.search, ProviderCapability.get_offers, ProviderCapability.get_price}
     )
 
+    def __init__(self, *, ready: bool = True) -> None:
+        self._ready = ready
+        self.submitted: list[str] = []
+
     def is_configured(self) -> bool:
         return True
 
+    async def submit_offers_task(self, keyword: str) -> str:
+        self.submitted.append(keyword)
+        return "task-abc"
+
+    async def fetch_offers_task(
+        self, task_id: str, *, provider_product_id: str | None = None
+    ) -> list[ProviderOffer] | None:
+        if not self._ready:
+            return None
+        return _dfs_offers(provider_product_id or "ref")
+
     async def get_offers(self, provider_product_id: str) -> list[ProviderOffer]:
-        return [
-            ProviderOffer(
-                provider="dataforseo",
-                provider_product_id=provider_product_id,
-                merchant="Walmart Canada",
-                price_cents=3999,
-                currency="CAD",
-                url="https://www.walmart.ca/en/ip/anker-737/1",
-                observed_at=NOW,
-                metadata={"title": "Anker 737 Power Bank PowerCore 24K"},
-            ),
-            ProviderOffer(
-                provider="dataforseo",
-                provider_product_id=provider_product_id,
-                merchant="Best Buy Canada",
-                price_cents=4599,
-                currency="CAD",
-                url="https://www.bestbuy.ca/anker-737",
-                observed_at=NOW,
-                metadata={"title": "Anker 737 Power Bank"},
-            ),
-        ]
+        return _dfs_offers(provider_product_id)
 
     async def get_price(self, provider_product_id: str):  # pragma: no cover
         return None
@@ -124,6 +145,44 @@ class FakeDataForSEO:
 
     async def get_price_history(self, provider_product_id: str, *, days: int = 180):
         return None
+
+
+def _seed_ready_comparison(session: Session, pid: str) -> None:
+    from app.models.comparison import ComparisonStatus, MerchantComparison
+
+    session.add(
+        MerchantComparison(
+            provider="keepa",
+            provider_product_id=pid,
+            market="CA",
+            status=ComparisonStatus.ready.value,
+            keyword="Anker 737 Power Bank",
+            task_id="task-abc",
+            currency="CAD",
+            offers_json=[
+                {
+                    "merchant": "Walmart Canada",
+                    "price_cents": 3999,
+                    "shipping_cents": 0,
+                    "currency": "CAD",
+                    "url": "https://www.walmart.ca/en/ip/anker-737/1",
+                    "title": "Anker 737 Power Bank PowerCore 24K",
+                },
+                {
+                    "merchant": "Best Buy Canada",
+                    "price_cents": 4599,
+                    "shipping_cents": 0,
+                    "currency": "CAD",
+                    "url": "https://www.bestbuy.ca/anker-737",
+                    "title": "Anker 737 Power Bank",
+                },
+            ],
+            requested_at=datetime.now(UTC) - timedelta(minutes=5),
+            completed_at=datetime.now(UTC) - timedelta(minutes=5),
+            expires_at=datetime.now(UTC) + timedelta(hours=23),
+        )
+    )
+    session.commit()
 
 
 def _client(monkeypatch, *providers: object) -> tuple[TestClient, Session]:
@@ -171,9 +230,10 @@ def test_public_check_from_url(monkeypatch) -> None:
         session.close()
 
 
-def test_public_check_includes_multi_merchant_comparison(monkeypatch) -> None:
+def test_public_check_renders_cached_comparison(monkeypatch) -> None:
     client, session = _client(monkeypatch, FakeKeepa(), FakeDataForSEO())
     try:
+        _seed_ready_comparison(session, "B09VPHVT9Z")
         resp = client.get("/check", params={"product_id": "B09VPHVT9Z"})
         assert resp.status_code == 200, resp.text
         comp = resp.json()["comparison"]
@@ -189,9 +249,28 @@ def test_public_check_includes_multi_merchant_comparison(monkeypatch) -> None:
         session.close()
 
 
+def test_public_check_primes_comparison_task_when_cold(monkeypatch) -> None:
+    from app.models.comparison import ComparisonStatus, MerchantComparison
+
+    dfs = FakeDataForSEO()
+    client, session = _client(monkeypatch, FakeKeepa(), dfs)
+    try:
+        resp = client.get("/check", params={"product_id": "B09VPHVT9Z"})
+        assert resp.status_code == 200, resp.text
+        assert resp.json()["comparison"] is None  # first check: nothing cached yet
+        assert dfs.submitted == ["Anker 737 Power Bank"]  # a task was posted
+        row = session.query(MerchantComparison).one()
+        assert row.status == ComparisonStatus.pending.value
+        assert row.task_id == "task-abc"
+        assert row.provider_product_id == "B09VPHVT9Z"
+    finally:
+        app.dependency_overrides.clear()
+        session.close()
+
+
 def test_public_check_survives_comparison_provider_failure(monkeypatch) -> None:
     class BrokenDFS(FakeDataForSEO):
-        async def get_offers(self, provider_product_id: str):
+        async def submit_offers_task(self, keyword: str) -> str:
             raise RuntimeError("dataforseo is down")
 
     client, session = _client(monkeypatch, FakeKeepa(), BrokenDFS())

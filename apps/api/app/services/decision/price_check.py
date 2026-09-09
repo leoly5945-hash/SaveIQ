@@ -8,11 +8,15 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
+from datetime import datetime
+
+from sqlalchemy.orm import Session
 
 from app.providers import ProviderCapability, ProviderError, ProviderProductNotFound
 from app.providers.base import ProductDataProvider, ProviderPriceHistory
 from app.providers.registry import ProviderRegistry
 from app.services.decision.assess import assess_from_provider
+from app.services.decision.comparison_cache import resolve_comparison
 from app.services.decision.deal_score import DealAssessment
 from app.services.decision.matching import Comparison, build_comparison
 from app.services.product_url import extract_product_ref
@@ -21,8 +25,6 @@ logger = logging.getLogger(__name__)
 
 # Points in the compact series the UI draws as a sparkline.
 SPARKLINE_MAX_POINTS = 60
-# Provider that supplies cross-merchant offers.
-_COMPARISON_PROVIDER = "dataforseo"
 
 
 class PriceCheckError(Exception):
@@ -54,24 +56,37 @@ class PriceCheckResult:
 
 async def _build_comparison(
     registry: ProviderRegistry,
+    db: Session | None,
     *,
+    reference_provider: str,
+    provider_product_id: str,
+    market: str,
     title: str | None,
     brand: str | None,
     reference_price_cents: int,
     currency: str,
+    now: datetime | None = None,
 ) -> Comparison | None:
-    """Cross-merchant offers via the comparison provider. Never raises."""
+    """Cross-merchant offers from the comparison cache. Never raises.
 
-    if not title:
+    The cache is task-backed (DataForSEO has no live endpoint): the first check of
+    a cold product returns ``None`` and primes a task; later checks render the
+    comparison from cached offers. ``db is None`` disables it entirely.
+    """
+
+    if not title or db is None:
         return None
-    provider = registry.try_get(_COMPARISON_PROVIDER)
-    if provider is None or not provider.is_configured():
-        return None
-    try:
-        candidates = await provider.get_offers(title)
-    except Exception:  # noqa: BLE001 - comparison is best-effort, must not break the check
-        logger.warning("comparison provider failed", exc_info=True)
-        return None
+    candidates = await resolve_comparison(
+        db,
+        registry,
+        provider=reference_provider,
+        provider_product_id=provider_product_id,
+        market=market,
+        title=title,
+        brand=brand,
+        currency=currency,
+        now=now,
+    )
     if not candidates:
         return None
     return build_comparison(
@@ -142,6 +157,8 @@ async def run_price_check(
     url: str | None = None,
     provider: str | None = None,
     days: int = 90,
+    db: Session | None = None,
+    now: datetime | None = None,
 ) -> PriceCheckResult:
     resolved_id, hint = resolve_target(product_id, url)
     adapter = _pick_provider(registry, name=provider, hint=hint)
@@ -166,10 +183,15 @@ async def run_price_check(
     title = product.title if product else None
     comparison = await _build_comparison(
         registry,
+        db,
+        reference_provider=adapter.name,
+        provider_product_id=resolved_id,
+        market=adapter.market,
         title=title,
         brand=product.brand if product else None,
         reference_price_cents=assessment.effective_price.effective_cents,
         currency=price.currency,
+        now=now,
     )
 
     return PriceCheckResult(

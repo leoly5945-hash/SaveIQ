@@ -385,3 +385,24 @@ provider (registered only when `DATAFORSEO_LOGIN`/`PASSWORD` are set) with the K
 title after the verdict is computed; any failure there is swallowed so the verdict always
 renders. `/check` gains an optional `comparison` block; the web renders it on the verdict card
 and `/check/[asin]`. No merchant preference anywhere — offers are ranked by price only.
+
+## 2026-09-09: Cross-Merchant Comparison Moves to a Task-Backed Cache
+
+Status: Accepted
+
+DataForSEO's Google Shopping product data is **task-based — there is no live endpoint**
+(the earlier `DataForSEOProvider` posted to `/v3/merchant/google/products/live/advanced`, which
+does not exist; the API answered `Invalid Path.`). A task takes seconds-to-minutes and needs
+polling, so it cannot run inside a synchronous price-check.
+
+`app/services/decision/comparison_cache.py` (table `merchant_comparisons`) is the bridge.
+`run_price_check` calls `resolve_comparison`: a fresh cached row returns its raw offers straight
+away; a cold product posts a `task_post` and returns no comparison for that request; a row whose
+task is still pending and at least ~20s old is polled inline (so the *next* check of the same
+product — or the hourly `/check/[asin]` revalidation — completes it). `run_alert_cycle` also
+sweeps pending rows once a day, and `POST /admin/providers/comparison-poll` does it on demand.
+Ready rows live 24h; CP7 matching (`build_comparison`) re-runs on every read so the "cheaper?"
+call stays correct as the Amazon price moves. Every failure is swallowed — verdict + sparkline
+never depend on DataForSEO. Keyword sent to DataForSEO is the Keepa title trimmed to its head
+(`shopping_keyword`) because raw Amazon titles are too noisy for Google Shopping. Cost is one
+`task_post` per distinct product per 24h, not one per check.

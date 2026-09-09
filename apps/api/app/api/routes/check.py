@@ -8,10 +8,12 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
 
 from app.core.settings import Settings, get_settings
+from app.db.session import get_db
 from app.providers import get_provider_registry
 from app.services.decision.deal_score import DealAssessment
 from app.services.decision.price_check import PriceCheckError, run_price_check
@@ -59,6 +61,7 @@ def _client_ip(request: Request) -> str:
 @router.get("", response_model=CheckResponse)
 async def check_price(
     request: Request,
+    db: Annotated[Session, Depends(get_db)],
     url: Annotated[str | None, Query(max_length=2048)] = None,
     product_id: Annotated[str | None, Query(min_length=3, max_length=32)] = None,
     days: Annotated[int, Query(ge=7, le=365)] = 90,
@@ -73,9 +76,12 @@ async def check_price(
             product_id=product_id,
             url=url,
             days=days,
+            db=db,
         )
     except PriceCheckError as exc:
+        db.rollback()
         raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+    db.commit()
 
     comparison_out: ComparisonOut | None = None
     if result.comparison is not None:

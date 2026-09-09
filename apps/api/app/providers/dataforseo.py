@@ -5,8 +5,13 @@ link), DataForSEO's Google Shopping endpoint returns the same product's offers
 across other retailers (Walmart CA, Best Buy CA, Newegg, …). No price history —
 this provider answers ``search`` / ``get_offers`` / ``get_price`` only.
 
-DataForSEO is query-based, not id-based: ``get_offers(provider_product_id)``
-treats the id as the search term.
+DataForSEO's Google Shopping is **task-based**: there is no live endpoint. You
+``task_post`` a keyword (charged), wait, then ``task_get`` the result. The
+synchronous Protocol methods (``get_offers`` etc.) submit a task and poll it for
+a short budget — fine for admin/debug use. The price-check path does **not** use
+them; it drives ``submit_offers_task`` / ``fetch_offers_task`` through the
+:mod:`app.services.decision.comparison_cache` so the shopper's request never
+blocks on a DataForSEO task.
 """
 
 from __future__ import annotations
@@ -34,7 +39,14 @@ from app.providers.base import (
 logger = logging.getLogger(__name__)
 
 DATAFORSEO_API_BASE = "https://api.dataforseo.com"
-_SHOPPING_LIVE_PATH = "/v3/merchant/google/products/live/advanced"
+_SHOPPING_TASK_POST_PATH = "/v3/merchant/google/products/task_post"
+_SHOPPING_TASK_GET_PATH = "/v3/merchant/google/products/task_get/advanced"
+
+# task-level status codes that mean "not done yet, poll again later".
+_TASK_PENDING_CODES = frozenset({40601, 40602, 40100})
+# how long / how hard the synchronous helpers poll a freshly posted task.
+_SYNC_POLL_ATTEMPTS = 6
+_SYNC_POLL_DELAY_SECONDS = 2.0
 
 # DataForSEO location_code -> (market, currency).
 _LOCATION_LOCALE: dict[int, tuple[str, str]] = {
@@ -59,6 +71,15 @@ class DataForSEOTransport(Protocol):
     ) -> Mapping[str, Any]:
         """POST JSON with Basic auth and return the decoded JSON object."""
 
+    def get_json(
+        self,
+        url: str,
+        *,
+        auth_header: str,
+        timeout_seconds: float,
+    ) -> Mapping[str, Any]:
+        """GET with Basic auth and return the decoded JSON object."""
+
 
 def _decompress(raw: bytes, content_encoding: str | None) -> bytes:
     enc = (content_encoding or "").lower().strip()
@@ -70,6 +91,16 @@ def _decompress(raw: bytes, content_encoding: str | None) -> bytes:
         except zlib.error:
             return zlib.decompress(raw, -zlib.MAX_WBITS)
     return raw
+
+
+def _decode_body(raw: bytes, encoding: str | None) -> Mapping[str, Any]:
+    try:
+        decoded = json.loads(_decompress(raw, encoding).decode("utf-8"))
+    except (OSError, zlib.error, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ProviderError("DataForSEO returned an undecodable body") from exc
+    if not isinstance(decoded, Mapping):
+        raise ProviderError("DataForSEO returned a non-object response")
+    return decoded
 
 
 class UrllibDataForSEOTransport:
@@ -91,6 +122,27 @@ class UrllibDataForSEOTransport:
                 "Accept-Encoding": "gzip",
             },
         )
+        return self._send(request, timeout_seconds)
+
+    def get_json(
+        self,
+        url: str,
+        *,
+        auth_header: str,
+        timeout_seconds: float,
+    ) -> Mapping[str, Any]:
+        request = urllib.request.Request(
+            url,
+            method="GET",
+            headers={
+                "Authorization": auth_header,
+                "Accept-Encoding": "gzip",
+            },
+        )
+        return self._send(request, timeout_seconds)
+
+    @staticmethod
+    def _send(request: urllib.request.Request, timeout_seconds: float) -> Mapping[str, Any]:
         try:
             with urllib.request.urlopen(request, timeout=timeout_seconds) as response:
                 raw = response.read()
@@ -99,13 +151,7 @@ class UrllibDataForSEOTransport:
             raise ProviderError(f"DataForSEO request failed (HTTP {exc.code})") from exc
         except (TimeoutError, OSError, urllib.error.URLError) as exc:
             raise ProviderError("DataForSEO request failed (transport error)") from exc
-        try:
-            decoded = json.loads(_decompress(raw, encoding).decode("utf-8"))
-        except (OSError, zlib.error, UnicodeDecodeError, json.JSONDecodeError) as exc:
-            raise ProviderError("DataForSEO returned an undecodable body") from exc
-        if not isinstance(decoded, Mapping):
-            raise ProviderError("DataForSEO returned a non-object response")
-        return decoded
+        return _decode_body(raw, encoding)
 
 
 def _as_price_cents(value: Any) -> int | None:
@@ -114,6 +160,21 @@ def _as_price_cents(value: Any) -> int | None:
     except (TypeError, ValueError):
         return None
     return cents if cents > 0 else None
+
+
+def _shipping_cents(item: Mapping[str, Any]) -> int:
+    """Shipping from either the live shape (``price_shipping``) or task_get's
+    ``delivery_info.delivery_price``."""
+
+    direct = _as_price_cents(item.get("price_shipping"))
+    if direct is not None:
+        return direct
+    delivery = item.get("delivery_info")
+    if isinstance(delivery, Mapping):
+        price = delivery.get("delivery_price")
+        if isinstance(price, Mapping):
+            return _as_price_cents(price.get("price")) or 0
+    return 0
 
 
 class DataForSEOProvider:
@@ -152,24 +213,23 @@ class DataForSEOProvider:
         return bool(self._login and self._password)
 
     async def search_products(self, query: str, *, limit: int = 10) -> list[ProviderProduct]:
-        items = await self._shopping_items(query)
+        offers = await self.get_offers(query)
         out: list[ProviderProduct] = []
-        for item in items[: max(limit, 0)]:
-            title = _clean_str(item.get("title"))
+        for offer in offers[: max(limit, 0)]:
+            title = (offer.metadata or {}).get("title")
             if not title:
                 continue
             out.append(
                 ProviderProduct(
                     provider=self.name,
-                    provider_product_id=str(item.get("product_id") or query),
-                    title=title,
-                    brand=_clean_str(item.get("brand")),
+                    provider_product_id=str((offer.metadata or {}).get("product_id") or query),
+                    title=str(title),
                     market=self.market,
                     currency=self.currency,
-                    product_url=_clean_str(item.get("url")) or _clean_str(item.get("direct_url")),
+                    product_url=offer.url,
                     metadata={
-                        "seller": _clean_str(item.get("seller")),
-                        "price_cents": _as_price_cents(item.get("price")),
+                        "seller": offer.merchant,
+                        "price_cents": offer.price_cents,
                         "source": "google_shopping",
                     },
                 )
@@ -177,34 +237,24 @@ class DataForSEOProvider:
         return out
 
     async def get_offers(self, provider_product_id: str) -> list[ProviderOffer]:
-        items = await self._shopping_items(provider_product_id)
-        observed = self._now or datetime.now(tz=UTC)
-        offers: list[ProviderOffer] = []
-        for item in items:
-            price_cents = _as_price_cents(item.get("price"))
-            seller = _clean_str(item.get("seller"))
-            if price_cents is None or not seller:
-                continue
-            offers.append(
-                ProviderOffer(
-                    provider=self.name,
-                    provider_product_id=provider_product_id,
-                    merchant=seller,
-                    price_cents=price_cents,
-                    shipping_cents=_as_price_cents(item.get("price_shipping")) or 0,
-                    currency=_clean_str(item.get("currency")) or self.currency,
-                    availability="in_stock",
-                    condition="new",
-                    url=_clean_str(item.get("url")) or _clean_str(item.get("direct_url")),
-                    observed_at=observed,
-                    metadata={
-                        "title": _clean_str(item.get("title")),
-                        "rating": item.get("rating"),
-                        "product_id": item.get("product_id"),
-                    },
-                )
-            )
-        return offers
+        """Submit a task for the keyword and poll it for a short budget.
+
+        Used by the admin/debug surface only. The price-check path uses
+        ``submit_offers_task`` / ``fetch_offers_task`` via the comparison cache so
+        it never blocks on a task.
+        """
+
+        keyword = provider_product_id.strip()
+        if not keyword:
+            return []
+        task_id = await self.submit_offers_task(keyword)
+        for attempt in range(_SYNC_POLL_ATTEMPTS):
+            if attempt:
+                await asyncio.sleep(_SYNC_POLL_DELAY_SECONDS)
+            offers = await self.fetch_offers_task(task_id, provider_product_id=provider_product_id)
+            if offers is not None:
+                return offers
+        return []
 
     async def get_price(self, provider_product_id: str) -> ProviderPrice | None:
         offers = await self.get_offers(provider_product_id)
@@ -231,48 +281,114 @@ class DataForSEOProvider:
     async def get_price_history(self, provider_product_id: str, *, days: int = 180) -> None:
         return None  # DataForSEO has no history
 
-    # -- HTTP ---------------------------------------------------------------
+    # -- task flow (used by the comparison cache) -----------------------------
 
-    async def _shopping_items(self, keyword: str) -> list[Mapping[str, Any]]:
+    async def submit_offers_task(self, keyword: str) -> str:
+        """POST a Google Shopping task for ``keyword`` and return its task id."""
+
         keyword = keyword.strip()
         if not keyword:
-            return []
-        if not (self._login and self._password):
-            raise ProviderError("DataForSEO provider is not configured")
-
-        token = base64.b64encode(f"{self._login}:{self._password}".encode()).decode("ascii")
+            raise ProviderError("DataForSEO task needs a non-empty keyword")
         payload = [
             {
                 "keyword": keyword,
                 "location_code": self._location_code,
                 "language_code": self._language_code,
+                "priority": 2,
             }
         ]
         response = await asyncio.to_thread(
             self._transport.post_json,
-            f"{DATAFORSEO_API_BASE}{_SHOPPING_LIVE_PATH}",
-            auth_header=f"Basic {token}",
+            f"{DATAFORSEO_API_BASE}{_SHOPPING_TASK_POST_PATH}",
+            auth_header=self._auth_header(),
             payload=payload,
             timeout_seconds=self._timeout_seconds,
         )
-        status = response.get("status_code")
-        if status != 20000:
-            raise ProviderError(f"DataForSEO error {status}: {response.get('status_message')}")
+        task = self._first_task(response)
+        task_code = task.get("status_code")
+        if task_code not in (20000, 20100):
+            raise ProviderError(f"DataForSEO task_post error: {task.get('status_message')}")
+        task_id = task.get("id")
+        if not isinstance(task_id, str) or not task_id:
+            raise ProviderError("DataForSEO task_post returned no task id")
+        logger.info(
+            "dataforseo task_post",
+            extra={"keyword": keyword, "task_id": task_id, "cost": response.get("cost")},
+        )
+        return task_id
 
-        tasks = response.get("tasks")
-        if not isinstance(tasks, list) or not tasks or not isinstance(tasks[0], Mapping):
-            return []
-        task = tasks[0]
-        if task.get("status_code") != 20000:
-            raise ProviderError(f"DataForSEO task error: {task.get('status_message')}")
-        cost = response.get("cost")
-        logger.info("dataforseo call", extra={"keyword": keyword, "cost": cost})
+    async def fetch_offers_task(
+        self, task_id: str, *, provider_product_id: str | None = None
+    ) -> list[ProviderOffer] | None:
+        """GET a posted task. ``None`` while it is still queued; a list once done."""
 
+        response = await asyncio.to_thread(
+            self._transport.get_json,
+            f"{DATAFORSEO_API_BASE}{_SHOPPING_TASK_GET_PATH}/{task_id}",
+            auth_header=self._auth_header(),
+            timeout_seconds=self._timeout_seconds,
+        )
+        task = self._first_task(response)
+        task_code = task.get("status_code")
+        if task_code in _TASK_PENDING_CODES:
+            return None
+        if task_code != 20000:
+            raise ProviderError(f"DataForSEO task_get error: {task.get('status_message')}")
         results = task.get("result")
         if not isinstance(results, list) or not results or not isinstance(results[0], Mapping):
             return []
         items = results[0].get("items")
-        return [i for i in items if isinstance(i, Mapping)] if isinstance(items, list) else []
+        rows = [i for i in items if isinstance(i, Mapping)] if isinstance(items, list) else []
+        return self._parse_items(rows, provider_product_id or task_id)
+
+    # -- helpers ------------------------------------------------------------
+
+    def _auth_header(self) -> str:
+        if not (self._login and self._password):
+            raise ProviderError("DataForSEO provider is not configured")
+        token = base64.b64encode(f"{self._login}:{self._password}".encode()).decode("ascii")
+        return f"Basic {token}"
+
+    @staticmethod
+    def _first_task(response: Mapping[str, Any]) -> Mapping[str, Any]:
+        status = response.get("status_code")
+        if status != 20000:
+            raise ProviderError(f"DataForSEO error {status}: {response.get('status_message')}")
+        tasks = response.get("tasks")
+        if not isinstance(tasks, list) or not tasks or not isinstance(tasks[0], Mapping):
+            raise ProviderError("DataForSEO returned no task")
+        return tasks[0]
+
+    def _parse_items(
+        self, items: Sequence[Mapping[str, Any]], provider_product_id: str
+    ) -> list[ProviderOffer]:
+        observed = self._now or datetime.now(tz=UTC)
+        offers: list[ProviderOffer] = []
+        for item in items:
+            price_cents = _as_price_cents(item.get("price"))
+            seller = _clean_str(item.get("seller"))
+            if price_cents is None or not seller:
+                continue
+            offers.append(
+                ProviderOffer(
+                    provider=self.name,
+                    provider_product_id=provider_product_id,
+                    merchant=seller,
+                    price_cents=price_cents,
+                    shipping_cents=_shipping_cents(item),
+                    currency=_clean_str(item.get("currency")) or self.currency,
+                    availability="in_stock",
+                    condition="new",
+                    url=_clean_str(item.get("url")) or _clean_str(item.get("direct_url")),
+                    observed_at=observed,
+                    metadata={
+                        "title": _clean_str(item.get("title")),
+                        "rating": item.get("rating"),
+                        "product_id": item.get("product_id"),
+                    },
+                )
+            )
+        return offers
 
 
 def _clean_str(value: Any) -> str | None:
