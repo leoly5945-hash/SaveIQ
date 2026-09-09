@@ -406,3 +406,16 @@ call stays correct as the Amazon price moves. Every failure is swallowed — ver
 never depend on DataForSEO. Keyword sent to DataForSEO is the Keepa title trimmed to its head
 (`shopping_keyword`) because raw Amazon titles are too noisy for Google Shopping. Cost is one
 `task_post` per distinct product per 24h, not one per check.
+
+## 2026-09-09: Comparison Polish — URLs, Amazon Echo Filter, Cheaper Gate
+
+Status: Accepted
+
+After the first real DataForSEO results on staging: (1) DataForSEO deprecated the `url` field for
+Google Shopping (always `null`) — `_parse_items` now falls back to `shopping_url` (the Google
+Shopping product page). (2) `build_comparison` skipped only the literal `"Amazon.ca"` merchant;
+`_is_reference_echo` now drops any same-family name ("Amazon", "Amazon.com", "Amazon Warehouse")
+so a third-party marketplace listing of the reference product no longer appears as a rival. (3)
+"Cheaper at X" is a strong claim — it is now flagged only when the cheapest offer's blended match
+confidence is ≥ 0.65 (`_CHEAPEST_MIN_CONFIDENCE`), not merely ≥ 0.55 (the inclusion bar); a
+weaker match still shows in the list, just not highlighted.

@@ -198,6 +198,23 @@ async def test_fetch_offers_task_ready_maps_and_skips_bad_rows() -> None:
 
 
 @pytest.mark.asyncio
+async def test_fetch_offers_task_uses_shopping_url_when_url_is_null() -> None:
+    items = [
+        {
+            "title": "Anker SOLIX S2000",
+            "seller": "Staples Canada",
+            "price": 799.0,
+            "currency": "CAD",
+            "url": None,  # DataForSEO deprecated this for Google Shopping
+            "shopping_url": "https://www.google.com/shopping/product/123",
+        }
+    ]
+    transport = FakeTransport(gets=[_get_response(items)])
+    offers = await _provider(transport).fetch_offers_task(_TASK_ID)
+    assert offers and offers[0].url == "https://www.google.com/shopping/product/123"
+
+
+@pytest.mark.asyncio
 async def test_fetch_offers_task_hard_error_raises() -> None:
     transport = FakeTransport(gets=[_get_response(None, task_status=40501)])
     with pytest.raises(ProviderError, match="task_get error"):

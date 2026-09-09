@@ -119,6 +119,42 @@ def test_build_comparison_no_cheaper_when_amazon_wins() -> None:
     assert comp.cheapest is None  # Amazon's price is still the best
 
 
+def test_build_comparison_skips_amazon_family_echo() -> None:
+    candidates = [
+        _offer("Amazon", 88000, "Anker SOLIX S2000 Portable Power Station 2010Wh"),
+        _offer("Amazon.com", 87000, "Anker SOLIX S2000 Portable Power Station"),
+        _offer("Amazon Warehouse", 86000, "Anker SOLIX S2000 Power Station 2010Wh Solar"),
+        _offer("Best Buy Canada", 96999, "Anker SOLIX S2000 Portable Power Station 2010Wh"),
+    ]
+    comp = build_comparison(
+        reference_merchant="Amazon.ca",
+        reference_title=REF_TITLE,
+        reference_brand=REF_BRAND,
+        reference_price_cents=REF_CENTS,
+        currency="CAD",
+        candidates=candidates,
+    )
+    assert [o.merchant for o in comp.offers] == ["Best Buy Canada"]
+    assert comp.cheapest is None
+
+
+def test_build_comparison_lists_weak_match_but_does_not_flag_cheaper() -> None:
+    # cheaper price, but a sparse title -> above the inclusion bar, below the
+    # "cheaper at X" bar: shown in the list, not flagged.
+    candidates = [_offer("Staples Canada", 80000, "Anker SOLIX portable")]
+    comp = build_comparison(
+        reference_merchant="Amazon.ca",
+        reference_title=REF_TITLE,
+        reference_brand=REF_BRAND,
+        reference_price_cents=REF_CENTS,
+        currency="CAD",
+        candidates=candidates,
+    )
+    assert len(comp.offers) == 1
+    assert 0.55 <= comp.offers[0].match_confidence < 0.65
+    assert comp.cheapest is None
+
+
 def test_build_comparison_dedupes_merchant_keeps_cheapest() -> None:
     candidates = [
         _offer("Walmart Canada", 91900, "Anker SOLIX S2000 Power Station 2010Wh"),

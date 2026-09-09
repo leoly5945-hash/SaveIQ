@@ -379,7 +379,13 @@ class DataForSEOProvider:
                     currency=_clean_str(item.get("currency")) or self.currency,
                     availability="in_stock",
                     condition="new",
-                    url=_clean_str(item.get("url")) or _clean_str(item.get("direct_url")),
+                    # DataForSEO deprecated `url` for Google Shopping (always null);
+                    # `shopping_url` is the live Google Shopping product page.
+                    url=(
+                        _clean_str(item.get("url"))
+                        or _clean_str(item.get("shopping_url"))
+                        or _clean_str(item.get("direct_url"))
+                    ),
                     observed_at=observed,
                     metadata={
                         "title": _clean_str(item.get("title")),
