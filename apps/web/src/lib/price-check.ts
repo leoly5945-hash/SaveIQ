@@ -47,6 +47,22 @@ export type DealAssessment = {
 
 export type SparkPoint = { t: string; c: number };
 
+export type MerchantOffer = {
+  merchant: string;
+  price_cents: number;
+  currency: string;
+  url: string | null;
+  match_confidence: number;
+};
+
+export type Comparison = {
+  reference_merchant: string;
+  reference_price_cents: number;
+  currency: string;
+  offers: MerchantOffer[];
+  cheapest: MerchantOffer | null;
+};
+
 export type CheckResult = {
   provider: string;
   provider_product_id: string;
@@ -55,6 +71,7 @@ export type CheckResult = {
   currency: string;
   assessment: DealAssessment;
   sparkline: SparkPoint[];
+  comparison: Comparison | null;
 };
 
 export type CheckOutcome =
@@ -150,12 +167,13 @@ export async function requestCheck(
   }
 }
 
-/** Tolerate an API that predates the sparkline / currency fields. */
+/** Tolerate an API that predates the sparkline / currency / comparison fields. */
 export function normalizeResult(r: CheckResult): CheckResult {
   return {
     ...r,
     currency: r.currency ?? r.assessment?.effective_price?.currency ?? "CAD",
     sparkline: Array.isArray(r.sparkline) ? r.sparkline : [],
+    comparison: r.comparison ?? null,
   };
 }
 

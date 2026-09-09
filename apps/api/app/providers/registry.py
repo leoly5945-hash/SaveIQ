@@ -72,6 +72,22 @@ def build_default_registry(settings: Settings | None = None) -> ProviderRegistry
     else:
         logger.info("provider skipped (not configured)", extra={"provider": "keepa"})
 
+    if settings.dataforseo_login and settings.dataforseo_password:
+        from app.providers.dataforseo import DataForSEOProvider
+
+        registry.register(
+            DataForSEOProvider(
+                login=settings.dataforseo_login,
+                password=settings.dataforseo_password,
+                location_code=settings.dataforseo_location_code,
+                language_code=settings.dataforseo_language_code,
+                timeout_seconds=settings.dataforseo_timeout_seconds,
+            )
+        )
+        logger.info("provider registered", extra={"provider": "dataforseo"})
+    else:
+        logger.info("provider skipped (not configured)", extra={"provider": "dataforseo"})
+
     return registry
 
 

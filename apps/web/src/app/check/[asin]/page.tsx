@@ -10,6 +10,7 @@ import {
   VERDICT_COPY,
 } from "@/lib/price-check";
 
+import { ComparisonBlock } from "../../comparison";
 import { Sparkline } from "../../sparkline";
 
 export const revalidate = 3600;
@@ -152,6 +153,8 @@ export default async function CheckAsinPage({ params }: Params) {
             ))}
           </ul>
         ) : null}
+
+        <ComparisonBlock comparison={result.comparison} />
 
         {result.product_url ? (
           <a

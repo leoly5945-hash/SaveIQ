@@ -25,6 +25,22 @@ class SparkPointOut(BaseModel):
     c: int
 
 
+class MerchantOfferOut(BaseModel):
+    merchant: str
+    price_cents: int
+    currency: str
+    url: str | None
+    match_confidence: float
+
+
+class ComparisonOut(BaseModel):
+    reference_merchant: str
+    reference_price_cents: int
+    currency: str
+    offers: list[MerchantOfferOut]
+    cheapest: MerchantOfferOut | None
+
+
 class CheckResponse(BaseModel):
     provider: str
     provider_product_id: str
@@ -33,6 +49,7 @@ class CheckResponse(BaseModel):
     currency: str
     assessment: DealAssessment
     sparkline: list[SparkPointOut]
+    comparison: ComparisonOut | None = None
 
 
 def _client_ip(request: Request) -> str:
@@ -60,6 +77,36 @@ async def check_price(
     except PriceCheckError as exc:
         raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
 
+    comparison_out: ComparisonOut | None = None
+    if result.comparison is not None:
+        c = result.comparison
+        comparison_out = ComparisonOut(
+            reference_merchant=c.reference_merchant,
+            reference_price_cents=c.reference_price_cents,
+            currency=c.currency,
+            offers=[
+                MerchantOfferOut(
+                    merchant=o.merchant,
+                    price_cents=o.price_cents,
+                    currency=o.currency,
+                    url=o.url,
+                    match_confidence=o.match_confidence,
+                )
+                for o in c.offers
+            ],
+            cheapest=(
+                MerchantOfferOut(
+                    merchant=c.cheapest.merchant,
+                    price_cents=c.cheapest.price_cents,
+                    currency=c.cheapest.currency,
+                    url=c.cheapest.url,
+                    match_confidence=c.cheapest.match_confidence,
+                )
+                if c.cheapest
+                else None
+            ),
+        )
+
     return CheckResponse(
         provider=result.provider,
         provider_product_id=result.provider_product_id,
@@ -68,4 +115,5 @@ async def check_price(
         currency=result.currency,
         assessment=result.assessment,
         sparkline=[SparkPointOut(t=p.t, c=p.c) for p in result.sparkline],
+        comparison=comparison_out,
     )

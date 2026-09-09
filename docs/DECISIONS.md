@@ -371,3 +371,17 @@ Variables `STAGING_API_URL` / `PRODUCTION_API_URL` and Secrets
 Email gains a third `EMAIL_SENDER` option, `smtp` (`SmtpEmailSender`, stdlib `smtplib` +
 STARTTLS, `SMTP_*` settings); a misconfigured `smtp` falls back to `console` with a warning
 so the cron never crashes on it.
+
+## 2026-09-08: CP7 + DataForSEO Add Cross-Merchant Comparison
+
+Status: Accepted
+
+`DataForSEOProvider` (Google Shopping `live/advanced`, query-based) supplies offers from other
+retailers; `app/services/decision/matching.py::build_comparison` (CP7) decides which are the same
+product — deterministic and conservative: brand must match, price within 0.45x–2.4x of the
+reference, accessory/bundle keywords reject, blended confidence ≥ 0.55, one offer per merchant,
+"cheaper" only flagged when it beats Amazon by ≥ 2%. `run_price_check` calls the comparison
+provider (registered only when `DATAFORSEO_LOGIN`/`PASSWORD` are set) with the Keepa product
+title after the verdict is computed; any failure there is swallowed so the verdict always
+renders. `/check` gains an optional `comparison` block; the web renders it on the verdict card
+and `/check/[asin]`. No merchant preference anywhere — offers are ranked by price only.
