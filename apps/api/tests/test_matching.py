@@ -84,7 +84,7 @@ def test_rejects_price_far_out_of_band() -> None:
 
 def test_build_comparison_ranks_and_flags_cheaper() -> None:
     candidates = [
-        _offer("Best Buy Canada", 96999, "Anker SOLIX S2000 Portable Power Station 2010Wh"),
+        _offer("Best Buy Canada", 91900, "Anker SOLIX S2000 Portable Power Station 2010Wh"),
         _offer("Walmart Canada", 89900, "Anker SOLIX S2000 Power Station 2010Wh Solar"),
         _offer("Some Random Store", 4999, "Phone case compatible with Anker"),  # accessory
         _offer("Jackery Store", 92000, "Jackery Explorer 2000 Solar Generator"),  # wrong product
@@ -103,6 +103,24 @@ def test_build_comparison_ranks_and_flags_cheaper() -> None:
     assert comp.cheapest is not None and comp.cheapest.merchant == "Walmart Canada"
 
 
+def test_build_comparison_drops_offers_above_reference() -> None:
+    # only cheaper offers help the shopper — a pricier "same product" is noise.
+    candidates = [
+        _offer("Best Buy Canada", 99900, "Anker SOLIX S2000 Portable Power Station 2010Wh"),
+        _offer("delldxb.com", 225060, "Anker SOLIX S2000 Power Station 2010Wh Solar"),
+        _offer("Walmart Canada", 88000, "Anker SOLIX S2000 Power Station 2010Wh Solar"),
+    ]
+    comp = build_comparison(
+        reference_merchant="Amazon.ca",
+        reference_title=REF_TITLE,
+        reference_brand=REF_BRAND,
+        reference_price_cents=REF_CENTS,
+        currency="CAD",
+        candidates=candidates,
+    )
+    assert [o.merchant for o in comp.offers] == ["Walmart Canada"]
+
+
 def test_build_comparison_no_cheaper_when_amazon_wins() -> None:
     candidates = [
         _offer("Best Buy Canada", 99900, "Anker SOLIX S2000 Portable Power Station 2010Wh"),
@@ -115,8 +133,8 @@ def test_build_comparison_no_cheaper_when_amazon_wins() -> None:
         currency="CAD",
         candidates=candidates,
     )
-    assert len(comp.offers) == 1
-    assert comp.cheapest is None  # Amazon's price is still the best
+    assert comp.offers == []  # nothing cheaper to show
+    assert comp.cheapest is None
 
 
 def test_build_comparison_skips_amazon_family_echo() -> None:
@@ -124,7 +142,8 @@ def test_build_comparison_skips_amazon_family_echo() -> None:
         _offer("Amazon", 88000, "Anker SOLIX S2000 Portable Power Station 2010Wh"),
         _offer("Amazon.com", 87000, "Anker SOLIX S2000 Portable Power Station"),
         _offer("Amazon Warehouse", 86000, "Anker SOLIX S2000 Power Station 2010Wh Solar"),
-        _offer("Best Buy Canada", 96999, "Anker SOLIX S2000 Portable Power Station 2010Wh"),
+        # below the reference (shown) but not past the cheaper margin (not flagged)
+        _offer("Best Buy Canada", 94000, "Anker SOLIX S2000 Portable Power Station 2010Wh"),
     ]
     comp = build_comparison(
         reference_merchant="Amazon.ca",

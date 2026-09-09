@@ -23,6 +23,9 @@ _MIN_CONFIDENCE = 0.55
 _CHEAPEST_MIN_CONFIDENCE = 0.65
 # Only call another merchant "cheaper" if it beats the reference by this much.
 _CHEAPER_MARGIN = 0.02
+# The block answers "can I pay less elsewhere?" — an offer above the reference
+# price can't, so it is not shown (and foreign resellers priced 1.5x+ were noise).
+_DISPLAY_MAX_RATIO = 1.0
 
 _ACCESSORY_TOKENS = frozenset(
     {
@@ -166,6 +169,9 @@ def build_comparison(
             continue
         # Skip a marketplace echo of the same retailer we already have.
         if _is_reference_echo(merchant, reference_merchant):
+            continue
+        # An offer that isn't cheaper than the reference can't help the shopper.
+        if offer.total_cents > round(reference_price_cents * _DISPLAY_MAX_RATIO):
             continue
         confidence = score_candidate(
             reference_title=reference_title,
