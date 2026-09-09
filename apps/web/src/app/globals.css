@@ -2314,3 +2314,37 @@ h3 {
   font-size: 0.78rem;
   justify-content: space-between;
 }
+
+.home-bookmarklet-hint {
+  color: var(--muted);
+  font-size: 0.9rem;
+  margin-top: -4px;
+}
+
+.bookmarklet {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 10px 0;
+}
+
+.bookmarklet-drag {
+  background: var(--accent);
+  border-radius: 10px;
+  color: #ffffff;
+  cursor: grab;
+  font-weight: 700;
+  padding: 10px 18px;
+  text-decoration: none;
+  user-select: none;
+}
+
+.bookmarklet-copy {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  padding: 9px 14px;
+}

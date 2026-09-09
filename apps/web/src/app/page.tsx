@@ -62,6 +62,11 @@ export default function Home() {
 
         <CheckBox />
 
+        <p className="home-bookmarklet-hint">
+          Check straight from the Amazon page instead —{" "}
+          <Link href="/tools">add the 1-click bookmarklet</Link>.
+        </p>
+
         <FeaturedDeals />
 
         <section className="home-how" id="how-it-works">
@@ -125,6 +130,8 @@ export default function Home() {
               <Link href="/deals">Deals</Link>
               <span aria-hidden="true"> · </span>
               <Link href="/guides">Guides</Link>
+              <span aria-hidden="true"> · </span>
+              <Link href="/tools">Bookmarklet</Link>
               <span aria-hidden="true"> · </span>
               <Link href="/about">About</Link>
               <span aria-hidden="true"> · </span>

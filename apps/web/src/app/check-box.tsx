@@ -1,6 +1,6 @@
 "use client";
 
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useRef, useState } from "react";
 
 import {
   type CheckResult,
@@ -26,10 +26,9 @@ export function CheckBox() {
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState("");
   const [result, setResult] = useState<CheckResult | null>(null);
+  const ranFromUrl = useRef(false);
 
-  async function onSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const value = input.trim();
+  async function runCheck(value: string) {
     if (!looksSubmittable(value)) {
       setStatus("error");
       setError("Paste a full amazon.ca product link (or a 10-character ASIN).");
@@ -46,6 +45,27 @@ export function CheckBox() {
     }
     setResult(outcome.result);
     setStatus("ready");
+  }
+
+  // Bookmarklet / shared link: `/?url=<amazon url>` prefills and auto-runs once.
+  // The URL read + setState happen in a microtask so nothing runs on the server
+  // and nothing sets state synchronously inside the effect body. A microtask
+  // (not setTimeout) so a StrictMode remount's cleanup can't cancel it.
+  useEffect(() => {
+    if (ranFromUrl.current) return;
+    ranFromUrl.current = true;
+    queueMicrotask(() => {
+      const fromQuery = new URLSearchParams(window.location.search).get("url");
+      if (fromQuery && looksSubmittable(fromQuery)) {
+        setInput(fromQuery);
+        void runCheck(fromQuery);
+      }
+    });
+  }, []);
+
+  async function onSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    await runCheck(input.trim());
   }
 
   return (
