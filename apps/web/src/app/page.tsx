@@ -3,8 +3,8 @@ import Link from "next/link";
 import { getBrandName } from "@/lib/config";
 import { HOME_AFFILIATE_DISCLOSURE } from "@/lib/home-recommendations";
 
+import { CheckBox } from "./check-box";
 import { FeaturedDeals } from "./featured-deals";
-import { HomeSearch } from "./home-search";
 
 export default function Home() {
   const brandName = getBrandName();
@@ -48,28 +48,28 @@ export default function Home() {
       </header>
 
       <main className="home-shell">
-        <p className="home-eyebrow">Deal finder · Canada</p>
+        <p className="home-eyebrow">Price check · Canada</p>
         <h1 className="home-title">
-          Stop overpaying.
+          Paste an Amazon.ca link.
           <br />
-          <span>See the real price, not the list price.</span>
+          <span>We&apos;ll tell you: buy, or wait.</span>
         </h1>
         <p className="home-sub">
-          {brandName} is a hand-checked deal list for Canadian shoppers. We pick
-          real products, verify the current price ourselves, and link you
-          straight to the retailer. Search the list, or browse by category.
+          {brandName} reads the last 90 days of price history and gives you one
+          clear call — with the reasons. Not a good time? Leave your email and
+          we&apos;ll ping you once when it drops.
         </p>
 
-        <HomeSearch />
+        <CheckBox />
 
         <FeaturedDeals />
 
         <section className="home-how" id="how-it-works">
           <div className="home-how-head">
-            <h2>How SaveIQ works</h2>
+            <h2>How the check works</h2>
             <p>
-              {brandName} is a shortlist, not a store. We do the price-checking;
-              you buy from the retailer you already trust.
+              {brandName} is a read-out, not a store. We look at the numbers; you
+              buy from the retailer you already trust.
             </p>
           </div>
           <ol className="home-how-steps">
@@ -77,32 +77,35 @@ export default function Home() {
               <span className="home-how-num" aria-hidden="true">
                 1
               </span>
-              <h3>We hand-pick and price-check</h3>
+              <h3>You paste a link</h3>
               <p>
-                We choose real products across everyday categories and check the
-                current price on Amazon.ca ourselves. Every listing shows the
-                price we found and the date we checked it.
+                Any Amazon.ca product page. We pull its price history — the
+                Amazon price, the buy-box price, the 90-day high and low.
               </p>
             </li>
             <li>
               <span className="home-how-num" aria-hidden="true">
                 2
               </span>
-              <h3>You search or browse</h3>
+              <h3>We do the math</h3>
               <p>
-                Type what you&apos;re after, or browse by category. No account,
-                no sign-up, no fee.
+                A fixed set of rules compares today&apos;s price to the last 90
+                days and returns <strong>Buy</strong>, <strong>Wait</strong> or{" "}
+                <strong>Fair</strong> — with the reasons written out. No
+                merchant pays for a better verdict; there is nowhere in the math
+                to do that.
               </p>
             </li>
             <li>
               <span className="home-how-num" aria-hidden="true">
                 3
               </span>
-              <h3>You buy from the retailer</h3>
+              <h3>You buy now, or wait</h3>
               <p>
-                Checkout happens on the retailer&apos;s own site, at the
-                retailer&apos;s price. SaveIQ never adds a markup — a retailer
-                affiliate commission is how we&apos;re paid.
+                Buy through the link and checkout happens on Amazon at
+                Amazon&apos;s price — a retailer affiliate commission is how
+                we&apos;re paid. Waiting? Leave your email and we&apos;ll send
+                one message when it drops.
               </p>
             </li>
           </ol>

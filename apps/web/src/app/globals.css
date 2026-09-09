@@ -2088,3 +2088,209 @@ h3 {
     grid-template-columns: 1fr;
   }
 }
+
+/* --- CP16 price check --------------------------------------------------- */
+
+.check,
+.check-form {
+  display: grid;
+  gap: 14px;
+}
+
+.check-form {
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  max-width: 640px;
+}
+
+.check-form .field input {
+  border-color: var(--foreground);
+  border-radius: 12px;
+  border-width: 2px;
+  font-size: 1.05rem;
+  min-height: 58px;
+}
+
+.check-submit {
+  background: var(--promo);
+  border: 0;
+  border-radius: 12px;
+  color: #ffffff;
+  cursor: pointer;
+  font-family: var(--display-font);
+  font-weight: 900;
+  min-height: 58px;
+  padding: 0 26px;
+}
+
+.check-submit:hover:not(:disabled) {
+  background: var(--promo-hover);
+}
+
+.check-submit:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.verdict {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 6px solid var(--border);
+  border-radius: 14px;
+  display: grid;
+  gap: 14px;
+  margin-top: 6px;
+  max-width: 680px;
+  padding: 22px;
+}
+
+.verdict-good {
+  border-left-color: #15803d;
+}
+.verdict-warn {
+  border-left-color: var(--promo);
+}
+.verdict-neutral {
+  border-left-color: #64748b;
+}
+.verdict-unknown {
+  border-left-color: #9aa3af;
+}
+
+.verdict-head {
+  align-items: start;
+  display: flex;
+  gap: 14px;
+}
+
+.verdict-badge {
+  border-radius: 10px;
+  color: #ffffff;
+  font-family: var(--display-font);
+  font-size: 0.95rem;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  padding: 8px 14px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.verdict-good .verdict-badge {
+  background: #15803d;
+}
+.verdict-warn .verdict-badge {
+  background: var(--promo);
+}
+.verdict-neutral .verdict-badge {
+  background: #64748b;
+}
+.verdict-unknown .verdict-badge {
+  background: #9aa3af;
+}
+
+.verdict-title {
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.verdict-blurb {
+  color: var(--muted);
+  font-size: 0.95rem;
+  margin-top: 2px;
+}
+
+.verdict-price {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.verdict-now {
+  font-family: var(--display-font);
+  font-size: 1.9rem;
+  font-weight: 900;
+}
+
+.verdict-conf {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.verdict-band {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.verdict-reasons {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding-left: 18px;
+}
+
+.verdict-reasons li {
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.verdict-cta {
+  align-self: start;
+  background: var(--accent);
+  border-radius: 10px;
+  color: #ffffff;
+  font-weight: 700;
+  padding: 11px 18px;
+  text-decoration: none;
+}
+
+.verdict-cta:hover {
+  background: var(--accent-strong);
+}
+
+.verdict-fineprint {
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.5;
+  padding-top: 12px;
+}
+
+.alert-form {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.alert-form .field input {
+  border-radius: 10px;
+  min-height: 46px;
+}
+
+.alert-submit {
+  background: var(--foreground);
+  border: 0;
+  border-radius: 10px;
+  color: #ffffff;
+  cursor: pointer;
+  font-weight: 700;
+  padding: 0 18px;
+}
+
+.alert-submit:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.alert-done {
+  color: #15803d;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  .check-form,
+  .alert-form {
+    grid-template-columns: 1fr;
+  }
+}
