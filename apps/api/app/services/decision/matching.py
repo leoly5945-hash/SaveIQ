@@ -18,6 +18,9 @@ _PRICE_LOW_RATIO = 0.45
 _PRICE_HIGH_RATIO = 2.4
 # Keep a candidate at or above this blended confidence.
 _MIN_CONFIDENCE = 0.55
+# "Cheaper at X" is a strong claim — only flag it when the match is solid, not
+# merely above the inclusion bar.
+_CHEAPEST_MIN_CONFIDENCE = 0.65
 # Only call another merchant "cheaper" if it beats the reference by this much.
 _CHEAPER_MARGIN = 0.02
 
@@ -95,6 +98,21 @@ def _looks_like_accessory(candidate_tokens: set[str], reference_tokens: set[str]
     return bool(extra & _ACCESSORY_TOKENS)
 
 
+def _is_reference_echo(merchant: str, reference_merchant: str) -> bool:
+    """A marketplace listing of the same retailer we're comparing against.
+
+    Skips exact matches and same-family names — "Amazon", "Amazon.com",
+    "Amazon Warehouse" all echo a reference of "Amazon.ca".
+    """
+
+    m = _norm(merchant)
+    r = _norm(reference_merchant)
+    if not m or m == r:
+        return True
+    head = r.split(" ", 1)[0] if r else ""
+    return bool(head) and (m == head or m.startswith(head + " "))
+
+
 def score_candidate(
     *,
     reference_title: str,
@@ -147,7 +165,7 @@ def build_comparison(
         if not merchant or offer.total_cents is None:
             continue
         # Skip a marketplace echo of the same retailer we already have.
-        if merchant.casefold() == reference_merchant.casefold():
+        if _is_reference_echo(merchant, reference_merchant):
             continue
         confidence = score_candidate(
             reference_title=reference_title,
@@ -171,7 +189,11 @@ def build_comparison(
 
     offers = sorted(best_per_merchant.values(), key=lambda o: o.price_cents)
     cheapest: MerchantOffer | None = None
-    if offers and offers[0].price_cents <= round(reference_price_cents * (1 - _CHEAPER_MARGIN)):
+    if (
+        offers
+        and offers[0].price_cents <= round(reference_price_cents * (1 - _CHEAPER_MARGIN))
+        and offers[0].match_confidence >= _CHEAPEST_MIN_CONFIDENCE
+    ):
         cheapest = offers[0]
 
     return Comparison(
