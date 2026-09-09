@@ -103,23 +103,42 @@ verdict for a product a user looked up is within normal use.
 ## DataForSEO provider
 
 `app/providers/dataforseo.py` — `DataForSEOProvider`. Cross-merchant offers via
-DataForSEO's Google Shopping endpoint (`/v3/merchant/google/products/live/advanced`).
-**Query-based**, not id-based: `get_offers(provider_product_id)` treats the id as
-the search term (we pass the product title we got from Keepa).
+DataForSEO's Google Shopping product data (`/v3/merchant/google/products/...`).
+**Query-based**, not id-based: the keyword is the product title we got from Keepa,
+trimmed of marketing fluff (`comparison_cache.shopping_keyword`).
 
-Capabilities: `search`, `get_offers`, `get_price` — **no** `price_history`, and
-`get_product` is a best-effort search. It never becomes the price-check's primary
-provider; `run_price_check` only calls it for the cross-merchant comparison, and
-any failure there is swallowed (the verdict still works).
+DataForSEO's Google Shopping is **task-based — there is no live endpoint**. You
+`task_post` a keyword (charged), wait, then `task_get/advanced/{id}` the result.
+So it cannot answer inside a synchronous price-check:
+
+* `submit_offers_task(keyword) -> task_id` / `fetch_offers_task(task_id)` — the
+  split calls the comparison cache drives.
+* `get_offers` / `get_price` / `search_products` — submit + short poll
+  (`_SYNC_POLL_ATTEMPTS` × `_SYNC_POLL_DELAY_SECONDS`). Admin/debug only; the
+  price-check path never calls them.
+
+`run_price_check` reads the **comparison cache**
+(`app/services/decision/comparison_cache.py`, table `merchant_comparisons`):
+the first check of a cold product returns no comparison and posts a task; a later
+check (≥20s on) or the alert cron polls it and stores the raw offers; every
+check after that renders the comparison from cache (CP7 matching re-runs on each
+read so "cheaper?" stays correct as the Amazon price moves). Ready rows live 24h.
+Any failure is swallowed — the verdict + sparkline always work.
+
+Capabilities: `search`, `get_offers`, `get_price` — **no** `price_history`.
 
 | env | default | meaning |
 | --- | --- | --- |
-| `DATAFORSEO_LOGIN` / `DATAFORSEO_PASSWORD` | *(unset)* | Basic-auth pair. Unset → provider not registered, checks stay Amazon-only. `sync: false`. |
+| `DATAFORSEO_LOGIN` / `DATAFORSEO_PASSWORD` | *(unset)* | Basic-auth pair (`LOGIN` = account email, `PASSWORD` = the **API password** from app.dataforseo.com/api-access, not the Base64 string). Unset → provider not registered, checks stay Amazon-only. `sync: false`. |
 | `DATAFORSEO_LOCATION_CODE` | `2124` | `2124` = Canada. |
 | `DATAFORSEO_LANGUAGE_CODE` | `en` | |
-| `DATAFORSEO_TIMEOUT_SECONDS` | `25.0` | live endpoint is synchronous. |
+| `DATAFORSEO_TIMEOUT_SECONDS` | `25.0` | per HTTP call. |
 
-Cost: the `live/advanced` call is ~$0.003–0.006 each — one per price-check.
+Cost: `task_post` is ~$0.0012/result + a small per-request fee — one per distinct
+product per 24h (the cache TTL), not one per check.
+
+`POST /admin/providers/comparison-poll` (admin) advances every in-flight task on
+demand; `run_alert_cycle` also sweeps them once a day as a backstop.
 
 ## Adding a provider
 

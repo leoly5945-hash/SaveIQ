@@ -22,6 +22,7 @@ from app.models.tracking import (
 from app.providers import ProviderError
 from app.providers.registry import ProviderRegistry
 from app.services.decision.assess import assess_from_provider
+from app.services.decision.comparison_cache import poll_pending_comparisons
 from app.services.decision.price_check import PriceCheckError, resolve_target
 from app.services.tracking.email import EmailMessage, EmailSender
 
@@ -400,6 +401,20 @@ async def run_alert_cycle(
             alert.status = AlertStatus.fired.value
             alert.last_notified_at = now
             alert.notify_count += 1
+
+    # Backstop the traffic-driven comparison cache: fill in any tracked product
+    # whose DataForSEO task is still pending so alert emails can cite a
+    # cross-merchant price within a day even if nobody re-checks the product.
+    try:
+        comp_stats = await poll_pending_comparisons(db, registry, now=now)
+        if comp_stats.completed or comp_stats.failed:
+            logger.info(
+                "comparison poll (alert cycle)",
+                extra={"completed": comp_stats.completed, "failed": comp_stats.failed},
+            )
+    except Exception:  # noqa: BLE001 - the comparison sweep must not fail the alert cycle
+        stats.errors += 1
+        logger.exception("comparison poll failed in alert cycle")
 
     db.flush()
     return stats

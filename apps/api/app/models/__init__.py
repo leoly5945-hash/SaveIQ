@@ -27,6 +27,7 @@ from app.models.affiliate import (
     RecordStatus,
 )
 from app.models.bandit import BanditLog
+from app.models.comparison import ComparisonStatus, MerchantComparison
 from app.models.tracking import (
     AlertKind,
     AlertStatus,
@@ -52,8 +53,10 @@ __all__ = [
     "CanonicalProduct",
     "Category",
     "ClickTargetType",
+    "ComparisonStatus",
     "ConversionStatus",
     "Coupon",
+    "MerchantComparison",
     "FreshnessStatus",
     "Merchant",
     "MerchantListing",
