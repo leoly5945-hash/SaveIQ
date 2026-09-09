@@ -63,15 +63,25 @@ remaining CP16 piece.
 
 ## Scheduled run
 
-`python -m app.workers.price_poll` runs one cycle. Not wired to a Render service
-yet — the blueprint needs a `type: cron` entry (daily). Until then, hit
-`POST /admin/alerts/run` (or run the module) manually.
+`.github/workflows/price-poll.yml` runs daily at 13:00 UTC (and on manual
+dispatch): it `POST`s `/admin/alerts/run` for each configured environment. No
+extra Render service, no cost. Configure per env (any unset one is skipped):
+
+* Repo **Variables**: `STAGING_API_URL`, `PRODUCTION_API_URL`
+* Repo **Secrets**: `STAGING_ADMIN_API_TOKEN`, `PRODUCTION_ADMIN_API_TOKEN`
+
+`python -m app.workers.price_poll` remains the entrypoint for a paid Render
+`type: cron` if you ever prefer that.
 
 ## Config
 
 | env | default | meaning |
 | --- | --- | --- |
-| `EMAIL_SENDER` | `console` | `console` \| `null` |
+| `EMAIL_SENDER` | `console` | `console` (log) \| `null` (drop) \| `smtp` (send) |
 | `ALERT_FROM_EMAIL` | `alerts@saveiq.ca` | From: header |
 | `PUBLIC_SITE_URL` | `https://www.saveiq.ca` | base for the unsubscribe link |
 | `ALERT_MIN_DROP_PCT` | `1.0` | min % drop for an `any_drop` alert to fire |
+| `SMTP_HOST` | *(unset)* | required for `EMAIL_SENDER=smtp`; unset ⇒ falls back to `console` |
+| `SMTP_PORT` | `587` | |
+| `SMTP_USERNAME` / `SMTP_PASSWORD` | *(unset)* | omitted ⇒ no AUTH (relay) |
+| `SMTP_USE_TLS` | `true` | STARTTLS after connect |

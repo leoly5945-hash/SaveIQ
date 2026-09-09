@@ -1,0 +1,44 @@
+name: Price poll
+
+# CP15/16 checklist item 3: re-check every tracked product once a day and fire
+# any due price alerts, by calling the API's admin endpoint. Free — no extra
+# Render service. `app/workers/price_poll.py` is the alternative for a paid
+# Render cron.
+#
+# Configure per environment (skipped if unset):
+#   Repo Variables: STAGING_API_URL, PRODUCTION_API_URL
+#   Repo Secrets:   STAGING_ADMIN_API_TOKEN, PRODUCTION_ADMIN_API_TOKEN
+
+on:
+  schedule:
+    - cron: "0 13 * * *" # 13:00 UTC daily (~breakfast in Canada)
+  workflow_dispatch:
+
+concurrency:
+  group: price-poll
+  cancel-in-progress: false
+
+jobs:
+  poll:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [staging, production]
+    steps:
+      - name: Run alert cycle (${{ matrix.target }})
+        env:
+          URL: >-
+            ${{ matrix.target == 'production' && vars.PRODUCTION_API_URL || vars.STAGING_API_URL }}
+          TOKEN: >-
+            ${{ matrix.target == 'production' && secrets.PRODUCTION_ADMIN_API_TOKEN
+            || secrets.STAGING_ADMIN_API_TOKEN }}
+        run: |
+          if [ -z "$URL" ] || [ -z "$TOKEN" ]; then
+            echo "::notice::${{ matrix.target }} not configured — skipping"
+            exit 0
+          fi
+          echo "POST $URL/admin/alerts/run"
+          curl -sS --fail-with-body -m 170 -X POST \
+            -H "X-Admin-Token: $TOKEN" \
+            "$URL/admin/alerts/run"
