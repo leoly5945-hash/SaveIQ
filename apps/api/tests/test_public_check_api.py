@@ -239,10 +239,11 @@ def test_public_check_renders_cached_comparison(monkeypatch) -> None:
         comp = resp.json()["comparison"]
         assert comp is not None
         assert comp["reference_merchant"] == "Amazon.ca"
+        # Keepa's effective price is 43.00 — Walmart's 39.99 beats it; Best Buy's
+        # 45.99 is above the reference and is not shown.
         merchants = [o["merchant"] for o in comp["offers"]]
-        assert merchants == ["Walmart Canada", "Best Buy Canada"]  # sorted by price
+        assert merchants == ["Walmart Canada"]
         assert comp["offers"][0]["price_cents"] == 3999
-        # Keepa's effective price is 43.00; Walmart's 39.99 beats it.
         assert comp["cheapest"]["merchant"] == "Walmart Canada"
     finally:
         app.dependency_overrides.clear()

@@ -419,3 +419,13 @@ so a third-party marketplace listing of the reference product no longer appears 
 "Cheaper at X" is a strong claim — it is now flagged only when the cheapest offer's blended match
 confidence is ≥ 0.65 (`_CHEAPEST_MIN_CONFIDENCE`), not merely ≥ 0.55 (the inclusion bar); a
 weaker match still shows in the list, just not highlighted.
+
+## 2026-09-09: Comparison Shows Only Cheaper Offers
+
+Status: Accepted
+
+The comparison block answers one question — "can I pay less elsewhere?" — so `build_comparison`
+now drops any candidate priced above the reference (`_DISPLAY_MAX_RATIO = 1.0`) before scoring.
+This also removes the noise the first real results surfaced: a foreign reseller ("delldxb.com")
+priced at 1.7x the Amazon price was passing the wide match band. Same-price and cheaper offers
+still show; "Amazon.ca has the best price" is the fallback when nothing survives.
