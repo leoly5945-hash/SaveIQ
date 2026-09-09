@@ -100,6 +100,27 @@ Keepa's API is sold for commercial use and price-tracking tools built on it are
 common. Do not resell the raw data feed or rebuild keepa.com. Showing a chart +
 verdict for a product a user looked up is within normal use.
 
+## DataForSEO provider
+
+`app/providers/dataforseo.py` — `DataForSEOProvider`. Cross-merchant offers via
+DataForSEO's Google Shopping endpoint (`/v3/merchant/google/products/live/advanced`).
+**Query-based**, not id-based: `get_offers(provider_product_id)` treats the id as
+the search term (we pass the product title we got from Keepa).
+
+Capabilities: `search`, `get_offers`, `get_price` — **no** `price_history`, and
+`get_product` is a best-effort search. It never becomes the price-check's primary
+provider; `run_price_check` only calls it for the cross-merchant comparison, and
+any failure there is swallowed (the verdict still works).
+
+| env | default | meaning |
+| --- | --- | --- |
+| `DATAFORSEO_LOGIN` / `DATAFORSEO_PASSWORD` | *(unset)* | Basic-auth pair. Unset → provider not registered, checks stay Amazon-only. `sync: false`. |
+| `DATAFORSEO_LOCATION_CODE` | `2124` | `2124` = Canada. |
+| `DATAFORSEO_LANGUAGE_CODE` | `en` | |
+| `DATAFORSEO_TIMEOUT_SECONDS` | `25.0` | live endpoint is synchronous. |
+
+Cost: the `live/advanced` call is ~$0.003–0.006 each — one per price-check.
+
 ## Adding a provider
 
 1. New module in `app/providers/` implementing `ProductDataProvider` (a plain

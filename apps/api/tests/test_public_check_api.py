@@ -18,6 +18,7 @@ from app.main import app
 from app.providers import registry as registry_module
 from app.providers.base import (
     ProviderCapability,
+    ProviderOffer,
     ProviderPrice,
     ProviderPriceHistory,
     ProviderPricePoint,
@@ -80,7 +81,52 @@ class FakeKeepa:
         )
 
 
-def _client(monkeypatch, *, provider: object | None = FakeKeepa()) -> tuple[TestClient, Session]:
+class FakeDataForSEO:
+    name = "dataforseo"
+    market = "CA"
+    currency = "CAD"
+    capabilities = frozenset(
+        {ProviderCapability.search, ProviderCapability.get_offers, ProviderCapability.get_price}
+    )
+
+    def is_configured(self) -> bool:
+        return True
+
+    async def get_offers(self, provider_product_id: str) -> list[ProviderOffer]:
+        return [
+            ProviderOffer(
+                provider="dataforseo",
+                provider_product_id=provider_product_id,
+                merchant="Walmart Canada",
+                price_cents=3999,
+                currency="CAD",
+                url="https://www.walmart.ca/en/ip/anker-737/1",
+                observed_at=NOW,
+                metadata={"title": "Anker 737 Power Bank PowerCore 24K"},
+            ),
+            ProviderOffer(
+                provider="dataforseo",
+                provider_product_id=provider_product_id,
+                merchant="Best Buy Canada",
+                price_cents=4599,
+                currency="CAD",
+                url="https://www.bestbuy.ca/anker-737",
+                observed_at=NOW,
+                metadata={"title": "Anker 737 Power Bank"},
+            ),
+        ]
+
+    async def get_price(self, provider_product_id: str):  # pragma: no cover
+        return None
+
+    async def search_products(self, query: str, *, limit: int = 10):  # pragma: no cover
+        return []
+
+    async def get_price_history(self, provider_product_id: str, *, days: int = 180):
+        return None
+
+
+def _client(monkeypatch, *providers: object) -> tuple[TestClient, Session]:
     engine = create_engine(
         "sqlite:///:memory:",
         connect_args={"check_same_thread": False},
@@ -94,7 +140,7 @@ def _client(monkeypatch, *, provider: object | None = FakeKeepa()) -> tuple[Test
 
     app.dependency_overrides[get_db] = override_db
     reg = ProviderRegistry()
-    if provider is not None:
+    for provider in providers or (FakeKeepa(),):
         reg.register(provider)
     monkeypatch.setattr(registry_module, "_default_registry", reg)
     endpoint_limit.reset_for_tests()
@@ -119,6 +165,40 @@ def test_public_check_from_url(monkeypatch) -> None:
         assert 2 <= len(spark) <= 60
         assert all(set(p) == {"t", "c"} and isinstance(p["c"], int) for p in spark)
         assert spark == sorted(spark, key=lambda p: p["t"])
+        assert body["comparison"] is None  # no dataforseo provider registered
+    finally:
+        app.dependency_overrides.clear()
+        session.close()
+
+
+def test_public_check_includes_multi_merchant_comparison(monkeypatch) -> None:
+    client, session = _client(monkeypatch, FakeKeepa(), FakeDataForSEO())
+    try:
+        resp = client.get("/check", params={"product_id": "B09VPHVT9Z"})
+        assert resp.status_code == 200, resp.text
+        comp = resp.json()["comparison"]
+        assert comp is not None
+        assert comp["reference_merchant"] == "Amazon.ca"
+        merchants = [o["merchant"] for o in comp["offers"]]
+        assert merchants == ["Walmart Canada", "Best Buy Canada"]  # sorted by price
+        assert comp["offers"][0]["price_cents"] == 3999
+        # Keepa's effective price is 43.00; Walmart's 39.99 beats it.
+        assert comp["cheapest"]["merchant"] == "Walmart Canada"
+    finally:
+        app.dependency_overrides.clear()
+        session.close()
+
+
+def test_public_check_survives_comparison_provider_failure(monkeypatch) -> None:
+    class BrokenDFS(FakeDataForSEO):
+        async def get_offers(self, provider_product_id: str):
+            raise RuntimeError("dataforseo is down")
+
+    client, session = _client(monkeypatch, FakeKeepa(), BrokenDFS())
+    try:
+        resp = client.get("/check", params={"product_id": "B09VPHVT9Z"})
+        assert resp.status_code == 200  # the verdict still works
+        assert resp.json()["comparison"] is None
     finally:
         app.dependency_overrides.clear()
         session.close()

@@ -6,6 +6,7 @@ drift.
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 
 from app.providers import ProviderCapability, ProviderError, ProviderProductNotFound
@@ -13,10 +14,15 @@ from app.providers.base import ProductDataProvider, ProviderPriceHistory
 from app.providers.registry import ProviderRegistry
 from app.services.decision.assess import assess_from_provider
 from app.services.decision.deal_score import DealAssessment
+from app.services.decision.matching import Comparison, build_comparison
 from app.services.product_url import extract_product_ref
+
+logger = logging.getLogger(__name__)
 
 # Points in the compact series the UI draws as a sparkline.
 SPARKLINE_MAX_POINTS = 60
+# Provider that supplies cross-merchant offers.
+_COMPARISON_PROVIDER = "dataforseo"
 
 
 class PriceCheckError(Exception):
@@ -43,6 +49,39 @@ class PriceCheckResult:
     assessment: DealAssessment
     currency: str = "CAD"
     sparkline: list[SparkPoint] = field(default_factory=list)
+    comparison: Comparison | None = None
+
+
+async def _build_comparison(
+    registry: ProviderRegistry,
+    *,
+    title: str | None,
+    brand: str | None,
+    reference_price_cents: int,
+    currency: str,
+) -> Comparison | None:
+    """Cross-merchant offers via the comparison provider. Never raises."""
+
+    if not title:
+        return None
+    provider = registry.try_get(_COMPARISON_PROVIDER)
+    if provider is None or not provider.is_configured():
+        return None
+    try:
+        candidates = await provider.get_offers(title)
+    except Exception:  # noqa: BLE001 - comparison is best-effort, must not break the check
+        logger.warning("comparison provider failed", exc_info=True)
+        return None
+    if not candidates:
+        return None
+    return build_comparison(
+        reference_merchant="Amazon.ca",
+        reference_title=title,
+        reference_brand=brand,
+        reference_price_cents=reference_price_cents,
+        currency=currency,
+        candidates=candidates,
+    )
 
 
 def _build_sparkline(history: ProviderPriceHistory) -> list[SparkPoint]:
@@ -124,12 +163,22 @@ async def run_price_check(
     if assessment is None:
         raise PriceCheckError(422, "no current price to assess")
 
+    title = product.title if product else None
+    comparison = await _build_comparison(
+        registry,
+        title=title,
+        brand=product.brand if product else None,
+        reference_price_cents=assessment.effective_price.effective_cents,
+        currency=price.currency,
+    )
+
     return PriceCheckResult(
         provider=adapter.name,
         provider_product_id=resolved_id,
-        title=product.title if product else None,
+        title=title,
         product_url=product.product_url if product else None,
         assessment=assessment,
         currency=price.currency,
         sparkline=_build_sparkline(history),
+        comparison=comparison,
     )

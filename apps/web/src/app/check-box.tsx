@@ -12,6 +12,7 @@ import {
   VERDICT_COPY,
 } from "@/lib/price-check";
 
+import { ComparisonBlock } from "./comparison";
 import { Sparkline } from "./sparkline";
 
 type Status = "idle" | "loading" | "ready" | "error";
@@ -165,6 +166,8 @@ function VerdictCard({
           ))}
         </ul>
       ) : null}
+
+      <ComparisonBlock comparison={result.comparison} />
 
       {result.product_url ? (
         <a

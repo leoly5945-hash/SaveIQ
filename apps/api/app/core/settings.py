@@ -40,6 +40,22 @@ class Settings(BaseSettings):
         default=20.0,
         validation_alias="KEEPA_TIMEOUT_SECONDS",
     )
+    # Multi-merchant comparison via DataForSEO Google Shopping. Unset => the
+    # provider is not registered and price-checks stay Amazon-only.
+    dataforseo_login: str | None = Field(default=None, validation_alias="DATAFORSEO_LOGIN")
+    dataforseo_password: str | None = Field(default=None, validation_alias="DATAFORSEO_PASSWORD")
+    dataforseo_location_code: int = Field(
+        default=2124,  # Canada
+        validation_alias="DATAFORSEO_LOCATION_CODE",
+    )
+    dataforseo_language_code: str = Field(
+        default="en",
+        validation_alias="DATAFORSEO_LANGUAGE_CODE",
+    )
+    dataforseo_timeout_seconds: float = Field(
+        default=25.0,
+        validation_alias="DATAFORSEO_TIMEOUT_SECONDS",
+    )
     # CP15 — price alerts.
     public_site_url: str = Field(
         default="https://www.saveiq.ca",
@@ -406,6 +422,8 @@ class Settings(BaseSettings):
         "smtp_host",
         "smtp_username",
         "smtp_password",
+        "dataforseo_login",
+        "dataforseo_password",
     )
     @classmethod
     def normalize_optional_secret(cls, value: str | None) -> str | None:
