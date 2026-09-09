@@ -45,12 +45,16 @@ export type DealAssessment = {
   intelligence: PriceIntelligence;
 };
 
+export type SparkPoint = { t: string; c: number };
+
 export type CheckResult = {
   provider: string;
   provider_product_id: string;
   title: string | null;
   product_url: string | null;
+  currency: string;
   assessment: DealAssessment;
+  sparkline: SparkPoint[];
 };
 
 export type CheckOutcome =
@@ -140,10 +144,19 @@ export async function requestCheck(
     if (!res.ok) {
       return { ok: false, status: res.status, detail: detailText(body) };
     }
-    return { ok: true, result: body as CheckResult };
+    return { ok: true, result: normalizeResult(body as CheckResult) };
   } catch {
     return { ok: false, status: 0, detail: "Couldn't reach the price checker." };
   }
+}
+
+/** Tolerate an API that predates the sparkline / currency fields. */
+export function normalizeResult(r: CheckResult): CheckResult {
+  return {
+    ...r,
+    currency: r.currency ?? r.assessment?.effective_price?.currency ?? "CAD",
+    sparkline: Array.isArray(r.sparkline) ? r.sparkline : [],
+  };
 }
 
 export async function requestCreateAlert(
@@ -205,7 +218,7 @@ export async function fetchCheckByAsin(asin: string): Promise<CheckResult | null
       next: { revalidate: 3600 },
     });
     if (!res.ok) return null;
-    return (await res.json()) as CheckResult;
+    return normalizeResult((await res.json()) as CheckResult);
   } catch {
     return null;
   }

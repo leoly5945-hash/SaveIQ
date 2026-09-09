@@ -10,6 +10,8 @@ import {
   VERDICT_COPY,
 } from "@/lib/price-check";
 
+import { Sparkline } from "../../sparkline";
+
 export const revalidate = 3600;
 
 type Params = { params: Promise<{ asin: string }> };
@@ -124,7 +126,16 @@ export default async function CheckAsinPage({ params }: Params) {
           <span className="verdict-conf">confidence: {assessment.confidence}</span>
         </div>
 
-        {band.min !== null && band.max !== null ? (
+        {result.sparkline.length >= 2 ? (
+          <div className="verdict-spark">
+            <Sparkline points={result.sparkline} tone={v.tone} />
+            <div className="verdict-spark-scale">
+              <span>{formatMoney(band.min, currency)}</span>
+              <span>90 days</span>
+              <span>{formatMoney(band.max, currency)}</span>
+            </div>
+          </div>
+        ) : band.min !== null && band.max !== null ? (
           <p className="verdict-band">
             90-day range {formatMoney(band.min, currency)} –{" "}
             {formatMoney(band.max, currency)}

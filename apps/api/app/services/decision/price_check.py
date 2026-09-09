@@ -6,14 +6,17 @@ drift.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from app.providers import ProviderCapability, ProviderError, ProviderProductNotFound
-from app.providers.base import ProductDataProvider
+from app.providers.base import ProductDataProvider, ProviderPriceHistory
 from app.providers.registry import ProviderRegistry
 from app.services.decision.assess import assess_from_provider
 from app.services.decision.deal_score import DealAssessment
 from app.services.product_url import extract_product_ref
+
+# Points in the compact series the UI draws as a sparkline.
+SPARKLINE_MAX_POINTS = 60
 
 
 class PriceCheckError(Exception):
@@ -26,12 +29,34 @@ class PriceCheckError(Exception):
 
 
 @dataclass(frozen=True)
+class SparkPoint:
+    t: str  # ISO date
+    c: int  # price cents
+
+
+@dataclass(frozen=True)
 class PriceCheckResult:
     provider: str
     provider_product_id: str
     title: str | None
     product_url: str | None
     assessment: DealAssessment
+    currency: str = "CAD"
+    sparkline: list[SparkPoint] = field(default_factory=list)
+
+
+def _build_sparkline(history: ProviderPriceHistory) -> list[SparkPoint]:
+    """Down-sample the (already daily, one-kind) history to <= SPARKLINE_MAX_POINTS."""
+
+    points = sorted(history.points, key=lambda p: p.observed_at)
+    if not points:
+        return []
+    # ceil division so a 90-point series with a 60 cap steps by 2, not 1.
+    step = max(1, -(-len(points) // SPARKLINE_MAX_POINTS))
+    sampled = points[::step]
+    if sampled[-1] is not points[-1]:
+        sampled.append(points[-1])
+    return [SparkPoint(t=p.observed_at.date().isoformat(), c=p.price_cents) for p in sampled]
 
 
 def _pick_provider(
@@ -105,4 +130,6 @@ async def run_price_check(
         title=product.title if product else None,
         product_url=product.product_url if product else None,
         assessment=assessment,
+        currency=price.currency,
+        sparkline=_build_sparkline(history),
     )

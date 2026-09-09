@@ -114,6 +114,11 @@ def test_public_check_from_url(monkeypatch) -> None:
         assert body["title"] == "Anker 737 Power Bank"
         assert body["assessment"]["verdict"] in {"BUY", "FAIR", "WAIT", "UNKNOWN"}
         assert body["assessment"]["reasons"]
+        assert body["currency"] == "CAD"
+        spark = body["sparkline"]
+        assert 2 <= len(spark) <= 60
+        assert all(set(p) == {"t", "c"} and isinstance(p["c"], int) for p in spark)
+        assert spark == sorted(spark, key=lambda p: p["t"])
     finally:
         app.dependency_overrides.clear()
         session.close()

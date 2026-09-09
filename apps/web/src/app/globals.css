@@ -2294,3 +2294,23 @@ h3 {
     grid-template-columns: 1fr;
   }
 }
+
+.verdict-spark {
+  display: grid;
+  gap: 4px;
+}
+
+.sparkline {
+  background: color-mix(in srgb, var(--border) 22%, transparent);
+  border-radius: 8px;
+  display: block;
+  height: 64px;
+  width: 100%;
+}
+
+.verdict-spark-scale {
+  color: var(--muted);
+  display: flex;
+  font-size: 0.78rem;
+  justify-content: space-between;
+}

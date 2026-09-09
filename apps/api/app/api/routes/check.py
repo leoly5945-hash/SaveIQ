@@ -20,12 +20,19 @@ from app.services.endpoint_limit import allow
 router = APIRouter(prefix="/check", tags=["check"])
 
 
+class SparkPointOut(BaseModel):
+    t: str
+    c: int
+
+
 class CheckResponse(BaseModel):
     provider: str
     provider_product_id: str
     title: str | None
     product_url: str | None
+    currency: str
     assessment: DealAssessment
+    sparkline: list[SparkPointOut]
 
 
 def _client_ip(request: Request) -> str:
@@ -58,5 +65,7 @@ async def check_price(
         provider_product_id=result.provider_product_id,
         title=result.title,
         product_url=result.product_url,
+        currency=result.currency,
         assessment=result.assessment,
+        sparkline=[SparkPointOut(t=p.t, c=p.c) for p in result.sparkline],
     )
