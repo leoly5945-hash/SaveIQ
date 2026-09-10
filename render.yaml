@@ -16,7 +16,7 @@ services:
     plan: free
     region: oregon
     image:
-      url: "ghcr.io/leoly5945-hash/saveiq-engine@sha256:e476db175d4e389f84f1b9b04eccd75c137b59af9bdfcc336de23c96b4f45b93"
+      url: "ghcr.io/leoly5945-hash/saveiq-engine@sha256:a5d3753e0798a0a0ba3f93cdf7b4fd8fbaaae3dd4003bdf04709431958389aa8"
       creds:
         fromRegistryCreds:
           name: ghcr-saveiq
@@ -131,7 +131,7 @@ services:
     plan: free
     region: oregon
     image:
-      url: "ghcr.io/leoly5945-hash/saveiq-web@sha256:1e9e32f31736ef61e7f7a90c930fc7f2a1e4a0710025fc9066828eb48ebee2c3"
+      url: "ghcr.io/leoly5945-hash/saveiq-web@sha256:bfdddae7c27bb2c87bf31ad12c96b0af478cf41526709e9ceb3f807335fcb941"
       creds:
         fromRegistryCreds:
           name: ghcr-saveiq
