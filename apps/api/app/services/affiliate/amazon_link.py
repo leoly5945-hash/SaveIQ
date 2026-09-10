@@ -36,6 +36,4 @@ def amazon_affiliate_url(
     query["tag"] = tag
     if subtag:
         query["ascsubtag"] = subtag
-    return urlunsplit(
-        (parts.scheme, parts.netloc, parts.path, urlencode(query), parts.fragment)
-    )
+    return urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(query), parts.fragment))

@@ -8,9 +8,10 @@ from app.services.affiliate.amazon_link import amazon_affiliate_url
 
 
 def test_tags_a_bare_amazon_url() -> None:
-    assert amazon_affiliate_url(
-        "https://www.amazon.ca/dp/B09VPHVT9Z", "saveiq-20", subtag="check"
-    ) == "https://www.amazon.ca/dp/B09VPHVT9Z?tag=saveiq-20&ascsubtag=check"
+    assert (
+        amazon_affiliate_url("https://www.amazon.ca/dp/B09VPHVT9Z", "saveiq-20", subtag="check")
+        == "https://www.amazon.ca/dp/B09VPHVT9Z?tag=saveiq-20&ascsubtag=check"
+    )
 
 
 def test_keeps_existing_query_and_overrides_tag() -> None:
