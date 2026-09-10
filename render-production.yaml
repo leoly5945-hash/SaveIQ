@@ -64,9 +64,9 @@ services:
       - key: METRICS_TOKEN
         sync: false
       - key: FEATURE_LLM_INTENT_PARSER
-        value: "false"
+        value: "true"
       - key: LLM_INTENT_PARSER_MODE
-        value: disabled
+        value: openai
       - key: OPENAI_API_KEY
         sync: false
       - key: FEATURE_AI_ROUTER
