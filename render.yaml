@@ -45,9 +45,9 @@ services:
           name: dealhunter-staging-redis
           property: connectionString
       - key: FEATURE_LLM_INTENT_PARSER
-        value: "false"
+        value: "true"
       - key: LLM_INTENT_PARSER_MODE
-        value: disabled
+        value: openai
       - key: FEATURE_AI_ROUTER
         value: "false"
       - key: AI_ROUTER_MODE
