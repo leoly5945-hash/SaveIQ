@@ -19,6 +19,7 @@ from app.services.decision.assess import assess_from_provider
 from app.services.decision.comparison_cache import resolve_comparison
 from app.services.decision.deal_score import DealAssessment
 from app.services.decision.matching import Comparison, build_comparison
+from app.services.decision.offer_spread import AmazonOfferSpread, summarize_amazon_offers
 from app.services.product_url import extract_product_ref
 
 logger = logging.getLogger(__name__)
@@ -52,6 +53,7 @@ class PriceCheckResult:
     currency: str = "CAD"
     sparkline: list[SparkPoint] = field(default_factory=list)
     comparison: Comparison | None = None
+    spread: AmazonOfferSpread | None = None
 
 
 async def _build_comparison(
@@ -97,6 +99,24 @@ async def _build_comparison(
         currency=currency,
         candidates=candidates,
     )
+
+
+async def _build_offer_spread(
+    adapter: ProductDataProvider,
+    provider_product_id: str,
+    currency: str,
+    buy_box_cents: int | None,
+) -> AmazonOfferSpread | None:
+    """The live Amazon offer spread around the buy box. Never raises."""
+
+    if ProviderCapability.get_offers not in adapter.capabilities:
+        return None
+    try:
+        offers = await adapter.get_offers(provider_product_id)
+    except Exception:  # noqa: BLE001 - the spread is a nice-to-have, not the verdict
+        logger.warning("offer spread fetch failed", exc_info=True)
+        return None
+    return summarize_amazon_offers(offers, buy_box_cents=buy_box_cents, currency=currency)
 
 
 def _build_sparkline(history: ProviderPriceHistory) -> list[SparkPoint]:
@@ -180,6 +200,8 @@ async def run_price_check(
     if assessment is None:
         raise PriceCheckError(422, "no current price to assess")
 
+    spread = await _build_offer_spread(adapter, resolved_id, price.currency, price.price_cents)
+
     title = product.title if product else None
     comparison = await _build_comparison(
         registry,
@@ -203,4 +225,5 @@ async def run_price_check(
         currency=price.currency,
         sparkline=_build_sparkline(history),
         comparison=comparison,
+        spread=spread,
     )

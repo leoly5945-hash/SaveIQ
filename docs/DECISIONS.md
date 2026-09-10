@@ -468,3 +468,18 @@ carrier-eligible devices. A product matching no special program still gets "buy 
 is best-effort estimates from public reporting (Sept 2026), every option `verify:true` — keeping
 it current is a ~20-row recurring data task, not code. Admin: `GET /admin/acquisition/data` +
 `/compare` (by demo slug or explicit price+category).
+
+## 2026-09-09: Price Check Surfaces the Amazon Buy-Box Spread
+
+Status: Accepted
+
+The price verdict only looks at the buy box, but one ASIN has many Amazon sellers at different
+prices. `app/services/decision/offer_spread.py::summarize_amazon_offers` turns the live Keepa
+offer list into an `AmazonOfferSpread` — the cheapest alternate *new* listing (only when it
+undercuts the buy box), the cheapest *used / renewed*, counts, an FBA flag, and the saving vs
+the buy box. `run_price_check` calls `get_offers` best-effort after the verdict (guarded by the
+`get_offers` capability, all failures swallowed) and adds `spread` to `PriceCheckResult`; `/check`
+and the admin price-check gain a `spread` block; the web renders `<OfferSpread>` on the verdict
+card and `/check/[asin]`. To keep the extra offer fetch from tripling Keepa `/product` calls,
+`KeepaProvider._fetch_product` gained a 60-second per-ASIN cache of the richest payload seen, so
+one price-check's 3–4 provider calls collapse toward one Keepa hit.

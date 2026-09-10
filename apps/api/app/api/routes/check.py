@@ -43,6 +43,21 @@ class ComparisonOut(BaseModel):
     cheapest: MerchantOfferOut | None
 
 
+class SpreadTierOut(BaseModel):
+    condition: str
+    lowest_total_cents: int
+    offer_count: int
+    fba_available: bool
+
+
+class AmazonSpreadOut(BaseModel):
+    buy_box_cents: int
+    currency: str
+    lowest_overall_cents: int
+    savings_vs_buy_box_cents: int
+    tiers: list[SpreadTierOut]
+
+
 class CheckResponse(BaseModel):
     provider: str
     provider_product_id: str
@@ -52,6 +67,7 @@ class CheckResponse(BaseModel):
     assessment: DealAssessment
     sparkline: list[SparkPointOut]
     comparison: ComparisonOut | None = None
+    spread: AmazonSpreadOut | None = None
 
 
 def _client_ip(request: Request) -> str:
@@ -113,6 +129,25 @@ async def check_price(
             ),
         )
 
+    spread_out: AmazonSpreadOut | None = None
+    if result.spread is not None:
+        s = result.spread
+        spread_out = AmazonSpreadOut(
+            buy_box_cents=s.buy_box_cents,
+            currency=s.currency,
+            lowest_overall_cents=s.lowest_overall_cents,
+            savings_vs_buy_box_cents=s.savings_vs_buy_box_cents,
+            tiers=[
+                SpreadTierOut(
+                    condition=t.condition,
+                    lowest_total_cents=t.lowest_total_cents,
+                    offer_count=t.offer_count,
+                    fba_available=t.fba_available,
+                )
+                for t in s.tiers
+            ],
+        )
+
     return CheckResponse(
         provider=result.provider,
         provider_product_id=result.provider_product_id,
@@ -122,4 +157,5 @@ async def check_price(
         assessment=result.assessment,
         sparkline=[SparkPointOut(t=p.t, c=p.c) for p in result.sparkline],
         comparison=comparison_out,
+        spread=spread_out,
     )

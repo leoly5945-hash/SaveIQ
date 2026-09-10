@@ -11,6 +11,7 @@ import {
 } from "@/lib/price-check";
 
 import { ComparisonBlock } from "../../comparison";
+import { OfferSpread } from "../../offer-spread";
 import { Sparkline } from "../../sparkline";
 
 export const revalidate = 3600;
@@ -153,6 +154,8 @@ export default async function CheckAsinPage({ params }: Params) {
             ))}
           </ul>
         ) : null}
+
+        <OfferSpread spread={result.spread} />
 
         <ComparisonBlock comparison={result.comparison} />
 
