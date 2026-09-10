@@ -2227,6 +2227,85 @@ h3 {
   font-size: 0.78rem;
 }
 
+/* --- "buy this instead" --------------------------------------------------- */
+
+.alt {
+  border-top: 1px solid var(--border);
+  display: grid;
+  gap: 8px;
+  padding-top: 12px;
+}
+
+.alt-lead {
+  font-size: 0.98rem;
+  font-weight: 700;
+}
+
+.alt-list {
+  display: grid;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.alt-row {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: grid;
+  gap: 3px;
+  padding: 8px 10px;
+}
+
+.alt-row-head {
+  align-items: baseline;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
+.alt-badge {
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-weight: 900;
+  padding: 1px 6px;
+}
+
+.alt-badge-buy {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.alt-badge-fair {
+  background: rgba(127, 127, 127, 0.15);
+  color: var(--foreground);
+}
+
+.alt-title {
+  color: var(--accent);
+  font-size: 0.92rem;
+  overflow: hidden;
+  text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.alt-price {
+  font-size: 0.9rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.alt-reason {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.alt-note {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
 .verdict {
   background: var(--surface);
   border: 1px solid var(--border);

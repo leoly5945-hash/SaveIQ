@@ -530,3 +530,17 @@ adds a `narration` field — one plain-language paragraph the LLM phrases from t
 verdict + facts (it never invents numbers); the web requests it and renders `<p class="verdict-
 narration">` above the price. Model from `OPENAI_INTENT_MODEL` (default `gpt-4.1-mini`).
 Cost at launch volume is ~$1-3/month. Still to do: "buy this instead" when a verdict is WAIT.
+
+## 2026-09-10: "Buy This Instead" — Alternatives for a WAIT Verdict
+
+Status: Accepted
+
+`GET /alternatives?product_id=<asin>` (public, shares `DISCOVER_RATE_PER_MINUTE`). Resolves the
+product to price + category + brand, reuses `discover()` (search + price-max filter at the
+reference price), then runs the *lightweight* verdict (price + history only) on up to 6 cheaper
+candidates and keeps the ones that come back BUY / FAIR, BUY ranked first. Token-heavy so it's
+its own endpoint and only fetched when the checked product's verdict is WAIT / UNKNOWN — the
+homepage fires it as a follow-on after the verdict, `/check/[asin]` fetches it inline only for a
+poor-buy verdict. Web: `<AlternativesBlock>` on the verdict card ("Rather not wait? These are a
+good buy right now:", each linking to its own `/check/<asin>`). This closes the Layer 3 list:
+discovery + LLM narration + buy-this-instead. See `docs/DISCOVERY.md`.

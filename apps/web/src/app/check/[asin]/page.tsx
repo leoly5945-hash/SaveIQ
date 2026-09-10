@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { fetchAcquireByAsin } from "@/lib/acquire";
+import { fetchAlternativesByAsin } from "@/lib/alternatives";
 import { getBrandName, getSiteUrl } from "@/lib/config";
 import {
   fetchCheckByAsin,
@@ -12,6 +13,7 @@ import {
 } from "@/lib/price-check";
 
 import { AcquireBlock } from "../../acquire-block";
+import { AlternativesBlock } from "../../alternatives-block";
 import { ComparisonBlock } from "../../comparison";
 import { OfferSpread } from "../../offer-spread";
 import { Sparkline } from "../../sparkline";
@@ -64,6 +66,10 @@ export default async function CheckAsinPage({ params }: Params) {
   if (!result) {
     notFound();
   }
+  const poorBuy =
+    result.assessment.verdict === "WAIT" ||
+    result.assessment.verdict === "UNKNOWN";
+  const alternatives = poorBuy ? await fetchAlternativesByAsin(asin) : null;
 
   const brand = getBrandName();
   const { assessment } = result;
@@ -169,6 +175,8 @@ export default async function CheckAsinPage({ params }: Params) {
         <ComparisonBlock comparison={result.comparison} />
 
         <AcquireBlock data={acquire} />
+
+        <AlternativesBlock data={alternatives} />
 
         {result.product_url ? (
           <a

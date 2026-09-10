@@ -4,6 +4,10 @@ import { type FormEvent, useEffect, useRef, useState } from "react";
 
 import { type AcquireResult, requestAcquire } from "@/lib/acquire";
 import {
+  type AlternativesResult,
+  requestAlternatives,
+} from "@/lib/alternatives";
+import {
   type CheckResult,
   formatMoney,
   looksSubmittable,
@@ -14,6 +18,7 @@ import {
 } from "@/lib/price-check";
 
 import { AcquireBlock } from "./acquire-block";
+import { AlternativesBlock } from "./alternatives-block";
 import { ComparisonBlock } from "./comparison";
 import { OfferSpread } from "./offer-spread";
 import { Sparkline } from "./sparkline";
@@ -31,6 +36,9 @@ export function CheckBox() {
   const [error, setError] = useState("");
   const [result, setResult] = useState<CheckResult | null>(null);
   const [acquire, setAcquire] = useState<AcquireResult | null>(null);
+  const [alternatives, setAlternatives] = useState<AlternativesResult | null>(
+    null
+  );
   const ranFromUrl = useRef(false);
 
   async function runCheck(value: string) {
@@ -42,6 +50,7 @@ export function CheckBox() {
     setStatus("loading");
     setError("");
     setAcquire(null);
+    setAlternatives(null);
     const outcome = await requestCheck(value);
     if (!outcome.ok) {
       setStatus("error");
@@ -53,6 +62,11 @@ export function CheckBox() {
     setStatus("ready");
     // Layer 2 is a follow-on — the verdict shows without waiting for it.
     void requestAcquire(value).then(setAcquire);
+    // "buy this instead" only when it's a poor time to buy this one.
+    const v = outcome.result.assessment.verdict;
+    if (v === "WAIT" || v === "UNKNOWN") {
+      void requestAlternatives(value).then(setAlternatives);
+    }
   }
 
   // Bookmarklet / shared link: `/?url=<amazon url>` prefills and auto-runs once.
@@ -116,6 +130,7 @@ export function CheckBox() {
         <VerdictCard
           result={result}
           acquire={acquire}
+          alternatives={alternatives}
           productInput={input.trim()}
         />
       ) : null}
@@ -126,10 +141,12 @@ export function CheckBox() {
 function VerdictCard({
   result,
   acquire,
+  alternatives,
   productInput,
 }: {
   result: CheckResult;
   acquire: AcquireResult | null;
+  alternatives: AlternativesResult | null;
   productInput: string;
 }) {
   const { assessment } = result;
@@ -189,6 +206,8 @@ function VerdictCard({
       <ComparisonBlock comparison={result.comparison} />
 
       <AcquireBlock data={acquire} />
+
+      <AlternativesBlock data={alternatives} />
 
       {result.product_url ? (
         <a
