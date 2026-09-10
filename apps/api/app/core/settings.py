@@ -92,6 +92,10 @@ class Settings(BaseSettings):
         default=20,
         validation_alias="ACQUIRE_RATE_PER_MINUTE",
     )
+    discover_rate_per_minute: int = Field(
+        default=6,
+        validation_alias="DISCOVER_RATE_PER_MINUTE",
+    )
     feature_llm_intent_parser: bool = Field(
         default=False,
         validation_alias="FEATURE_LLM_INTENT_PARSER",

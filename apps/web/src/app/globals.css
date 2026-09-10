@@ -2132,6 +2132,101 @@ h3 {
   opacity: 0.55;
 }
 
+/* --- Layer 3 discovery ------------------------------------------------- */
+
+.discover,
+.discover-form {
+  display: grid;
+  gap: 12px;
+}
+
+.discover-form {
+  grid-template-columns: minmax(0, 1fr) auto;
+  max-width: 640px;
+}
+
+.discover-form .field input {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  font-size: 0.98rem;
+  min-height: 48px;
+}
+
+.discover-submit {
+  background: var(--surface);
+  border: 1px solid var(--foreground);
+  border-radius: 12px;
+  color: var(--foreground);
+  cursor: pointer;
+  font-weight: 700;
+  min-height: 48px;
+  padding: 0 20px;
+}
+
+.discover-submit:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.discover-results {
+  display: grid;
+  gap: 8px;
+  max-width: 640px;
+}
+
+.discover-summary {
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.discover-list {
+  display: grid;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.discover-hit {
+  align-items: baseline;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  padding: 8px 10px;
+}
+
+.discover-over {
+  opacity: 0.6;
+}
+
+.discover-title {
+  color: var(--foreground);
+  font-size: 0.92rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.discover-price {
+  font-size: 0.88rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.discover-link {
+  color: var(--accent);
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.discover-note {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
 .verdict {
   background: var(--surface);
   border: 1px solid var(--border);

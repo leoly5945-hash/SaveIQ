@@ -497,3 +497,20 @@ for the buyer profile from the query. The web renders `<AcquireBlock>` on the ve
 `/check/[asin]` (fetched in parallel with the price check, non-blocking on the homepage). This
 is the "price checker → shopping advisor" wiring — the check page now shows verdict + sparkline
 + Amazon spread + cross-merchant comparison + acquisition paths, all three engine layers.
+
+## 2026-09-09: Discovery (Layer 3 Entry) — Describe It Instead of Pasting a Link
+
+Status: Accepted
+
+`GET /discover?q=<natural language>` (public, per-IP rate limited hard via
+`DISCOVER_RATE_PER_MINUTE`, default 6). `app/services/discovery/query.parse_shopping_query` is a
+**rule-based** parser (budget from "under/below/over/between/around $N" + a trailing amount;
+strips filler, keeps specs like `4k`); `discover()` runs one Keepa `/search` and, only when a
+budget was given, a current-price probe on the top few candidates to sort in-budget first. No
+verdict in `/discover` — that costs 2+ Keepa calls each and stays on `/check`, which the shopper
+clicks through to. Web: `<DiscoverBox>` on the homepage under the paste-a-link box, hits link to
+`/check/<asin>`. The AI Router (`app/services/router/`, providers OpenAI/Anthropic/DeepSeek/
+Qwen/Ernie all implemented) is NOT wired yet — it needs a provider API key and a new
+shopping-query schema (the existing `LlmParsedIntent` is shaped for the old affiliate product).
+LLM query parsing, LLM narration of a `/check` result, and "buy this instead" are the remaining
+Layer 3 work. See `docs/DISCOVERY.md`.
