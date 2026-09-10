@@ -514,3 +514,19 @@ Qwen/Ernie all implemented) is NOT wired yet — it needs a provider API key and
 shopping-query schema (the existing `LlmParsedIntent` is shaped for the old affiliate product).
 LLM query parsing, LLM narration of a `/check` result, and "buy this instead" are the remaining
 Layer 3 work. See `docs/DISCOVERY.md`.
+
+## 2026-09-10: Layer 3 LLM — OpenAI Query Parsing + Check Narration
+
+Status: Accepted
+
+The AI Router (`app/services/router/`) is welded to the old `LlmParsedIntent` schema, so Layer 3
+gets its own thin OpenAI client: `app/services/discovery/llm.py` (`parse_query_llm` with a
+`shopping_query` json-schema structured output; `narrate_llm` for free text). Both are gated on
+`FEATURE_LLM_INTENT_PARSER` + `LLM_INTENT_PARSER_MODE == "openai"` + `OPENAI_API_KEY`, and every
+failure returns `None` so the deterministic path stays the answer. `parse_shopping_query` now
+runs the rule parser as a floor and lets a confident LLM parse take over (`parser_mode` becomes
+`"llm"`); `/discover` passes settings so it kicks in automatically once keyed. `/check?narrate=1`
+adds a `narration` field — one plain-language paragraph the LLM phrases from the *already-decided*
+verdict + facts (it never invents numbers); the web requests it and renders `<p class="verdict-
+narration">` above the price. Model from `OPENAI_INTENT_MODEL` (default `gpt-4.1-mini`).
+Cost at launch volume is ~$1-3/month. Still to do: "buy this instead" when a verdict is WAIT.

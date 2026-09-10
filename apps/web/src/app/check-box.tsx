@@ -148,6 +148,10 @@ function VerdictCard({
         </div>
       </header>
 
+      {result.narration ? (
+        <p className="verdict-narration">{result.narration}</p>
+      ) : null}
+
       <div className="verdict-price">
         <span className="verdict-now">{formatMoney(effective, currency)}</span>
         <span className="verdict-conf">confidence: {assessment.confidence}</span>

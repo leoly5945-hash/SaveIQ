@@ -15,6 +15,9 @@ import re
 
 from pydantic import BaseModel, Field
 
+from app.core.settings import Settings
+from app.services.discovery.llm import ChatTransport, parse_query_llm
+
 # A money amount, optionally with a "k" thousands suffix. The suffix only counts
 # inside a directional phrase below — a bare "4k" in the middle of a query is a
 # product spec, not a price.
@@ -126,11 +129,7 @@ def _clean_terms(text: str) -> str:
     return " ".join(kept).strip()
 
 
-def parse_shopping_query(raw: str, *, mode: str = "rules") -> ShoppingQuery:
-    text = raw.strip()
-    if not text:
-        raise ValueError("empty query")
-
+def _parse_rules(text: str) -> ShoppingQuery:
     price_min = price_max = None
     remainder = text
     between = _BETWEEN_RE.search(text)
@@ -163,5 +162,35 @@ def parse_shopping_query(raw: str, *, mode: str = "rules") -> ShoppingQuery:
         search_terms=terms,
         price_min_cents=price_min,
         price_max_cents=price_max,
-        parser_mode="rules",  # mode kept for a future "llm" path
+        parser_mode="rules",
+    )
+
+
+def parse_shopping_query(
+    raw: str,
+    *,
+    settings: Settings | None = None,
+    transport: ChatTransport | None = None,
+) -> ShoppingQuery:
+    """Structured query from free text. Rule-based always runs as the floor; when
+    an OpenAI key is configured (``settings``) the LLM parse takes over if it is
+    confident."""
+
+    text = raw.strip()
+    if not text:
+        raise ValueError("empty query")
+
+    rules = _parse_rules(text)
+    if settings is None:
+        return rules
+
+    llm = parse_query_llm(text, settings, transport=transport)
+    if llm is None:
+        return rules
+    return ShoppingQuery(
+        raw=text,
+        search_terms=llm.search_terms or rules.search_terms,
+        price_min_cents=llm.price_min_cents,
+        price_max_cents=llm.price_max_cents,
+        parser_mode="llm",
     )

@@ -35,7 +35,7 @@ async def discover_products(
         raise HTTPException(status_code=429, detail="too many searches — try again in a minute")
 
     try:
-        query = parse_shopping_query(q)
+        query = parse_shopping_query(q, settings=settings)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 

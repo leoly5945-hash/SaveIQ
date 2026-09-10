@@ -88,6 +88,7 @@ export type CheckResult = {
   sparkline: SparkPoint[];
   comparison: Comparison | null;
   spread: AmazonSpread | null;
+  narration: string | null;
 };
 
 export type CheckOutcome =
@@ -161,7 +162,7 @@ export async function requestCheck(
   fetchImpl: typeof fetch = fetch
 ): Promise<CheckOutcome> {
   const value = input.trim();
-  const params = new URLSearchParams();
+  const params = new URLSearchParams({ narrate: "1" });
   if (/^[A-Za-z0-9]{10}$/.test(value)) {
     params.set("product_id", value.toUpperCase());
   } else {
@@ -191,6 +192,7 @@ export function normalizeResult(r: CheckResult): CheckResult {
     sparkline: Array.isArray(r.sparkline) ? r.sparkline : [],
     comparison: r.comparison ?? null,
     spread: r.spread ?? null,
+    narration: r.narration ?? null,
   };
 }
 
@@ -248,6 +250,7 @@ export async function fetchCheckByAsin(asin: string): Promise<CheckResult | null
   try {
     const url = new URL("/check", getApiBaseUrl());
     url.searchParams.set("product_id", asin.toUpperCase());
+    url.searchParams.set("narrate", "1");
     const res = await fetch(url, {
       headers: { Accept: "application/json" },
       next: { revalidate: 3600 },
