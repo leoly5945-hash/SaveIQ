@@ -20,6 +20,7 @@ import asyncio
 import gzip
 import json
 import logging
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -306,6 +307,14 @@ class KeepaProvider:
         self._transport = transport or UrllibKeepaHttpTransport()
         self._now = now
         self.market, self.currency, self._host = _DOMAIN_LOCALE[domain]
+        # Short-TTL cache of the raw /product payload, keyed by ASIN. One
+        # price-check makes 3-4 provider calls for the same ASIN; without this
+        # that is 3-4 Keepa /product hits (~6 tokens each with offers). The
+        # richest payload seen wins; entries expire fast so a repeat check still
+        # gets a fresh price.
+        self._product_cache: dict[str, tuple[float, Mapping[str, Any]]] = {}
+
+    _PRODUCT_CACHE_TTL_SECONDS = 60.0
 
     # -- protocol ---------------------------------------------------------------
 
@@ -424,6 +433,14 @@ class KeepaProvider:
                 logger.warning("keepa token balance exhausted", extra={"tokens_left": tokens_left})
         return payload
 
+    @staticmethod
+    def _covers(product: Mapping[str, Any], *, offers: bool, stats_days: int) -> bool:
+        if offers and not isinstance(product.get("offers"), list):
+            return False
+        if stats_days > 0 and not isinstance(product.get("stats"), Mapping):
+            return False
+        return True
+
     async def _fetch_product(
         self,
         asin: str,
@@ -434,6 +451,16 @@ class KeepaProvider:
         asin = asin.strip().upper()
         if not asin:
             raise ProviderProductNotFound("empty ASIN")
+
+        cached = self._product_cache.get(asin)
+        if cached is not None:
+            ts, product = cached
+            if time.monotonic() - ts < self._PRODUCT_CACHE_TTL_SECONDS and self._covers(
+                product, offers=offers, stats_days=stats_days
+            ):
+                return product
+            self._product_cache.pop(asin, None)
+
         params: dict[str, Any] = {"asin": asin, "history": 1}
         if stats_days > 0:
             params["stats"] = stats_days
@@ -451,6 +478,7 @@ class KeepaProvider:
         # Keepa returns a stub object (title None, no csv) for an unknown ASIN.
         if first.get("title") in (None, "") and not first.get("csv"):
             return None
+        self._product_cache[asin] = (time.monotonic(), first)
         return first
 
     # -- parsing ------------------------------------------------------------

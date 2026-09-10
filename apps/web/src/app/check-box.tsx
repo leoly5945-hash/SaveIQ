@@ -13,6 +13,7 @@ import {
 } from "@/lib/price-check";
 
 import { ComparisonBlock } from "./comparison";
+import { OfferSpread } from "./offer-spread";
 import { Sparkline } from "./sparkline";
 
 type Status = "idle" | "loading" | "ready" | "error";
@@ -166,6 +167,8 @@ function VerdictCard({
           ))}
         </ul>
       ) : null}
+
+      <OfferSpread spread={result.spread} />
 
       <ComparisonBlock comparison={result.comparison} />
 

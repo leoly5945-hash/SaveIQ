@@ -2407,3 +2407,55 @@ h3 {
   color: var(--muted);
   font-size: 0.78rem;
 }
+
+.spread {
+  border-top: 1px solid var(--border);
+  display: grid;
+  gap: 8px;
+  padding-top: 12px;
+}
+
+.spread-lead {
+  font-size: 0.98rem;
+  font-weight: 700;
+}
+
+.spread-lead-muted {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.spread-lead-price {
+  color: #15803d;
+}
+
+.spread-list {
+  display: grid;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.spread-list li {
+  align-items: baseline;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.spread-cond {
+  color: var(--foreground);
+  font-size: 0.92rem;
+}
+
+.spread-price {
+  color: var(--foreground);
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.spread-note {
+  color: var(--muted);
+  font-size: 0.78rem;
+}

@@ -65,6 +65,21 @@ class ComparisonOut(BaseModel):
     cheapest: MerchantOfferOut | None
 
 
+class SpreadTierOut(BaseModel):
+    condition: str
+    lowest_total_cents: int
+    offer_count: int
+    fba_available: bool
+
+
+class AmazonSpreadOut(BaseModel):
+    buy_box_cents: int
+    currency: str
+    lowest_overall_cents: int
+    savings_vs_buy_box_cents: int
+    tiers: list[SpreadTierOut]
+
+
 class PriceCheckResponse(BaseModel):
     provider: str
     provider_product_id: str
@@ -72,6 +87,7 @@ class PriceCheckResponse(BaseModel):
     product_url: str | None
     assessment: DealAssessment
     comparison: ComparisonOut | None = None
+    spread: AmazonSpreadOut | None = None
 
 
 class ComparisonPollResponse(BaseModel):
@@ -213,6 +229,25 @@ async def price_check(
             ),
         )
 
+    spread_out: AmazonSpreadOut | None = None
+    if result.spread is not None:
+        s = result.spread
+        spread_out = AmazonSpreadOut(
+            buy_box_cents=s.buy_box_cents,
+            currency=s.currency,
+            lowest_overall_cents=s.lowest_overall_cents,
+            savings_vs_buy_box_cents=s.savings_vs_buy_box_cents,
+            tiers=[
+                SpreadTierOut(
+                    condition=t.condition,
+                    lowest_total_cents=t.lowest_total_cents,
+                    offer_count=t.offer_count,
+                    fba_available=t.fba_available,
+                )
+                for t in s.tiers
+            ],
+        )
+
     return PriceCheckResponse(
         provider=result.provider,
         provider_product_id=result.provider_product_id,
@@ -220,4 +255,5 @@ async def price_check(
         product_url=result.product_url,
         assessment=result.assessment,
         comparison=comparison_out,
+        spread=spread_out,
     )

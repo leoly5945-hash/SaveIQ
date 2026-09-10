@@ -39,11 +39,48 @@ class FakeKeepa:
             ProviderCapability.get_price,
             ProviderCapability.get_product,
             ProviderCapability.price_history,
+            ProviderCapability.get_offers,
         }
     )
 
     def is_configured(self) -> bool:
         return True
+
+    async def get_offers(self, pid: str) -> list[ProviderOffer]:
+        return [
+            ProviderOffer(
+                provider="keepa",
+                provider_product_id=pid,
+                merchant="Amazon.ca",
+                price_cents=4300,
+                shipping_cents=0,
+                currency="CAD",
+                condition="new",
+                is_buy_box=True,
+                observed_at=NOW,
+            ),
+            ProviderOffer(
+                provider="keepa",
+                provider_product_id=pid,
+                merchant="ThirdParty",
+                price_cents=3999,
+                shipping_cents=0,
+                currency="CAD",
+                condition="new",
+                observed_at=NOW,
+                metadata={"is_fba": True},
+            ),
+            ProviderOffer(
+                provider="keepa",
+                provider_product_id=pid,
+                merchant="UsedSeller",
+                price_cents=3400,
+                shipping_cents=0,
+                currency="CAD",
+                condition="used",
+                observed_at=NOW,
+            ),
+        ]
 
     async def get_product(self, pid: str) -> ProviderProduct | None:
         return ProviderProduct(
@@ -225,6 +262,16 @@ def test_public_check_from_url(monkeypatch) -> None:
         assert all(set(p) == {"t", "c"} and isinstance(p["c"], int) for p in spark)
         assert spark == sorted(spark, key=lambda p: p["t"])
         assert body["comparison"] is None  # no dataforseo provider registered
+        # the Amazon offer spread comes from the (fake) Keepa get_offers
+        spread = body["spread"]
+        assert spread is not None
+        assert spread["buy_box_cents"] == 4300
+        conditions = {t["condition"] for t in spread["tiers"]}
+        assert conditions == {"new", "used"}
+        assert spread["lowest_overall_cents"] == 3400
+        assert spread["savings_vs_buy_box_cents"] == 900
+        new_tier = next(t for t in spread["tiers"] if t["condition"] == "new")
+        assert new_tier["lowest_total_cents"] == 3999 and new_tier["fba_available"] is True
     finally:
         app.dependency_overrides.clear()
         session.close()

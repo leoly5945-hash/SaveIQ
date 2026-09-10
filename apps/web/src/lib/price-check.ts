@@ -63,6 +63,21 @@ export type Comparison = {
   cheapest: MerchantOffer | null;
 };
 
+export type SpreadTier = {
+  condition: "new" | "used";
+  lowest_total_cents: number;
+  offer_count: number;
+  fba_available: boolean;
+};
+
+export type AmazonSpread = {
+  buy_box_cents: number;
+  currency: string;
+  lowest_overall_cents: number;
+  savings_vs_buy_box_cents: number;
+  tiers: SpreadTier[];
+};
+
 export type CheckResult = {
   provider: string;
   provider_product_id: string;
@@ -72,6 +87,7 @@ export type CheckResult = {
   assessment: DealAssessment;
   sparkline: SparkPoint[];
   comparison: Comparison | null;
+  spread: AmazonSpread | null;
 };
 
 export type CheckOutcome =
@@ -167,13 +183,14 @@ export async function requestCheck(
   }
 }
 
-/** Tolerate an API that predates the sparkline / currency / comparison fields. */
+/** Tolerate an API that predates the sparkline / currency / comparison / spread fields. */
 export function normalizeResult(r: CheckResult): CheckResult {
   return {
     ...r,
     currency: r.currency ?? r.assessment?.effective_price?.currency ?? "CAD",
     sparkline: Array.isArray(r.sparkline) ? r.sparkline : [],
     comparison: r.comparison ?? null,
+    spread: r.spread ?? null,
   };
 }
 
