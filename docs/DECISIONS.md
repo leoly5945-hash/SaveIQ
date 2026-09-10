@@ -429,3 +429,24 @@ now drops any candidate priced above the reference (`_DISPLAY_MAX_RATIO = 1.0`) 
 This also removes the noise the first real results surfaced: a foreign reseller ("delldxb.com")
 priced at 1.7x the Amazon price was passing the wide match band. Same-price and cheaper offers
 still show; "Amazon.ca has the best price" is the fallback when nothing survives.
+
+## 2026-09-09: Acquisition Advisor (Layer 2) — Price Checker → Shopping Advisor
+
+Status: Accepted
+
+Confirmed core identity: SaveIQ is a **shopping advisor**, not a price checker. The price
+engine (`app/services/decision/`) is Layer 1 — "is this price good vs its history". The new
+`app/services/acquisition/` is Layer 2 — "which way of getting this product is best for me":
+buy outright, 0% financing, bring-it-back lease, device+plan bundle, or refurb/last-gen.
+`compute_tco` places every cash flow on a month index and discounts to present value when the
+buyer sets an `annual_discount_rate` (so "keep the cash, pay monthly" is scored fairly),
+credits resale value still held at the horizon, and models a lease as a return-vs-keep based on
+the buyer's upgrade cadence. `compare_paths` ranks by discounted TCO and emits transparent
+`caveats` (owns-nothing, lease-is-a-trap for long holders, lock-in, service-sensitivity,
+business support lever) plus a fixed `verify_first` list of what SaveIQ structurally cannot
+know. Deterministic and payout-free, exactly like the price verdict; the LLM layer (Layer 3,
+not built) will select options for a natural-language query and narrate — it does not do the
+arithmetic. Admin surface: `GET /admin/acquisition/catalog` + `/admin/acquisition/compare`.
+The catalogue (`acquisition_catalog.json`) currently holds one illustrative worked example
+(iPhone 17 Pro, 4 options, all `verify:true`); real product + carrier-plan data is the next
+data task.

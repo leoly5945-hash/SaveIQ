@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes.admin_abtest import router as admin_abtest_router
+from app.api.routes.admin_acquisition import router as admin_acquisition_router
 from app.api.routes.admin_affiliate import router as admin_affiliate_router
 from app.api.routes.admin_bandit import router as admin_bandit_router
 from app.api.routes.admin_canary import router as admin_canary_router
@@ -72,6 +73,7 @@ def create_app() -> FastAPI:
     app.include_router(admin_users_router)
     app.include_router(admin_gate9_router)
     app.include_router(admin_providers_router)
+    app.include_router(admin_acquisition_router)
     app.include_router(admin_tracking_router)
     app.include_router(admin_rate_limit_router)
     app.include_router(admin_canary_router)
