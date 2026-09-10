@@ -14,6 +14,7 @@ import {
 
 import { AcquireBlock } from "../../acquire-block";
 import { AlternativesBlock } from "../../alternatives-block";
+import { BuyCta } from "../../buy-cta";
 import { ComparisonBlock } from "../../comparison";
 import { OfferSpread } from "../../offer-spread";
 import { Sparkline } from "../../sparkline";
@@ -143,6 +144,10 @@ export default async function CheckAsinPage({ params }: Params) {
           <span className="verdict-conf">confidence: {assessment.confidence}</span>
         </div>
 
+        {result.buy_url ?? result.product_url ? (
+          <BuyCta href={result.buy_url ?? result.product_url ?? ""} top />
+        ) : null}
+
         {result.sparkline.length >= 2 ? (
           <div className="verdict-spark">
             <Sparkline points={result.sparkline} tone={v.tone} />
@@ -179,15 +184,7 @@ export default async function CheckAsinPage({ params }: Params) {
         <AlternativesBlock data={alternatives} />
 
         {result.buy_url ?? result.product_url ? (
-          <a
-            className="verdict-cta"
-            href={result.buy_url ?? result.product_url ?? undefined}
-            rel="sponsored nofollow noopener noreferrer"
-            target="_blank"
-          >
-            Buy on Amazon.ca
-            <span aria-hidden="true"> →</span>
-          </a>
+          <BuyCta href={result.buy_url ?? result.product_url ?? ""} />
         ) : null}
 
         <p className="verdict-fineprint">

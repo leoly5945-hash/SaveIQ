@@ -2422,12 +2422,15 @@ h3 {
 }
 
 /* The money action: this is the only link on the card that pays us, so it
-   reads louder than everything around it. */
-.verdict-cta {
+   reads louder than everything around it. The `.verdict a` selector keeps the
+   text white even on the /check/[asin] page, where `.privacy-page a` would
+   otherwise tint it. */
+.verdict-cta,
+.verdict a.verdict-cta {
   align-self: stretch;
-  background: var(--accent);
+  background: var(--accent-strong);
   border-radius: 12px;
-  box-shadow: 0 8px 20px -8px color-mix(in srgb, var(--accent) 65%, transparent);
+  box-shadow: 0 8px 20px -8px color-mix(in srgb, var(--accent-strong) 70%, transparent);
   color: #ffffff;
   font-size: 1.1rem;
   font-weight: 800;
@@ -2437,8 +2440,33 @@ h3 {
   text-decoration: none;
 }
 
-.verdict-cta:hover {
-  background: var(--accent-strong);
+.verdict-cta:hover,
+.verdict a.verdict-cta:hover {
+  background: #094a45;
+}
+
+/* Top-of-card copy of the CTA — a gentle breathing glow so the eye lands on it
+   without the page feeling like a banner ad. Motion-safe only. */
+.verdict-cta-top {
+  animation: verdict-cta-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes verdict-cta-pulse {
+  0%,
+  100% {
+    box-shadow: 0 8px 20px -8px color-mix(in srgb, var(--accent-strong) 70%, transparent);
+  }
+  50% {
+    box-shadow:
+      0 8px 22px -6px color-mix(in srgb, var(--accent-strong) 80%, transparent),
+      0 0 0 4px color-mix(in srgb, var(--accent) 30%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .verdict-cta-top {
+    animation: none;
+  }
 }
 
 .verdict-fineprint {
