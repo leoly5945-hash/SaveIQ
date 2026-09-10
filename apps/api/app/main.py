@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.routes.acquire import router as acquire_router
 from app.api.routes.admin_abtest import router as admin_abtest_router
 from app.api.routes.admin_acquisition import router as admin_acquisition_router
 from app.api.routes.admin_affiliate import router as admin_affiliate_router
@@ -62,6 +63,7 @@ def create_app() -> FastAPI:
     app.include_router(search_router)
     app.include_router(featured_deals_router)
     app.include_router(check_router)
+    app.include_router(acquire_router)
     app.include_router(alerts_router)
     app.include_router(recommendations_router)
     app.include_router(bandit_router)

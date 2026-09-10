@@ -2,6 +2,7 @@
 
 import { type FormEvent, useEffect, useRef, useState } from "react";
 
+import { type AcquireResult, requestAcquire } from "@/lib/acquire";
 import {
   type CheckResult,
   formatMoney,
@@ -12,6 +13,7 @@ import {
   VERDICT_COPY,
 } from "@/lib/price-check";
 
+import { AcquireBlock } from "./acquire-block";
 import { ComparisonBlock } from "./comparison";
 import { OfferSpread } from "./offer-spread";
 import { Sparkline } from "./sparkline";
@@ -28,6 +30,7 @@ export function CheckBox() {
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState("");
   const [result, setResult] = useState<CheckResult | null>(null);
+  const [acquire, setAcquire] = useState<AcquireResult | null>(null);
   const ranFromUrl = useRef(false);
 
   async function runCheck(value: string) {
@@ -38,6 +41,7 @@ export function CheckBox() {
     }
     setStatus("loading");
     setError("");
+    setAcquire(null);
     const outcome = await requestCheck(value);
     if (!outcome.ok) {
       setStatus("error");
@@ -47,6 +51,8 @@ export function CheckBox() {
     }
     setResult(outcome.result);
     setStatus("ready");
+    // Layer 2 is a follow-on — the verdict shows without waiting for it.
+    void requestAcquire(value).then(setAcquire);
   }
 
   // Bookmarklet / shared link: `/?url=<amazon url>` prefills and auto-runs once.
@@ -107,7 +113,11 @@ export function CheckBox() {
       ) : null}
 
       {status === "ready" && result ? (
-        <VerdictCard result={result} productInput={input.trim()} />
+        <VerdictCard
+          result={result}
+          acquire={acquire}
+          productInput={input.trim()}
+        />
       ) : null}
     </section>
   );
@@ -115,9 +125,11 @@ export function CheckBox() {
 
 function VerdictCard({
   result,
+  acquire,
   productInput,
 }: {
   result: CheckResult;
+  acquire: AcquireResult | null;
   productInput: string;
 }) {
   const { assessment } = result;
@@ -171,6 +183,8 @@ function VerdictCard({
       <OfferSpread spread={result.spread} />
 
       <ComparisonBlock comparison={result.comparison} />
+
+      <AcquireBlock data={acquire} />
 
       {result.product_url ? (
         <a
