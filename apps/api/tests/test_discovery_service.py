@@ -67,14 +67,26 @@ def _reg(adapter: object) -> ProviderRegistry:
 
 
 @pytest.mark.asyncio
-async def test_no_budget_skips_the_price_probe() -> None:
-    fake = FakeKeepa({"B01": 5000, "B02": 9000})
+async def test_no_budget_still_prices_and_sorts_cheapest_first() -> None:
+    # discovery is a storefront — every row needs a price even without a budget
+    fake = FakeKeepa({"B01": 9000, "B02": 5000})
     q = parse_shopping_query("power bank")
     res = await discover(_reg(fake), q, limit=8)
-    assert [h.product_id for h in res.hits] == ["B01", "B02"]
-    assert res.price_probed is False
-    assert fake.priced == []  # no price calls without a budget
-    assert all(h.price_cents is None for h in res.hits)
+    assert res.price_probed is True
+    assert set(fake.priced) == {"B01", "B02"}
+    assert [h.product_id for h in res.hits] == ["B02", "B01"]  # price asc
+    assert [h.price_cents for h in res.hits] == [5000, 9000]
+    assert all(h.in_budget is None for h in res.hits)  # no budget -> no verdict
+
+
+@pytest.mark.asyncio
+async def test_unpriced_rows_sort_last() -> None:
+    fake = FakeKeepa({"B01": 7000, "B02": None})  # B02 has no price
+    q = parse_shopping_query("power bank")
+    res = await discover(_reg(fake), q, limit=8)
+    ids = [h.product_id for h in res.hits]
+    assert ids == ["B01", "B02"]
+    assert res.hits[-1].price_cents is None
 
 
 @pytest.mark.asyncio

@@ -49,26 +49,30 @@ export default function Home() {
       </header>
 
       <main className="home-shell">
-        <p className="home-eyebrow">Price check · Canada</p>
+        <p className="home-eyebrow">Shopping decisions · Canada</p>
         <h1 className="home-title">
-          Paste an Amazon.ca link.
+          What are you thinking of buying?
           <br />
-          <span>We&apos;ll tell you: buy, or wait.</span>
+          <span>We&apos;ll tell you: buy now, or wait.</span>
         </h1>
         <p className="home-sub">
-          {brandName} reads the last 90 days of price history and gives you one
-          clear call — with the reasons. Not a good time? Leave your email and
-          we&apos;ll ping you once when it drops.
+          Describe a product and {brandName} finds it, reads the last 90 days of
+          price history, and gives you one clear call — with the reasons. Not a
+          good time? We&apos;ll email you once when it drops.
         </p>
-
-        <CheckBox />
 
         <DiscoverBox />
 
-        <p className="home-bookmarklet-hint">
-          Check straight from the Amazon page instead —{" "}
-          <Link href="/tools">add the 1-click bookmarklet</Link>.
-        </p>
+        <div className="home-secondary">
+          <p className="home-secondary-label">
+            Already looking at something on Amazon.ca? Paste the link.
+          </p>
+          <CheckBox />
+          <p className="home-bookmarklet-hint">
+            Or check straight from the Amazon page —{" "}
+            <Link href="/tools">add the 1-click bookmarklet</Link>.
+          </p>
+        </div>
 
         <FeaturedDeals />
 
@@ -85,9 +89,10 @@ export default function Home() {
               <span className="home-how-num" aria-hidden="true">
                 1
               </span>
-              <h3>You paste a link</h3>
+              <h3>You describe it, or paste a link</h3>
               <p>
-                Any Amazon.ca product page. We pull its price history — the
+                Say what you want — &ldquo;robot vacuum under $600&rdquo; — or
+                paste any Amazon.ca product page. We pull its price history: the
                 Amazon price, the buy-box price, the 90-day high and low.
               </p>
             </li>
