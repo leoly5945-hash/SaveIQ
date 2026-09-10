@@ -44,7 +44,8 @@ def _pv(amount_cents: int, month: int, monthly_rate: float) -> float:
 def compute_tco(option: AcquisitionOption, profile: BuyerProfile) -> TCOBreakdown:
     horizon = max(1, profile.horizon_months)
     m_rate = max(0.0, profile.annual_discount_rate) / 12.0
-    notes: list[str] = []
+    # the option's own descriptive notes lead; computed assumptions follow
+    notes: list[str] = list(option.notes)
 
     nominal = 0.0
     effective = 0.0

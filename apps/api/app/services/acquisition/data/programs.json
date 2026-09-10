@@ -98,11 +98,12 @@
       "kind": "refurb",
       "label": "Amazon Renewed",
       "categories": ["*"],
-      "discount_pct": 0.2,
+      "discount_pct": 0.15,
       "requires_plan": "byod_value",
       "notes": [
         "Inspected and tested by a qualified supplier; 90-day 'Renewed Guarantee' return.",
-        "Condition and battery health vary by seller - read the grade before buying."
+        "Condition and battery health vary by seller and by grade - read the listing before buying; a current-flagship renewed discount is usually thinner than this estimate.",
+        "No manufacturer warranty unless the listing states otherwise."
       ]
     }
   ]
