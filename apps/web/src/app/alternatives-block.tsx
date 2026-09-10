@@ -20,7 +20,12 @@ export function AlternativesBlock({ data }: { data: AlternativesResult | null })
               <span className={`alt-badge alt-badge-${a.verdict.toLowerCase()}`}>
                 {a.verdict}
               </span>
-              <Link className="alt-title" href={`/check/${a.product_id}`}>
+              <Link
+                className="alt-title"
+                href={`/check/${a.product_id}`}
+                rel="noopener"
+                target="_blank"
+              >
                 {a.title}
               </Link>
               <span className="alt-price">
@@ -32,7 +37,7 @@ export function AlternativesBlock({ data }: { data: AlternativesResult | null })
         ))}
       </ul>
       <p className="alt-note">
-        Matched by category and price. Open one for its full verdict.
+        Matched by category and price. Each opens its full verdict in a new tab.
       </p>
     </section>
   );
