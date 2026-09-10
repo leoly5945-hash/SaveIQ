@@ -209,14 +209,15 @@ function VerdictCard({
 
       <AlternativesBlock data={alternatives} />
 
-      {result.product_url ? (
+      {result.buy_url ?? result.product_url ? (
         <a
           className="verdict-cta"
-          href={result.product_url}
-          rel="sponsored noreferrer"
+          href={result.buy_url ?? result.product_url ?? undefined}
+          rel="sponsored nofollow noopener noreferrer"
           target="_blank"
         >
-          View it on Amazon.ca
+          Buy on Amazon.ca
+          <span aria-hidden="true"> →</span>
         </a>
       ) : null}
 

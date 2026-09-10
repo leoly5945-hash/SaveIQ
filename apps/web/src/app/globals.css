@@ -2417,13 +2417,19 @@ h3 {
   line-height: 1.45;
 }
 
+/* The money action: this is the only link on the card that pays us, so it
+   reads louder than everything around it. */
 .verdict-cta {
-  align-self: start;
+  align-self: stretch;
   background: var(--accent);
-  border-radius: 10px;
+  border-radius: 12px;
+  box-shadow: 0 8px 20px -8px color-mix(in srgb, var(--accent) 65%, transparent);
   color: #ffffff;
-  font-weight: 700;
-  padding: 11px 18px;
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  padding: 16px 22px;
+  text-align: center;
   text-decoration: none;
 }
 
@@ -2579,11 +2585,13 @@ h3 {
   font-weight: 700;
 }
 
+/* Not an affiliate link (raw Google Shopping URL, no commission) — keep it a
+   quiet reference so it never competes with the Amazon buy CTA. */
 .compare-link {
-  color: var(--accent);
+  color: var(--muted);
   font-size: 0.85rem;
-  font-weight: 700;
-  text-decoration: none;
+  font-weight: 500;
+  text-decoration: underline;
 }
 
 .compare-note {
