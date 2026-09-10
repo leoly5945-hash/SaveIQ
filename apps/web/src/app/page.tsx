@@ -4,6 +4,7 @@ import { getBrandName } from "@/lib/config";
 import { HOME_AFFILIATE_DISCLOSURE } from "@/lib/home-recommendations";
 
 import { CheckBox } from "./check-box";
+import { DiscoverBox } from "./discover-box";
 import { FeaturedDeals } from "./featured-deals";
 
 export default function Home() {
@@ -61,6 +62,8 @@ export default function Home() {
         </p>
 
         <CheckBox />
+
+        <DiscoverBox />
 
         <p className="home-bookmarklet-hint">
           Check straight from the Amazon page instead —{" "}
