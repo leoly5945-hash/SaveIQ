@@ -2459,3 +2459,91 @@ h3 {
   color: var(--muted);
   font-size: 0.78rem;
 }
+
+.acq {
+  border-top: 1px solid var(--border);
+  display: grid;
+  gap: 10px;
+  padding-top: 12px;
+}
+
+.acq-lead {
+  font-size: 0.98rem;
+  font-weight: 700;
+}
+
+.acq-list {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.acq-row {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: grid;
+  gap: 4px;
+  padding: 8px 10px;
+}
+
+.acq-row-best {
+  border-color: #15803d;
+}
+
+.acq-row-head {
+  align-items: baseline;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
+.acq-kind {
+  color: var(--muted);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+}
+
+.acq-label {
+  color: var(--foreground);
+  font-size: 0.92rem;
+}
+
+.acq-total {
+  font-size: 0.92rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.acq-permonth {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.acq-notes,
+.acq-caveats,
+.acq-verify ul {
+  color: var(--muted);
+  display: grid;
+  font-size: 0.8rem;
+  gap: 3px;
+  margin: 2px 0 0;
+  padding-left: 16px;
+}
+
+.acq-caveats {
+  color: var(--foreground);
+}
+
+.acq-verify summary {
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.acq-note {
+  color: var(--muted);
+  font-size: 0.78rem;
+}

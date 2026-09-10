@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
+import { fetchAcquireByAsin } from "@/lib/acquire";
 import { getBrandName, getSiteUrl } from "@/lib/config";
 import {
   fetchCheckByAsin,
@@ -10,6 +11,7 @@ import {
   VERDICT_COPY,
 } from "@/lib/price-check";
 
+import { AcquireBlock } from "../../acquire-block";
 import { ComparisonBlock } from "../../comparison";
 import { OfferSpread } from "../../offer-spread";
 import { Sparkline } from "../../sparkline";
@@ -55,7 +57,10 @@ export default async function CheckAsinPage({ params }: Params) {
   if (!ASIN_RE.test(asin)) {
     notFound();
   }
-  const result = await fetchCheckByAsin(asin);
+  const [result, acquire] = await Promise.all([
+    fetchCheckByAsin(asin),
+    fetchAcquireByAsin(asin),
+  ]);
   if (!result) {
     notFound();
   }
@@ -158,6 +163,8 @@ export default async function CheckAsinPage({ params }: Params) {
         <OfferSpread spread={result.spread} />
 
         <ComparisonBlock comparison={result.comparison} />
+
+        <AcquireBlock data={acquire} />
 
         {result.product_url ? (
           <a

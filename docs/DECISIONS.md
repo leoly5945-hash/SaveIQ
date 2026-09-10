@@ -483,3 +483,17 @@ and the admin price-check gain a `spread` block; the web renders `<OfferSpread>`
 card and `/check/[asin]`. To keep the extra offer fetch from tripling Keepa `/product` calls,
 `KeepaProvider._fetch_product` gained a 60-second per-ASIN cache of the richest payload seen, so
 one price-check's 3–4 provider calls collapse toward one Keepa hit.
+
+## 2026-09-09: Public /acquire Endpoint Wires the Product Page to Layer 2
+
+Status: Accepted
+
+`GET /acquire?product_id=<asin>` (public, per-IP rate limited via `ACQUIRE_RATE_PER_MINUTE`,
+default 20) resolves an ASIN through Keepa to price + category + brand,
+`product_map.infer_product_context` maps the Amazon category text onto the acquisition taxonomy
+(keyword rules; anything unrecognised → `general`, which only the "*" programs cover so the
+advisor still answers), `compose_options` + `compare_paths` produce the ranked recommendation
+for the buyer profile from the query. The web renders `<AcquireBlock>` on the verdict card and
+`/check/[asin]` (fetched in parallel with the price check, non-blocking on the homepage). This
+is the "price checker → shopping advisor" wiring — the check page now shows verdict + sparkline
++ Amazon spread + cross-merchant comparison + acquisition paths, all three engine layers.
