@@ -115,8 +115,14 @@ function HitRow({ hit, probed }: { hit: DiscoverHit; probed: boolean }) {
             : ""}
         {hit.in_budget === false ? " · over budget" : ""}
       </span>
-      <Link className="discover-link" href={`/check/${hit.product_id}`}>
+      <Link
+        className="discover-link"
+        href={`/check/${hit.product_id}`}
+        rel="noopener"
+        target="_blank"
+      >
         Check
+        <span aria-hidden="true"> ↗</span>
       </Link>
     </li>
   );
