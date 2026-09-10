@@ -17,6 +17,7 @@ from app.db.session import get_db
 from app.providers import get_provider_registry
 from app.services.decision.deal_score import DealAssessment
 from app.services.decision.price_check import PriceCheckError, run_price_check
+from app.services.discovery.narrate import narrate_check
 from app.services.endpoint_limit import allow
 
 router = APIRouter(prefix="/check", tags=["check"])
@@ -68,6 +69,7 @@ class CheckResponse(BaseModel):
     sparkline: list[SparkPointOut]
     comparison: ComparisonOut | None = None
     spread: AmazonSpreadOut | None = None
+    narration: str | None = None
 
 
 def _client_ip(request: Request) -> str:
@@ -81,6 +83,7 @@ async def check_price(
     url: Annotated[str | None, Query(max_length=2048)] = None,
     product_id: Annotated[str | None, Query(min_length=3, max_length=32)] = None,
     days: Annotated[int, Query(ge=7, le=365)] = 90,
+    narrate: Annotated[bool, Query(description="add a one-paragraph LLM summary")] = False,
 ) -> CheckResponse:
     settings: Settings = get_settings()
     if not allow("check", _client_ip(request), per_minute=settings.check_rate_per_minute):
@@ -148,6 +151,8 @@ async def check_price(
             ],
         )
 
+    narration = narrate_check(result, settings) if narrate else None
+
     return CheckResponse(
         provider=result.provider,
         provider_product_id=result.provider_product_id,
@@ -158,4 +163,5 @@ async def check_price(
         sparkline=[SparkPointOut(t=p.t, c=p.c) for p in result.sparkline],
         comparison=comparison_out,
         spread=spread_out,
+        narration=narration,
     )
