@@ -26,8 +26,10 @@ describe("Home", () => {
     const text = collectText(Home()).replace(/\s+/g, " ");
 
     expect(text).toContain("SaveIQ");
-    expect(text).toContain("Paste an Amazon.ca link.");
-    expect(text).toContain("We'll tell you: buy, or wait.");
+    expect(text).toContain("What are you thinking of buying?");
+    expect(text).toContain("We'll tell you: buy now, or wait.");
+    // paste-a-link is still offered, just demoted below search
+    expect(text).toContain("Already looking at something on Amazon.ca");
     expect(text).toContain("How the check works");
     expect(text).toContain(HOME_AFFILIATE_DISCLOSURE);
     expect(text).toContain("Privacy");

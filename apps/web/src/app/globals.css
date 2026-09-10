@@ -2104,23 +2104,21 @@ h3 {
 }
 
 .check-form .field input {
-  border-color: var(--foreground);
+  border: 1px solid var(--border);
   border-radius: 12px;
-  border-width: 2px;
-  font-size: 1.05rem;
-  min-height: 58px;
+  font-size: 0.98rem;
+  min-height: 48px;
 }
 
 .check-submit {
-  background: var(--promo);
-  border: 0;
+  background: var(--surface);
+  border: 1px solid var(--foreground);
   border-radius: 12px;
-  color: #ffffff;
+  color: var(--foreground);
   cursor: pointer;
-  font-family: var(--display-font);
-  font-weight: 900;
-  min-height: 58px;
-  padding: 0 26px;
+  font-weight: 700;
+  min-height: 48px;
+  padding: 0 20px;
 }
 
 .check-submit:hover:not(:disabled) {
@@ -2146,21 +2144,27 @@ h3 {
 }
 
 .discover-form .field input {
-  border: 1px solid var(--border);
+  border-color: var(--foreground);
   border-radius: 12px;
-  font-size: 0.98rem;
-  min-height: 48px;
+  border-width: 2px;
+  font-size: 1.05rem;
+  min-height: 58px;
 }
 
 .discover-submit {
-  background: var(--surface);
-  border: 1px solid var(--foreground);
+  background: var(--promo);
+  border: 0;
   border-radius: 12px;
-  color: var(--foreground);
+  color: #ffffff;
   cursor: pointer;
-  font-weight: 700;
-  min-height: 48px;
-  padding: 0 20px;
+  font-family: var(--display-font);
+  font-weight: 900;
+  min-height: 58px;
+  padding: 0 26px;
+}
+
+.discover-submit:hover:not(:disabled) {
+  background: var(--promo-hover);
 }
 
 .discover-submit:disabled {
@@ -2479,6 +2483,7 @@ h3 {
 
 @media (max-width: 640px) {
   .check-form,
+  .discover-form,
   .alert-form {
     grid-template-columns: 1fr;
   }
@@ -2502,6 +2507,22 @@ h3 {
   display: flex;
   font-size: 0.78rem;
   justify-content: space-between;
+}
+
+/* The paste-a-link path, demoted below natural-language search. */
+.home-secondary {
+  border-top: 1px solid var(--border);
+  display: grid;
+  gap: 14px;
+  margin-top: 8px;
+  padding-top: 20px;
+}
+
+.home-secondary-label {
+  color: var(--muted);
+  font-size: 0.92rem;
+  font-weight: 600;
+  margin: 0;
 }
 
 .home-bookmarklet-hint {

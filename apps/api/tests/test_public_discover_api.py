@@ -69,11 +69,12 @@ def test_discover_parses_and_returns_hits(monkeypatch) -> None:
     assert body["hits"][-1]["in_budget"] is False
 
 
-def test_discover_no_budget_no_probe(monkeypatch) -> None:
+def test_discover_no_budget_still_prices_the_rows(monkeypatch) -> None:
     client = _client(monkeypatch)
     body = client.get("/discover", params={"q": "wireless earbuds"}).json()
-    assert body["price_probed"] is False
-    assert all(h["price_cents"] is None for h in body["hits"])
+    assert body["price_probed"] is True
+    assert [h["price_cents"] for h in body["hits"]] == [7000, 9000, 15000]  # cheapest first
+    assert all(h["in_budget"] is None for h in body["hits"])
 
 
 def test_discover_short_query_is_422(monkeypatch) -> None:
