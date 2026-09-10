@@ -1,0 +1,42 @@
+{
+  "as_of": "2026-09-09",
+  "disclaimer": "A few reference products so the composer can be exercised by slug. Retail prices are point-in-time estimates (Apple.ca / Best Buy.ca, Sept 2026). The real integration passes price + category from the price layer instead of a slug.",
+  "products": [
+    {
+      "slug": "iphone-17-pro-256gb",
+      "title": "Apple iPhone 17 Pro 256GB",
+      "brand": "apple",
+      "category": "smartphone",
+      "tier": "flagship",
+      "retail_price_cents": 159900,
+      "carrier_eligible": true
+    },
+    {
+      "slug": "macbook-air-15-m4",
+      "title": "Apple MacBook Air 15\" (M4, 512GB)",
+      "brand": "apple",
+      "category": "laptop",
+      "tier": "flagship",
+      "retail_price_cents": 189900,
+      "carrier_eligible": false
+    },
+    {
+      "slug": "lg-oled-c5-65",
+      "title": "LG OLED C5 65\" 4K TV",
+      "brand": "lg",
+      "category": "television",
+      "tier": "flagship",
+      "retail_price_cents": 259900,
+      "carrier_eligible": false
+    },
+    {
+      "slug": "sony-wh-1000xm6",
+      "title": "Sony WH-1000XM6 Headphones",
+      "brand": "sony",
+      "category": "headphones",
+      "tier": "flagship",
+      "retail_price_cents": 49900,
+      "carrier_eligible": false
+    }
+  ]
+}

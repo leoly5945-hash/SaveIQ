@@ -1,0 +1,40 @@
+{
+  "as_of": "2026-09-09",
+  "market": "CA",
+  "disclaimer": "ESTIMATED. Monthly plan prices from public reporting (Rogers/Bell/Telus BYOD pages, Public Mobile / Freedom, iphoneincanada / whistleout, Sept 2026). Promo pricing and tiers move monthly. Refresh before use.",
+  "plans": [
+    {
+      "id": "byod_value",
+      "label": "BYOD value unlimited (Public Mobile / Freedom)",
+      "monthly_cents": 4500,
+      "full_speed_gb": 125,
+      "throttle": "reduced speed after cap",
+      "network": "flanker",
+      "notes": ["North American roaming, no daily cap on these two."]
+    },
+    {
+      "id": "byod_premium",
+      "label": "BYOD premium (Koodo / Fido / Virgin tier)",
+      "monthly_cents": 5500,
+      "full_speed_gb": 100,
+      "throttle": "512 kbps after cap",
+      "network": "flanker-on-big3"
+    },
+    {
+      "id": "big3_premium",
+      "label": "Big-3 premium unlimited (100GB full speed)",
+      "monthly_cents": 7000,
+      "full_speed_gb": 100,
+      "throttle": "512 kbps after cap",
+      "network": "big3-core"
+    },
+    {
+      "id": "big3_premium_roam",
+      "label": "Big-3 top tier (unlimited + 5GB/day roaming)",
+      "monthly_cents": 8500,
+      "full_speed_gb": 100,
+      "throttle": "512 kbps after cap",
+      "network": "big3-core"
+    }
+  ]
+}

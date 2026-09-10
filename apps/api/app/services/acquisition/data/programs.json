@@ -1,0 +1,109 @@
+{
+  "as_of": "2026-09-09",
+  "market": "CA",
+  "disclaimer": "ESTIMATED RULES. These acquisition-program parameters are best-effort from public reporting (Apple.ca, carrier and retailer pages, iphoneincanada / mobilesyrup / planhub, Sept 2026). Terms change often. Every composed option is tagged verify:true. Confirm each rule against the source before showing a number to a user. Refresh monthly.",
+  "programs": [
+    {
+      "id": "outright",
+      "kind": "retail",
+      "label": "Buy outright + BYOD plan",
+      "categories": ["*"],
+      "requires_plan": "byod_value",
+      "notes": [
+        "Own it day one, resell any time, switch plans any time.",
+        "Costco / Best Buy gift-card bundles typically knock 3-5% off the device vs the manufacturer's full price."
+      ]
+    },
+    {
+      "id": "carrier_financing_24",
+      "kind": "financing",
+      "label": "Carrier device financing (24 mo, 0%) + premium plan",
+      "categories": ["smartphone", "cellular_tablet", "cellular_watch"],
+      "carrier": true,
+      "term_months": 24,
+      "apr": 0.0,
+      "requires_plan": "big3_premium",
+      "plan_device_credit_cents": 1500,
+      "plan_credit_months": 24,
+      "lock_in_months": 24,
+      "notes": [
+        "0% interest: total device cost equals retail. The value is keeping the cash and getting the carrier's core network + (business accounts) priority support.",
+        "Device bill credit is tied to staying on the premium plan for the term; the plan reverts to full price after."
+      ]
+    },
+    {
+      "id": "bring_it_back_24",
+      "kind": "lease",
+      "label": "Bring-It-Back / device return (24 mo) + premium plan",
+      "categories": ["smartphone"],
+      "carrier": true,
+      "term_months": 24,
+      "residual_pct": 0.28,
+      "residual_min_cents": 35000,
+      "residual_max_cents": 55000,
+      "requires_plan": "big3_premium",
+      "plan_device_credit_cents": 1500,
+      "plan_credit_months": 24,
+      "lock_in_months": 24,
+      "notes": [
+        "Lower monthly because a deferred amount (~350-450) sits at month 24 - pay it to own, or return the device in good working condition.",
+        "Return condition is strict: damage or excess wear is charged the gap to a lower trade-in value.",
+        "Only competitive if you genuinely replace the device every ~24 months."
+      ]
+    },
+    {
+      "id": "best_buy_financing_18",
+      "kind": "financing",
+      "label": "Best Buy 'no interest if paid in full' (18 mo)",
+      "categories": ["television", "major_appliance", "home_theatre"],
+      "min_retail_cents": 100000,
+      "term_months": 18,
+      "apr": 0.0,
+      "admin_fee_cents": 9999,
+      "notes": [
+        "0% only if the balance clears within the 18-month term - otherwise deferred interest is backdated to the purchase date.",
+        "A one-time ~100 administration fee applies.",
+        "Needs the Best Buy financing card (a credit application)."
+      ]
+    },
+    {
+      "id": "furniture_appliance_financing",
+      "kind": "financing",
+      "label": "Retailer equal-payments plan (The Brick / Leon's, ~24 mo)",
+      "categories": ["furniture", "major_appliance"],
+      "min_retail_cents": 99900,
+      "term_months": 24,
+      "apr": 0.0,
+      "admin_fee_cents": 9999,
+      "notes": [
+        "'Don't pay for a year' / equal monthly payments - 0% only if paid within the term.",
+        "~100 admin fee; a credit application is required."
+      ]
+    },
+    {
+      "id": "apple_refurb",
+      "kind": "refurb",
+      "label": "Apple Certified Refurbished + BYOD",
+      "categories": ["smartphone", "cellular_tablet", "tablet", "laptop", "cellular_watch"],
+      "brands": ["apple"],
+      "discount_pct": 0.12,
+      "requires_plan": "byod_value",
+      "notes": [
+        "Full 1-year Apple warranty, new battery and outer shell, same return policy as new.",
+        "Typically one generation behind on the current flagship; the pure-value pick if you don't need the newest silicon."
+      ]
+    },
+    {
+      "id": "amazon_renewed",
+      "kind": "refurb",
+      "label": "Amazon Renewed",
+      "categories": ["*"],
+      "discount_pct": 0.2,
+      "requires_plan": "byod_value",
+      "notes": [
+        "Inspected and tested by a qualified supplier; 90-day 'Renewed Guarantee' return.",
+        "Condition and battery health vary by seller - read the grade before buying."
+      ]
+    }
+  ]
+}

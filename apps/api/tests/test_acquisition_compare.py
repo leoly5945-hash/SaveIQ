@@ -1,11 +1,10 @@
-"""Ranking + caveats for the acquisition advisor, and the seed catalogue."""
+"""Ranking + caveats for the acquisition advisor."""
 
 from __future__ import annotations
 
 import pytest
 
 from app.services.acquisition import BuyerProfile, compare_paths
-from app.services.acquisition.catalog import load_catalog, reset_catalog_cache_for_tests
 from app.services.acquisition.models import AcquisitionKind, AcquisitionOption
 
 CHEAP_RETAIL = AcquisitionOption(
@@ -106,20 +105,8 @@ def test_verify_first_is_always_populated() -> None:
     assert any("5g" in v.lower() for v in rec.verify_first)
 
 
-def test_seed_catalogue_runs_end_to_end() -> None:
-    reset_catalog_cache_for_tests()
-    cat = load_catalog()
-    assert cat.disclaimer  # the "illustrative data" warning is present
-    product = cat.get("iphone-17-pro-256gb")
-    assert product is not None and len(product.options) == 4
-
+def test_ranked_entries_all_carry_a_verify_caveat() -> None:
     rec = compare_paths(
-        product.options,
-        BuyerProfile(horizon_months=36, annual_discount_rate=0.06, is_business=True),
-        product_slug=product.slug,
+        [CHEAP_RETAIL.model_copy(update={"verify": True, "as_of": "2026-09-09"})], P24
     )
-    assert len(rec.ranked) == 4
-    assert rec.best_label
-    assert rec.product_slug == "iphone-17-pro-256gb"
-    # every seeded option is flagged unresearched
     assert all(any("estimate" in n.lower() for n in t.assumptions) for t in rec.ranked)
