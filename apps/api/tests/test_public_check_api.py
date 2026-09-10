@@ -257,6 +257,11 @@ def test_public_check_from_url(monkeypatch) -> None:
         assert body["assessment"]["verdict"] in {"BUY", "FAIR", "WAIT", "UNKNOWN"}
         assert body["assessment"]["reasons"]
         assert body["currency"] == "CAD"
+        # the buy CTA must carry our Associates tag — an untagged link earns nothing
+        assert body["product_url"] == "https://www.amazon.ca/dp/B09VPHVT9Z"
+        assert body["buy_url"] == (
+            "https://www.amazon.ca/dp/B09VPHVT9Z?tag=saveiq-20&ascsubtag=check"
+        )
         spark = body["sparkline"]
         assert 2 <= len(spark) <= 60
         assert all(set(p) == {"t", "c"} and isinstance(p["c"], int) for p in spark)

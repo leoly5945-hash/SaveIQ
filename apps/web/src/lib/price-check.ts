@@ -83,6 +83,8 @@ export type CheckResult = {
   provider_product_id: string;
   title: string | null;
   product_url: string | null;
+  /** Affiliate-tagged buy link (Associates tag + SubID); falls back to product_url. */
+  buy_url: string | null;
   currency: string;
   assessment: DealAssessment;
   sparkline: SparkPoint[];
@@ -193,6 +195,7 @@ export function normalizeResult(r: CheckResult): CheckResult {
     comparison: r.comparison ?? null,
     spread: r.spread ?? null,
     narration: r.narration ?? null,
+    buy_url: r.buy_url ?? r.product_url ?? null,
   };
 }
 

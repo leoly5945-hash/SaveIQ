@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  type CheckResult,
   formatMoney,
   looksSubmittable,
   ninetyDayBand,
+  normalizeResult,
   VERDICT_COPY,
   type PriceIntelligence,
 } from "./price-check";
@@ -75,5 +77,27 @@ describe("presentation", () => {
       expect(VERDICT_COPY[key].label.length).toBeGreaterThan(0);
       expect(VERDICT_COPY[key].blurb.length).toBeGreaterThan(0);
     }
+  });
+});
+
+describe("normalizeResult", () => {
+  const base = {
+    provider: "keepa",
+    provider_product_id: "B0TEST00001",
+    title: "Test",
+    product_url: "https://www.amazon.ca/dp/B0TEST00001",
+    currency: "CAD",
+    assessment: { effective_price: { currency: "CAD" } },
+  } as unknown as CheckResult;
+
+  it("keeps the tagged buy_url from the API", () => {
+    const tagged = "https://www.amazon.ca/dp/B0TEST00001?tag=saveiq-20&ascsubtag=check";
+    expect(normalizeResult({ ...base, buy_url: tagged }).buy_url).toBe(tagged);
+  });
+
+  it("falls back to product_url when the API omits buy_url", () => {
+    expect(normalizeResult({ ...base, buy_url: null }).buy_url).toBe(
+      "https://www.amazon.ca/dp/B0TEST00001"
+    );
   });
 });

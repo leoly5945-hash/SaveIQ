@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 from app.core.settings import Settings, get_settings
 from app.db.session import get_db
 from app.providers import get_provider_registry
+from app.services.affiliate.amazon_link import amazon_affiliate_url
 from app.services.decision.deal_score import DealAssessment
 from app.services.decision.price_check import PriceCheckError, run_price_check
 from app.services.discovery.narrate import narrate_check
@@ -64,6 +65,7 @@ class CheckResponse(BaseModel):
     provider_product_id: str
     title: str | None
     product_url: str | None
+    buy_url: str | None = None
     currency: str
     assessment: DealAssessment
     sparkline: list[SparkPointOut]
@@ -152,12 +154,16 @@ async def check_price(
         )
 
     narration = narrate_check(result, settings) if narrate else None
+    buy_url = amazon_affiliate_url(
+        result.product_url, settings.amazon_associate_tag, subtag="check"
+    )
 
     return CheckResponse(
         provider=result.provider,
         provider_product_id=result.provider_product_id,
         title=result.title,
         product_url=result.product_url,
+        buy_url=buy_url,
         currency=result.currency,
         assessment=result.assessment,
         sparkline=[SparkPointOut(t=p.t, c=p.c) for p in result.sparkline],
