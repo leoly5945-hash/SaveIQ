@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from pydantic import BaseModel, Field
 
-from app.services.acquisition.models import AcquisitionKind, AcquisitionOption, BuyerProfile
+from app.services.acquisition.models import AcquisitionOption, BuyerProfile
 from app.services.acquisition.tco import TCOBreakdown, compute_tco
 
 # Things SaveIQ structurally cannot know and the buyer must check themselves.
@@ -39,6 +39,7 @@ def _caveats(
     out: list[str] = []
     best = ranked[0]
     best_opt = by_label.get(best.option_label)
+    has_plan_choice = any(o.plan_monthly_cents > 0 for o in options)
 
     # 1. cheapest path leaves you owning nothing
     if not best.owns_at_horizon:
@@ -72,20 +73,21 @@ def _caveats(
         )
 
     # 4. service-sensitive buyer, cheapest path is a discount/MVNO carrier
-    if profile.service_sensitivity == "high" and best_opt is not None:
+    if profile.service_sensitivity == "high" and best_opt is not None and has_plan_choice:
         provider = (best_opt.provider or "").lower()
         flanker = any(
             k in provider for k in ("public mobile", "fizz", "chatr", "lucky", "freedom", "byod")
         )
-        if flanker or best_opt.kind == AcquisitionKind.retail:
+        if flanker or best_opt.plan_monthly_cents == 0:
             out.append(
                 "You flagged service quality as critical. The cheapest path here rides a "
                 "discount / BYOD carrier — confirm its network and support match your bar "
                 "before saving the ~difference."
             )
 
-    # 5. business buyer — the support tier is the real lever
-    if profile.is_business:
+    # 5. business buyer — the support tier is the real lever (only when a carrier
+    # plan is actually part of the decision)
+    if profile.is_business and has_plan_choice:
         out.append(
             "As a business, a named account with priority support is often the highest-"
             "value item in this decision and is usually free to switch to — weigh it "

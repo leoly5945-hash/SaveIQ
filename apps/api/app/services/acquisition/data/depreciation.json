@@ -1,0 +1,18 @@
+{
+  "as_of": "2026-09-09",
+  "disclaimer": "ESTIMATED resale value as a fraction of retail, by category and age in months. Rough figures from used-market observation (SwapDesk / marketplace listings / Apple trade-in). Adjust per model as real data comes in.",
+  "curves": {
+    "smartphone_flagship": { "6": 0.78, "12": 0.68, "24": 0.5, "36": 0.4 },
+    "smartphone_midrange": { "6": 0.6, "12": 0.5, "24": 0.35, "36": 0.26 },
+    "cellular_watch": { "12": 0.5, "24": 0.35, "36": 0.25 },
+    "tablet": { "12": 0.58, "24": 0.42, "36": 0.31 },
+    "cellular_tablet": { "12": 0.58, "24": 0.42, "36": 0.31 },
+    "laptop": { "12": 0.6, "24": 0.44, "36": 0.32 },
+    "television": { "12": 0.45, "24": 0.3, "36": 0.2 },
+    "major_appliance": { "12": 0.35, "24": 0.2, "36": 0.12 },
+    "home_theatre": { "12": 0.45, "24": 0.3, "36": 0.22 },
+    "headphones": { "12": 0.4, "24": 0.28, "36": 0.2 },
+    "furniture": { "24": 0.25, "36": 0.15 },
+    "default": { "12": 0.45, "24": 0.3, "36": 0.22 }
+  }
+}

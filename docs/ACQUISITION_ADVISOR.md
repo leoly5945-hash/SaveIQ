@@ -18,9 +18,23 @@ narrate the result — it does **not** do the arithmetic here.
 | module | what it holds |
 | --- | --- |
 | `models.py` | `AcquisitionKind` (retail / financing / lease / bundle / refurb), `AcquisitionOption` (one option's cash flows), `BuyerProfile` (horizon, cash discount rate, upgrade cadence, ownership pref, service sensitivity, business flag) |
+| `catalog.py` + `data/*.json` | the small **category/channel** rulesets (not per-product): `programs.json` (~7 acquisition programs), `carrier_plans.json` (~4 Canadian plan price points), `depreciation.json` (resale curves by category/age), `demo_products.json` (a few reference products for the `?slug=` path) |
+| `composer.py` | `compose_options(ProductContext) -> list[AcquisitionOption]` — turns retail price + category + brand into concrete option rows by matching the applicable programs |
 | `tco.py` | `compute_tco(option, profile) -> TCOBreakdown` — places every payment on a month index, discounts to present value when the buyer sets `annual_discount_rate`, credits resale value still held at the horizon |
 | `compare.py` | `compare_paths(options, profile) -> PathRecommendation` — ranks by `effective_total_cents` (lower = better) and emits plain-language `caveats` + a fixed `verify_first` list |
-| `catalog.py` + `acquisition_catalog.json` | hand-maintained option sets per product; a non-engineer edits the JSON |
+
+### Why composition, not a per-product table
+
+Acquisition structures are **not** per product — there are millions of SKUs but
+only a handful of ways to pay for one. Carrier financing / bring-it-back apply to
+phones and cellular devices; retailer 0% financing to TVs, appliances, furniture
+over a price floor; refurb to whole channels at a formula discount; "buy outright
++ resale" to everything. So the data is ~7 program rulesets + ~4 plan rows + ~10
+depreciation curves — a few hundred lines a non-engineer keeps current — and the
+composer assembles the options for any product from its price + category + brand.
+A product matching no special program still gets "buy outright"; the advisor
+always has an answer. A plan-cost line only attaches to carrier-eligible devices
+(a phone needs service however you got the handset; a TV does not).
 
 ## TCO model
 
@@ -52,16 +66,20 @@ your address).
 
 ## Admin surface
 
-* `GET /admin/acquisition/catalog` — seeded products + option counts + the
-  data disclaimer
-* `GET /admin/acquisition/compare?slug=<slug>&horizon_months=&annual_discount_rate=&upgrades_every_months=&is_business=&service_sensitivity=`
-  — the ranked comparison for one product and buyer profile
+* `GET /admin/acquisition/data` — the loaded rulesets (programs, plans,
+  depreciation categories, demo slugs) + the data disclaimer
+* `GET /admin/acquisition/compare?slug=<demo-slug>&…` **or**
+  `?retail_price_cents=&category=&brand=&tier=&carrier_eligible=&…`
+  plus the buyer profile (`horizon_months`, `annual_discount_rate`,
+  `upgrades_every_months`, `is_business`, `service_sensitivity`) — the ranked
+  comparison. The real integration passes price + category from the price layer.
 
-## The catalogue is ILLUSTRATIVE
+## The data is ESTIMATED
 
-`acquisition_catalog.json` currently holds **one** worked example
-(`iphone-17-pro-256gb`, 4 options) with rough Canadian-market estimates entered
-to exercise the engine. Every option carries `verify: true` and its own `as_of`
-date, and the file's top-level `disclaimer` says so. Do not present these numbers
-to a user as fact until an operator has confirmed each one. Adding real products
-and carrier plan data is the next data task.
+`programs.json` / `carrier_plans.json` / `depreciation.json` hold best-effort
+figures from public reporting (Apple.ca, carrier/retailer pages, planhub /
+mobilesyrup / iphoneincanada, Sept 2026). Each file carries a disclaimer and
+every composed option is tagged `verify: true` with an `as_of` date. Terms move
+monthly — refresh before showing a user a number. Populating real, dated values
+is a lightweight recurring data task (not code): ~7 program rows, ~4 plan rows,
+~10 curves.

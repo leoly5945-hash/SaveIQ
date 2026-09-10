@@ -450,3 +450,21 @@ arithmetic. Admin surface: `GET /admin/acquisition/catalog` + `/admin/acquisitio
 The catalogue (`acquisition_catalog.json`) currently holds one illustrative worked example
 (iPhone 17 Pro, 4 options, all `verify:true`); real product + carrier-plan data is the next
 data task.
+
+## 2026-09-09: Acquisition Advisor Composes Options From Category/Channel Rulesets
+
+Status: Accepted (supersedes the per-product catalogue from the same day)
+
+The first cut stored acquisition options per product, which does not scale — millions of SKUs,
+only a handful of ways to pay for one. Replaced the per-product `acquisition_catalog.json` with
+small category/channel data: `programs.json` (~7 acquisition-program rulesets — retail, carrier
+financing, bring-it-back, retailer 0% financing, Apple/Amazon refurb), `carrier_plans.json`
+(~4 Canadian plan price points), `depreciation.json` (resale-value curves by category+age),
+`demo_products.json` (a few reference products for the `?slug=` path). `composer.compose_options`
+turns a `ProductContext` (retail price + category + brand + tier) into concrete
+`AcquisitionOption` rows by matching applicable programs: category/brand/price-floor gates, a
+carrier-eligibility check (phones/cellular only), and a plan-cost line that attaches only to
+carrier-eligible devices. A product matching no special program still gets "buy outright". Data
+is best-effort estimates from public reporting (Sept 2026), every option `verify:true` — keeping
+it current is a ~20-row recurring data task, not code. Admin: `GET /admin/acquisition/data` +
+`/compare` (by demo slug or explicit price+category).

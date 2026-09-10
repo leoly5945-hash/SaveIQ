@@ -1,9 +1,17 @@
-"""Load the hand-maintained acquisition catalogue.
+"""Load the hand-maintained acquisition data.
 
-``acquisition_catalog.json`` sits next to this module so a non-engineer can add a
-product or fix a plan number without touching Python. Everything in it is an
-**estimate** until researched — each option keeps its own ``as_of`` and
-``verify`` flag, and the file carries a top-level disclaimer.
+Nothing here is per-product. The data is category- and channel-level and small
+enough for one person to keep current:
+
+* ``data/programs.json`` — ~7 acquisition-program rulesets (retail, carrier
+  financing, bring-it-back, retailer 0% financing, refurb channels)
+* ``data/carrier_plans.json`` — a handful of Canadian plan price points
+* ``data/depreciation.json`` — resale-value curves by category and age
+* ``data/demo_products.json`` — a few reference products so the composer can be
+  exercised by slug; the real integration passes price + category instead
+
+Everything is an **estimate** until researched — each file carries a disclaimer
+and every composed option is tagged ``verify: true``.
 """
 
 from __future__ import annotations
@@ -15,42 +23,134 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-from app.services.acquisition.models import AcquisitionOption
-
-CATALOG_PATH = Path(__file__).with_name("acquisition_catalog.json")
+_DATA = Path(__file__).with_name("data")
 
 
-class CatalogProduct(BaseModel):
+class AcquisitionProgram(BaseModel):
+    id: str
+    kind: str
+    label: str
+    categories: list[str] = Field(default_factory=list)
+    brands: list[str] = Field(default_factory=list)
+    carrier: bool = False
+    term_months: int = 0
+    apr: float = 0.0
+    requires_plan: str | None = None
+    plan_device_credit_cents: int = 0
+    plan_credit_months: int = 0
+    lock_in_months: int = 0
+    admin_fee_cents: int = 0
+    residual_pct: float = 0.0
+    residual_min_cents: int = 0
+    residual_max_cents: int = 0
+    discount_pct: float = 0.0
+    min_retail_cents: int = 0
+    notes: list[str] = Field(default_factory=list)
+
+    def applies_to(self, *, category: str, brand: str | None, retail_cents: int) -> bool:
+        cats = self.categories or ["*"]
+        if "*" not in cats and category not in cats:
+            return False
+        if self.brands and (brand or "").lower() not in self.brands:
+            return False
+        if self.min_retail_cents and retail_cents < self.min_retail_cents:
+            return False
+        return True
+
+
+class CarrierPlan(BaseModel):
+    id: str
+    label: str
+    monthly_cents: int
+    full_speed_gb: int | None = None
+    throttle: str | None = None
+    network: str | None = None
+    notes: list[str] = Field(default_factory=list)
+
+
+class DemoProduct(BaseModel):
     slug: str
     title: str
+    brand: str | None = None
     category: str
-    retail_price_cents: int | None = None
-    options: list[AcquisitionOption] = Field(default_factory=list)
+    tier: str = "flagship"
+    retail_price_cents: int
+    carrier_eligible: bool | None = None
 
 
-class AcquisitionCatalog(BaseModel):
+class ProgramSet(BaseModel):
     as_of: str
-    currency: str = "CAD"
-    market: str = "CA"
     disclaimer: str = ""
-    products: list[CatalogProduct] = Field(default_factory=list)
+    programs: list[AcquisitionProgram] = Field(default_factory=list)
 
-    def get(self, slug: str) -> CatalogProduct | None:
+
+class PlanSet(BaseModel):
+    as_of: str
+    disclaimer: str = ""
+    plans: list[CarrierPlan] = Field(default_factory=list)
+
+    def get(self, plan_id: str | None) -> CarrierPlan | None:
+        if not plan_id:
+            return None
+        return next((p for p in self.plans if p.id == plan_id), None)
+
+
+class DepreciationTable(BaseModel):
+    as_of: str
+    disclaimer: str = ""
+    curves: dict[str, dict[str, float]] = Field(default_factory=dict)
+
+    def resale_fraction(self, category: str, at_months: int, *, tier: str | None = None) -> float:
+        curve = (
+            (self.curves.get(f"{category}_{tier}") if tier else None)
+            or self.curves.get(category)
+            or self.curves.get("default")
+            or {}
+        )
+        if not curve:
+            return 0.0
+        ages = sorted(int(k) for k in curve)
+        pick = next((a for a in reversed(ages) if a <= at_months), ages[0])
+        return curve[str(pick)]
+
+
+class DemoProductSet(BaseModel):
+    as_of: str
+    disclaimer: str = ""
+    products: list[DemoProduct] = Field(default_factory=list)
+
+    def get(self, slug: str) -> DemoProduct | None:
         key = slug.strip().lower()
         return next((p for p in self.products if p.slug.lower() == key), None)
 
 
-def _read(path: Path) -> dict[str, Any]:
-    data = json.loads(path.read_text(encoding="utf-8"))
-    if not isinstance(data, dict) or not isinstance(data.get("products"), list):
-        raise ValueError(f"{path} must be a JSON object with a 'products' array")
+def _read(name: str) -> dict[str, Any]:
+    data = json.loads((_DATA / name).read_text(encoding="utf-8"))
+    if not isinstance(data, dict):
+        raise ValueError(f"{name} must be a JSON object")
     return data
 
 
 @lru_cache(maxsize=1)
-def load_catalog() -> AcquisitionCatalog:
-    return AcquisitionCatalog.model_validate(_read(CATALOG_PATH))
+def load_programs() -> ProgramSet:
+    return ProgramSet.model_validate(_read("programs.json"))
 
 
-def reset_catalog_cache_for_tests() -> None:
-    load_catalog.cache_clear()
+@lru_cache(maxsize=1)
+def load_plans() -> PlanSet:
+    return PlanSet.model_validate(_read("carrier_plans.json"))
+
+
+@lru_cache(maxsize=1)
+def load_depreciation() -> DepreciationTable:
+    return DepreciationTable.model_validate(_read("depreciation.json"))
+
+
+@lru_cache(maxsize=1)
+def load_demo_products() -> DemoProductSet:
+    return DemoProductSet.model_validate(_read("demo_products.json"))
+
+
+def reset_caches_for_tests() -> None:
+    for fn in (load_programs, load_plans, load_depreciation, load_demo_products):
+        fn.cache_clear()
