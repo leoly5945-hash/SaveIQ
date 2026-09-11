@@ -19,7 +19,12 @@ import { ComparisonBlock } from "../../comparison";
 import { OfferSpread } from "../../offer-spread";
 import { Sparkline } from "../../sparkline";
 
-export const revalidate = 3600;
+// Was 3600 (1h) — a shopper who opens this page and buys minutes later could
+// see a price already an hour stale, worst case; volatile third-party /
+// Renewed listings can move 10%+ inside that window (verified 2026-09-11: a
+// cached $999.99 page next to a live $1,099.99 price). 300s trades a bit more
+// origin load for a much tighter staleness ceiling.
+export const revalidate = 300;
 
 type Params = { params: Promise<{ asin: string }> };
 

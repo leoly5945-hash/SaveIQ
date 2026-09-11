@@ -256,7 +256,8 @@ export async function fetchCheckByAsin(asin: string): Promise<CheckResult | null
     url.searchParams.set("narrate", "1");
     const res = await fetch(url, {
       headers: { Accept: "application/json" },
-      next: { revalidate: 3600 },
+      // Keep in sync with `revalidate` on check/[asin]/page.tsx.
+      next: { revalidate: 300 },
     });
     if (!res.ok) return null;
     return normalizeResult((await res.json()) as CheckResult);
