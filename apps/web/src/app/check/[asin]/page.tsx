@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { fetchAcquireByAsin } from "@/lib/acquire";
 import { fetchAlternativesByAsin } from "@/lib/alternatives";
 import { getBrandName, getSiteUrl } from "@/lib/config";
+import { safeJsonLd } from "@/lib/json-ld";
 import {
   fetchCheckByAsin,
   formatMoney,
@@ -124,7 +125,7 @@ export default async function CheckAsinPage({ params }: Params) {
     <main className="home-shell privacy-page">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }}
       />
       <p className="crumbs">
         <Link href="/">{brand}</Link> <span aria-hidden="true">/</span> Price

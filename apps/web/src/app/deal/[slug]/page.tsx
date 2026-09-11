@@ -2,6 +2,8 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
+import { safeJsonLd } from "@/lib/json-ld";
+
 import {
   AMAZON_ASSOCIATE_DISCLOSURE,
   categoryPath,
@@ -97,7 +99,7 @@ export default async function DealPage({ params }: Params) {
     <main className="home-shell deal-page">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }}
       />
 
       <nav className="crumbs" aria-label="Breadcrumb">
