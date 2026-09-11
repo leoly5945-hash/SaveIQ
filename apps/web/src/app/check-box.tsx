@@ -127,13 +127,12 @@ export function CheckBox() {
         </p>
       ) : null}
 
+      {/* Visible immediately next to the paste box — not something you only
+          reach after a check finishes. */}
+      <AlertForm productInput={input.trim()} />
+
       {status === "ready" && result ? (
-        <VerdictCard
-          result={result}
-          acquire={acquire}
-          alternatives={alternatives}
-          productInput={input.trim()}
-        />
+        <VerdictCard result={result} acquire={acquire} alternatives={alternatives} />
       ) : null}
     </section>
   );
@@ -143,12 +142,10 @@ function VerdictCard({
   result,
   acquire,
   alternatives,
-  productInput,
 }: {
   result: CheckResult;
   acquire: AcquireResult | null;
   alternatives: AlternativesResult | null;
-  productInput: string;
 }) {
   const { assessment } = result;
   const v = VERDICT_COPY[assessment.verdict];
@@ -229,8 +226,6 @@ function VerdictCard({
         />
       ) : null}
 
-      <AlertForm productInput={productInput} />
-
       <p className="verdict-fineprint">
         Price is a snapshot from just now — confirm at the retailer before you
         buy. SaveIQ may earn an affiliate commission if you buy through a link;
@@ -246,6 +241,13 @@ function AlertForm({ productInput }: { productInput: string }) {
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!looksSubmittable(productInput)) {
+      setState({
+        kind: "error",
+        message: "Paste a full amazon.ca product link (or a 10-character ASIN) above first.",
+      });
+      return;
+    }
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim())) {
       setState({ kind: "error", message: "Enter a valid email address." });
       return;
