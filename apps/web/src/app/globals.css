@@ -2469,6 +2469,22 @@ h3 {
   }
 }
 
+/* When a cheaper, reliably-matched offer beat Amazon, it takes the primary
+   button and Amazon drops to a quiet second line underneath. */
+.buy-cta-group {
+  display: grid;
+  gap: 8px;
+}
+
+.buy-cta-secondary,
+.verdict a.buy-cta-secondary {
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-align: center;
+  text-decoration: underline;
+}
+
 .verdict-fineprint {
   border-top: 1px solid var(--border);
   color: var(--muted);

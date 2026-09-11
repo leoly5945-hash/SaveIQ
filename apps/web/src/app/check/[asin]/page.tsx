@@ -145,7 +145,13 @@ export default async function CheckAsinPage({ params }: Params) {
         </div>
 
         {result.buy_url ?? result.product_url ? (
-          <BuyCta href={result.buy_url ?? result.product_url ?? ""} top />
+          <BuyCta
+            amazonHref={result.buy_url ?? result.product_url ?? ""}
+            amazonPriceCents={effective}
+            cheapest={result.comparison?.cheapest ?? null}
+            currency={currency}
+            top
+          />
         ) : null}
 
         {result.sparkline.length >= 2 ? (
@@ -184,13 +190,19 @@ export default async function CheckAsinPage({ params }: Params) {
         <AlternativesBlock data={alternatives} />
 
         {result.buy_url ?? result.product_url ? (
-          <BuyCta href={result.buy_url ?? result.product_url ?? ""} />
+          <BuyCta
+            amazonHref={result.buy_url ?? result.product_url ?? ""}
+            amazonPriceCents={effective}
+            cheapest={result.comparison?.cheapest ?? null}
+            currency={currency}
+          />
         ) : null}
 
         <p className="verdict-fineprint">
           Price checked just now from public price-history data. Confirm at the
-          retailer before you buy. {brand} earns an affiliate commission if you
-          buy through the link — that never changes the verdict.
+          retailer before you buy. {brand} may earn an affiliate commission if
+          you buy through a link — that never changes the verdict, or which
+          retailer we point you to.
         </p>
       </article>
 
