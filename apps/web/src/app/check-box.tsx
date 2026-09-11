@@ -176,7 +176,13 @@ function VerdictCard({
       </div>
 
       {result.buy_url ?? result.product_url ? (
-        <BuyCta href={result.buy_url ?? result.product_url ?? ""} top />
+        <BuyCta
+          amazonHref={result.buy_url ?? result.product_url ?? ""}
+          amazonPriceCents={effective}
+          cheapest={result.comparison?.cheapest ?? null}
+          currency={currency}
+          top
+        />
       ) : null}
 
       {result.sparkline.length >= 2 ? (
@@ -215,15 +221,20 @@ function VerdictCard({
       <AlternativesBlock data={alternatives} />
 
       {result.buy_url ?? result.product_url ? (
-        <BuyCta href={result.buy_url ?? result.product_url ?? ""} />
+        <BuyCta
+          amazonHref={result.buy_url ?? result.product_url ?? ""}
+          amazonPriceCents={effective}
+          cheapest={result.comparison?.cheapest ?? null}
+          currency={currency}
+        />
       ) : null}
 
       <AlertForm productInput={productInput} />
 
       <p className="verdict-fineprint">
         Price is a snapshot from just now — confirm at the retailer before you
-        buy. SaveIQ earns an affiliate commission if you buy through the link;
-        that never changes the verdict.
+        buy. SaveIQ may earn an affiliate commission if you buy through a link;
+        that never changes the verdict, or which retailer we point you to.
       </p>
     </article>
   );
