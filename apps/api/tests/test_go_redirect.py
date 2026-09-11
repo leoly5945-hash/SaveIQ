@@ -1,4 +1,5 @@
 from collections.abc import Generator
+from types import SimpleNamespace
 from urllib.parse import parse_qs, urlsplit
 
 from fastapi.testclient import TestClient
@@ -7,6 +8,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 import app.models  # noqa: F401
+from app.api.routes.go import _resolve_client_ip
 from app.core.settings import get_settings
 from app.db.base import Base
 from app.db.session import get_db
@@ -148,3 +150,46 @@ def test_postback_matches_conversion_and_reconciliation() -> None:
     finally:
         app.dependency_overrides.clear()
         session.close()
+
+
+def _fake_request(client_host: str | None) -> SimpleNamespace:
+    return SimpleNamespace(client=SimpleNamespace(host=client_host) if client_host else None)
+
+
+def test_resolve_client_ip_prefers_cf_connecting_ip() -> None:
+    # Cloudflare sets this at its edge — a client can't forge it.
+    got = _resolve_client_ip(
+        cf_connecting_ip="198.51.100.7",
+        x_forwarded_for="attacker-spoofed-value, 10.0.0.1",
+        request=_fake_request("10.0.0.1"),  # type: ignore[arg-type]
+    )
+    assert got == "198.51.100.7"
+
+
+def test_resolve_client_ip_takes_the_last_forwarded_hop() -> None:
+    # Each proxy appends; the rightmost entry is the one closest to us, not
+    # the attacker-controlled first one a direct client can send.
+    got = _resolve_client_ip(
+        cf_connecting_ip=None,
+        x_forwarded_for="attacker-spoofed-value, 203.0.113.9",
+        request=_fake_request("203.0.113.9"),  # type: ignore[arg-type]
+    )
+    assert got == "203.0.113.9"
+
+
+def test_resolve_client_ip_falls_back_to_tcp_peer() -> None:
+    got = _resolve_client_ip(
+        cf_connecting_ip=None,
+        x_forwarded_for=None,
+        request=_fake_request("192.0.2.1"),  # type: ignore[arg-type]
+    )
+    assert got == "192.0.2.1"
+
+
+def test_resolve_client_ip_none_when_nothing_available() -> None:
+    got = _resolve_client_ip(
+        cf_connecting_ip=None,
+        x_forwarded_for=None,
+        request=_fake_request(None),  # type: ignore[arg-type]
+    )
+    assert got is None

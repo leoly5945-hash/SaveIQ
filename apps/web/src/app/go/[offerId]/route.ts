@@ -12,6 +12,9 @@ const FORWARD_HEADERS = [
   "user-agent",
   "referer",
   "x-forwarded-for",
+  // Set by Cloudflare at its edge — not something the browser can forge —
+  // so the API's click logging can prefer it over the spoofable XFF chain.
+  "cf-connecting-ip",
   "sec-purpose",
   "x-purpose",
   "purpose",
