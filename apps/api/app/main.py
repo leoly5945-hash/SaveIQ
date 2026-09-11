@@ -44,7 +44,16 @@ def create_app() -> FastAPI:
         structured=settings.structured_logging,
         log_level=settings.log_level,
     )
-    app = FastAPI(title=settings.app_name, version=settings.app_version)
+    # No interactive docs / schema — this API isn't a public developer
+    # product, and the schema is pure recon for an attacker (every /admin/*
+    # route's path, params and shapes, for free, with no token needed).
+    app = FastAPI(
+        title=settings.app_name,
+        version=settings.app_version,
+        docs_url=None,
+        redoc_url=None,
+        openapi_url=None,
+    )
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins,
