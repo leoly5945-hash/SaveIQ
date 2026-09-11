@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hmac
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Response, status
@@ -22,7 +23,11 @@ def _authorize_metrics(
     expected = settings.metrics_token
     if not expected:
         return
-    if x_metrics_token == expected or x_admin_token == settings.admin_api_token:
+    token_ok = x_metrics_token is not None and hmac.compare_digest(x_metrics_token, expected)
+    admin_ok = x_admin_token is not None and hmac.compare_digest(
+        x_admin_token, settings.admin_api_token
+    )
+    if token_ok or admin_ok:
         return
     raise HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,

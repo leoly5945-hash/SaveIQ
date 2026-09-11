@@ -40,6 +40,8 @@ services:
         value: "https://dealhunter-production-web.onrender.com,https://saveiq.ca,https://www.saveiq.ca"
       - key: ADMIN_API_TOKEN
         sync: false
+      - key: AFFILIATE_POSTBACK_SECRET
+        sync: false
       - key: DATABASE_URL
         fromDatabase:
           name: dealhunter-production-postgres

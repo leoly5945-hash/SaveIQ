@@ -67,3 +67,11 @@ def test_request_sets_request_id_header() -> None:
     response = client.get("/bandit/status")
     assert response.status_code == 200
     assert response.headers.get("x-request-id")
+
+
+def test_interactive_docs_are_disabled() -> None:
+    # No public developer surface — the schema is free recon on every
+    # /admin/* route's path, params and shape.
+    client = _client()
+    for path in ("/docs", "/redoc", "/openapi.json"):
+        assert client.get(path).status_code == 404
