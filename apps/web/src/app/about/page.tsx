@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 
 import { getBrandName, getSiteUrl } from "@/lib/config";
+import { safeJsonLd } from "@/lib/json-ld";
 
 const brandName = getBrandName();
 
@@ -54,7 +55,7 @@ export default function AboutPage() {
     <main className="home-shell privacy-page about-page">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }}
       />
 
       <nav className="crumbs" aria-label="Breadcrumb">

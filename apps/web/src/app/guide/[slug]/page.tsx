@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { getSiteUrl } from "@/lib/config";
 import { AMAZON_ASSOCIATE_DISCLOSURE, categoryPath } from "@/lib/featured-deals";
 import { GUIDES, getGuide } from "@/lib/guides";
+import { safeJsonLd } from "@/lib/json-ld";
 
 export const dynamic = "force-static";
 
@@ -86,7 +87,7 @@ export default async function GuidePage({ params }: Params) {
     <main className="home-shell guide-page">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }}
       />
 
       <nav className="crumbs" aria-label="Breadcrumb">

@@ -16,6 +16,7 @@ always return False and no events/alerts are recorded - `block_partner`/
 
 from __future__ import annotations
 
+import hmac
 import json
 import logging
 import os
@@ -511,7 +512,7 @@ async def _require_admin_token(
     x_admin_token: str | None = Header(default=None, alias="X-Admin-Token"),
 ) -> None:
     expected = os.getenv("ADMIN_API_TOKEN", "dev-admin-token")
-    if x_admin_token != expected:
+    if x_admin_token is None or not hmac.compare_digest(x_admin_token, expected):
         raise HTTPException(status_code=401, detail="Invalid or missing admin token")
 
 
