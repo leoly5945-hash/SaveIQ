@@ -45,7 +45,10 @@ function ShowcaseCard({ result }: { result: CheckResult }) {
   const v = VERDICT_COPY[assessment.verdict];
   const currency = assessment.effective_price.currency;
   const effective = assessment.effective_price.effective_cents;
-  const offers = (comparison?.offers ?? []).slice(0, 3);
+  // Offers come back cheapest-first, which can push a recognizable name
+  // (a brand's own store is rarely the cheapest reseller) out of a top-3
+  // window. 5 keeps the card readable while giving that more room.
+  const offers = (comparison?.offers ?? []).slice(0, 5);
 
   return (
     <Link
