@@ -178,6 +178,7 @@ function VerdictCard({
           amazonPriceCents={effective}
           cheapest={result.comparison?.cheapest ?? null}
           currency={currency}
+          verdict={assessment.verdict}
           top
         />
       ) : null}
@@ -223,6 +224,7 @@ function VerdictCard({
           amazonPriceCents={effective}
           cheapest={result.comparison?.cheapest ?? null}
           currency={currency}
+          verdict={assessment.verdict}
         />
       ) : null}
 
