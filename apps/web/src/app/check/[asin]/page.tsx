@@ -156,6 +156,7 @@ export default async function CheckAsinPage({ params }: Params) {
             amazonPriceCents={effective}
             cheapest={result.comparison?.cheapest ?? null}
             currency={currency}
+            verdict={assessment.verdict}
             top
           />
         ) : null}
@@ -201,6 +202,7 @@ export default async function CheckAsinPage({ params }: Params) {
             amazonPriceCents={effective}
             cheapest={result.comparison?.cheapest ?? null}
             currency={currency}
+            verdict={assessment.verdict}
           />
         ) : null}
 
