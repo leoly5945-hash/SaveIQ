@@ -1617,6 +1617,139 @@ h3 {
   color: var(--promo-strong);
 }
 
+/* --- "Compare across stores" homepage showcase --------------------------- */
+
+.showcase {
+  display: grid;
+  gap: 16px;
+  margin-top: 26px;
+}
+
+.showcase-head h2 {
+  font-family: var(--display-font);
+  font-size: 1.45rem;
+  font-weight: 900;
+  letter-spacing: -0.5px;
+}
+
+.showcase-head p {
+  color: var(--muted);
+  font-size: 0.92rem;
+  margin-top: 4px;
+  max-width: 60ch;
+}
+
+.showcase-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+}
+
+.showcase-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 4px solid #9aa3af;
+  border-radius: 12px;
+  color: inherit;
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+  text-decoration: none;
+}
+
+.showcase-card:hover {
+  border-color: var(--foreground);
+  border-left-color: inherit;
+}
+
+.showcase-card-good {
+  border-left-color: #15803d;
+}
+.showcase-card-warn {
+  border-left-color: var(--promo);
+}
+.showcase-card-neutral {
+  border-left-color: #64748b;
+}
+.showcase-card-unknown {
+  border-left-color: #9aa3af;
+}
+
+.showcase-badge {
+  background: #9aa3af;
+  border-radius: 8px;
+  color: #ffffff;
+  font-family: var(--display-font);
+  font-size: 0.72rem;
+  font-weight: 900;
+  justify-self: start;
+  letter-spacing: 0.03em;
+  padding: 4px 9px;
+  text-transform: uppercase;
+}
+
+.showcase-card-good .showcase-badge {
+  background: #15803d;
+}
+.showcase-card-warn .showcase-badge {
+  background: var(--promo);
+}
+.showcase-card-neutral .showcase-badge {
+  background: #64748b;
+}
+
+.showcase-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.showcase-amazon {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.showcase-amazon strong {
+  color: var(--foreground);
+  font-size: 1.05rem;
+}
+
+.showcase-offers {
+  border-top: 1px solid var(--border);
+  display: grid;
+  gap: 4px;
+  list-style: none;
+  margin: 0;
+  padding-top: 8px;
+}
+
+.showcase-offers li {
+  display: flex;
+  font-size: 0.85rem;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.showcase-offers li span:first-child {
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.showcase-offers li span:last-child {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.showcase-cta {
+  color: var(--promo-strong);
+  font-size: 0.85rem;
+  font-weight: 700;
+  justify-self: start;
+  margin-top: 2px;
+}
+
 /* --- deal / category / deals pages --------------------------------------- */
 
 .crumbs {
