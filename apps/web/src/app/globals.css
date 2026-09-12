@@ -2554,17 +2554,19 @@ h3 {
   line-height: 1.45;
 }
 
-/* The money action: this is the only link on the card that pays us, so it
-   reads louder than everything around it. The `.verdict a` selector keeps the
-   text white even on the /check/[asin] page, where `.privacy-page a` would
-   otherwise tint it. */
+/* The money action: this is the only link on the card that pays us, so on a
+   genuine BUY it reads louder than everything around it. But the loudness
+   has to track the verdict, not just exist by default — a WAIT/FAIR
+   narration saying "shop around, not the best deal" next to a shouting green
+   button is a mixed signal. `.verdict-cta-buy` is the loud treatment (BUY
+   only); `.verdict-cta-muted` is a calm, ordinary button for everything
+   else — still a real, working buy link, just not pushing it. The
+   `.verdict a` selectors keep colors correct even on the /check/[asin] page,
+   where `.privacy-page a` would otherwise tint them. */
 .verdict-cta,
 .verdict a.verdict-cta {
   align-self: stretch;
-  background: var(--accent-strong);
   border-radius: 12px;
-  box-shadow: 0 8px 20px -8px color-mix(in srgb, var(--accent-strong) 70%, transparent);
-  color: #ffffff;
   font-size: 1.1rem;
   font-weight: 800;
   letter-spacing: -0.01em;
@@ -2573,9 +2575,28 @@ h3 {
   text-decoration: none;
 }
 
-.verdict-cta:hover,
-.verdict a.verdict-cta:hover {
+.verdict-cta-buy,
+.verdict a.verdict-cta-buy {
+  background: var(--accent-strong);
+  box-shadow: 0 8px 20px -8px color-mix(in srgb, var(--accent-strong) 70%, transparent);
+  color: #ffffff;
+}
+
+.verdict-cta-buy:hover,
+.verdict a.verdict-cta-buy:hover {
   background: #094a45;
+}
+
+.verdict-cta-muted,
+.verdict a.verdict-cta-muted {
+  background: var(--surface);
+  border: 2px solid var(--border);
+  color: var(--foreground);
+}
+
+.verdict-cta-muted:hover,
+.verdict a.verdict-cta-muted:hover {
+  border-color: var(--foreground);
 }
 
 /* Top-of-card copy of the CTA — a gentle breathing glow so the eye lands on it

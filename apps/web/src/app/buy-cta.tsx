@@ -10,11 +10,13 @@ import { formatMoney, type MerchantOffer, type Verdict } from "@/lib/price-check
  * action — Amazon becomes the fallback. Rendered twice per card — once near
  * the top (`top`) and once at the bottom.
  *
- * The pulse is reserved for a genuine BUY verdict. A WAIT/FAIR narration
- * saying "shop around, not the best deal" next to a button visually
- * screaming "buy now" is exactly the kind of mixed signal the honesty
- * principle here is supposed to rule out — so FAIR/WAIT/UNKNOWN get the
- * calm, non-pulsing button even at the top position.
+ * Both the color/weight AND the pulse are reserved for a genuine BUY
+ * verdict. A WAIT/FAIR narration saying "shop around, not the best deal"
+ * sitting next to a loud, shouting-green button is a mixed signal — turning
+ * off only the animation and leaving the same solid color/weight was still
+ * that mixed signal, just quieter. WAIT/FAIR/UNKNOWN get a calm, ordinary
+ * button (`.verdict-cta-muted`) — still a full, working buy link, never
+ * blocked — with no pulse, even at the top position.
  */
 export function BuyCta({
   amazonHref,
@@ -31,8 +33,14 @@ export function BuyCta({
   verdict: Verdict;
   top?: boolean;
 }) {
-  const ctaClass =
-    top && verdict === "BUY" ? "verdict-cta verdict-cta-top" : "verdict-cta";
+  const isBuy = verdict === "BUY";
+  const ctaClass = [
+    "verdict-cta",
+    isBuy ? "verdict-cta-buy" : "verdict-cta-muted",
+    top && isBuy ? "verdict-cta-top" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   if (cheapest?.url) {
     return (
