@@ -6,7 +6,14 @@ import { type Comparison, formatMoney } from "@/lib/price-check";
  */
 export function ComparisonBlock({ comparison }: { comparison: Comparison | null }) {
   if (!comparison || comparison.offers.length === 0) return null;
-  const { offers, cheapest, currency } = comparison;
+  const { offers, cheapest, currency, reference_price_cents } = comparison;
+  // `cheapest` is only set once a match clears the confidence bar — it being
+  // null does NOT mean Amazon actually has the best price, just that nothing
+  // cleared that bar. A lower price sitting right below unconfirmed language
+  // claiming otherwise is exactly the kind of false claim the honesty
+  // principle here is supposed to rule out.
+  const hasUnconfirmedCheaper =
+    !cheapest && offers.some((o) => o.price_cents < reference_price_cents);
 
   return (
     <section className="compare">
@@ -16,6 +23,12 @@ export function ComparisonBlock({ comparison }: { comparison: Comparison | null 
           <span className="compare-lead-price">
             {formatMoney(cheapest.price_cents, cheapest.currency || currency)}
           </span>
+        </p>
+      ) : hasUnconfirmedCheaper ? (
+        <p className="compare-lead compare-lead-muted">
+          A lower price shows up below, but we couldn&apos;t confidently match
+          it to the same model — check it yourself before assuming it&apos;s
+          the same item.
         </p>
       ) : (
         <p className="compare-lead compare-lead-muted">
