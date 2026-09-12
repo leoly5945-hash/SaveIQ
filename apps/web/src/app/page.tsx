@@ -6,6 +6,7 @@ import { HOME_AFFILIATE_DISCLOSURE } from "@/lib/home-recommendations";
 import { CheckBox } from "./check-box";
 import { DiscoverBox } from "./discover-box";
 import { FeaturedDeals } from "./featured-deals";
+import { MultiStoreShowcase } from "./multi-store-showcase";
 
 export default function Home() {
   const brandName = getBrandName();
@@ -73,6 +74,8 @@ export default function Home() {
             <Link href="/tools">add the 1-click bookmarklet</Link>.
           </p>
         </div>
+
+        <MultiStoreShowcase />
 
         <FeaturedDeals />
 
