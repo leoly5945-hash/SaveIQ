@@ -32,6 +32,13 @@ class Settings(BaseSettings):
         default="saveiq-20",
         validation_alias="AMAZON_ASSOCIATE_TAG",
     )
+    # eBay Partner Network — campaign id confirmed from a real generated link
+    # in the EPN dashboard (2026-09), not a secret (same role as the Amazon
+    # associate tag above). Unset => eBay comparison offers stay untagged.
+    ebay_partner_campaign_id: str | None = Field(
+        default="5339209072",
+        validation_alias="EBAY_PARTNER_CAMPAIGN_ID",
+    )
     # CP4 — Keepa product data provider (Amazon price + history). Unset => the
     # provider is not registered and product-data lookups return empty.
     keepa_api_key: str | None = Field(default=None, validation_alias="KEEPA_API_KEY")

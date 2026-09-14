@@ -16,6 +16,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import require_admin
+from app.core.settings import get_settings
 from app.db.session import get_db
 from app.providers import ProviderCapability, ProviderError, get_provider_registry
 from app.providers.base import ProductDataProvider
@@ -192,7 +193,13 @@ async def price_check(
 
     try:
         result = await run_price_check(
-            registry, product_id=product_id, url=url, provider=provider, days=days, db=db
+            registry,
+            product_id=product_id,
+            url=url,
+            provider=provider,
+            days=days,
+            db=db,
+            ebay_campaign_id=get_settings().ebay_partner_campaign_id,
         )
     except PriceCheckError as exc:
         db.rollback()

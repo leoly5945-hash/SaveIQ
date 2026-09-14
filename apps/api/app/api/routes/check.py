@@ -98,6 +98,7 @@ async def check_price(
             url=url,
             days=days,
             db=db,
+            ebay_campaign_id=settings.ebay_partner_campaign_id,
         )
     except PriceCheckError as exc:
         db.rollback()
