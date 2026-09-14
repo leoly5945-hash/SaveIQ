@@ -1,0 +1,34 @@
+{
+  "manifest_version": 3,
+  "name": "SaveIQ — Buy Now or Wait",
+  "short_name": "SaveIQ",
+  "version": "0.1.0",
+  "description": "See SaveIQ's buy-now-or-wait call right on the Amazon.ca product page, from 90 days of price history.",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    },
+    "default_title": "SaveIQ"
+  },
+  "host_permissions": [
+    "https://dealhunter-production-api.onrender.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://www.amazon.ca/*", "https://amazon.ca/*"],
+      "js": ["content.js"],
+      "css": ["overlay.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "background": {
+    "service_worker": "background.js"
+  }
+}
