@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 from app.providers import ProviderCapability, ProviderError, ProviderProductNotFound
 from app.providers.base import ProductDataProvider, ProviderPriceHistory
 from app.providers.registry import ProviderRegistry
+from app.services.affiliate.ebay_link import ebay_affiliate_url
 from app.services.decision.assess import assess_from_provider
 from app.services.decision.comparison_cache import resolve_comparison
 from app.services.decision.deal_score import DealAssessment
@@ -68,6 +69,7 @@ async def _build_comparison(
     reference_price_cents: int,
     currency: str,
     now: datetime | None = None,
+    ebay_campaign_id: str | None = None,
 ) -> Comparison | None:
     """Cross-merchant offers from the comparison cache. Never raises.
 
@@ -91,6 +93,18 @@ async def _build_comparison(
     )
     if not candidates:
         return None
+    if ebay_campaign_id:
+        # An untagged eBay offer earns nothing — tag it before matching so the
+        # affiliate link rides along with whichever offer survives (including
+        # `cheapest`, which is just a reference into `offers`). No-op for any
+        # candidate whose host isn't ebay.* (see `ebay_affiliate_url`).
+        tagged_candidates = []
+        for candidate in candidates:
+            tagged_url = ebay_affiliate_url(candidate.url, ebay_campaign_id)
+            if tagged_url is not None:
+                candidate = candidate.model_copy(update={"url": tagged_url})
+            tagged_candidates.append(candidate)
+        candidates = tagged_candidates
     return build_comparison(
         reference_merchant="Amazon.ca",
         reference_title=title,
@@ -179,6 +193,7 @@ async def run_price_check(
     days: int = 90,
     db: Session | None = None,
     now: datetime | None = None,
+    ebay_campaign_id: str | None = None,
 ) -> PriceCheckResult:
     resolved_id, hint = resolve_target(product_id, url)
     adapter = _pick_provider(registry, name=provider, hint=hint)
@@ -214,6 +229,7 @@ async def run_price_check(
         reference_price_cents=assessment.effective_price.effective_cents,
         currency=price.currency,
         now=now,
+        ebay_campaign_id=ebay_campaign_id,
     )
 
     return PriceCheckResult(
