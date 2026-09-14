@@ -1,5 +1,10 @@
 /* Colors mirror apps/web/src/app/globals.css's .verdict-badge classes, so the
-   card reads as the same product whether you're on saveiq.ca or on Amazon. */
+   card reads as the same product whether you're on saveiq.ca or on Amazon.
+
+   Every rule below is prefixed with #saveiq-card so it beats the
+   `#saveiq-card * { all: revert }` reset on specificity — an ID selector
+   outranks a bare class selector, so an unprefixed `.saveiq-verdict { color: … }`
+   would silently lose to the reset and render unstyled (this bit us once). */
 
 #saveiq-card {
   all: initial;
@@ -21,22 +26,23 @@
   all: revert;
   font-family: inherit;
   box-sizing: border-box;
+  margin: 0;
 }
 
-.saveiq-buy {
+#saveiq-card.saveiq-buy {
   border-left-color: #15803d;
 }
-.saveiq-wait {
+#saveiq-card.saveiq-wait {
   border-left-color: #ea580c;
 }
-.saveiq-fair {
+#saveiq-card.saveiq-fair {
   border-left-color: #64748b;
 }
-.saveiq-unknown {
+#saveiq-card.saveiq-unknown {
   border-left-color: #9aa3af;
 }
 
-.saveiq-close {
+#saveiq-card .saveiq-close {
   position: absolute;
   top: 8px;
   right: 10px;
@@ -48,11 +54,11 @@
   cursor: pointer;
   padding: 4px;
 }
-.saveiq-close:hover {
+#saveiq-card .saveiq-close:hover {
   color: #0f172a;
 }
 
-.saveiq-brand {
+#saveiq-card .saveiq-brand {
   font-size: 0.72rem;
   font-weight: 800;
   letter-spacing: 0.06em;
@@ -61,36 +67,36 @@
   margin-bottom: 6px;
 }
 
-.saveiq-verdict {
+#saveiq-card .saveiq-verdict {
   font-size: 1.05rem;
   font-weight: 800;
   margin-bottom: 2px;
 }
 
-.saveiq-buy .saveiq-verdict {
+#saveiq-card.saveiq-buy .saveiq-verdict {
   color: #15803d;
 }
-.saveiq-wait .saveiq-verdict {
+#saveiq-card.saveiq-wait .saveiq-verdict {
   color: #c2410c;
 }
-.saveiq-fair .saveiq-verdict {
+#saveiq-card.saveiq-fair .saveiq-verdict {
   color: #475569;
 }
 
-.saveiq-price {
+#saveiq-card .saveiq-price {
   font-size: 1.3rem;
   font-weight: 900;
   margin-bottom: 6px;
 }
 
-.saveiq-reason {
+#saveiq-card .saveiq-reason {
   font-size: 0.85rem;
   color: #475569;
   line-height: 1.35;
   margin-bottom: 8px;
 }
 
-.saveiq-cheaper {
+#saveiq-card .saveiq-cheaper {
   display: block;
   font-size: 0.85rem;
   font-weight: 700;
@@ -98,17 +104,17 @@
   text-decoration: none;
   margin-bottom: 8px;
 }
-.saveiq-cheaper:hover {
+#saveiq-card .saveiq-cheaper:hover {
   text-decoration: underline;
 }
 
-.saveiq-link {
+#saveiq-card .saveiq-link {
   display: inline-block;
   font-size: 0.85rem;
   font-weight: 700;
   color: #0f766e;
   text-decoration: none;
 }
-.saveiq-link:hover {
+#saveiq-card .saveiq-link:hover {
   text-decoration: underline;
 }
