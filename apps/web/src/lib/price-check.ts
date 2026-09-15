@@ -103,6 +103,24 @@ export type CreateAlertOutcome =
   | { ok: true; unsubscribeUrl: string; baselineCents: number | null }
   | { ok: false; status: number; detail: string };
 
+export type WatchlistItem = {
+  alert_id: number;
+  provider_product_id: string;
+  title: string | null;
+  product_url: string | null;
+  buy_url: string | null;
+  currency: string;
+  price_cents: number | null;
+  verdict: Verdict | null;
+  kind: AlertKind;
+  status: "active" | "fired" | "paused" | "unsubscribed";
+  unsubscribe_url: string;
+};
+
+export type WatchlistOutcome =
+  | { ok: true; items: WatchlistItem[] }
+  | { ok: false; status: number; detail: string };
+
 // --- presentation helpers -------------------------------------------------
 
 export const VERDICT_COPY: Record<
@@ -232,6 +250,28 @@ export async function requestCreateAlert(
     };
   } catch {
     return { ok: false, status: 0, detail: "Couldn't set the alert." };
+  }
+}
+
+export async function requestWatchlist(
+  email: string,
+  fetchImpl: typeof fetch = fetch
+): Promise<WatchlistOutcome> {
+  try {
+    const res = await fetchImpl(
+      `/api/watchlist?${new URLSearchParams({ email: email.trim() }).toString()}`,
+      { headers: { Accept: "application/json" } }
+    );
+    const body = (await res.json()) as {
+      items?: WatchlistItem[];
+      detail?: string | { msg?: string }[];
+    };
+    if (!res.ok) {
+      return { ok: false, status: res.status, detail: detailText(body) };
+    }
+    return { ok: true, items: body.items ?? [] };
+  } catch {
+    return { ok: false, status: 0, detail: "Couldn't load your watchlist." };
   }
 }
 

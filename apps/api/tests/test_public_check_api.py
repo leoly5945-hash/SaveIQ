@@ -409,6 +409,76 @@ def test_public_create_alert_and_unsubscribe(monkeypatch) -> None:
         session.close()
 
 
+def test_public_watchlist_lists_tracked_products(monkeypatch) -> None:
+    client, session = _client(monkeypatch)
+    try:
+        created = client.post(
+            "/alerts",
+            json={"email": "Shopper@Example.com", "product_id": "B09VPHVT9Z"},
+        )
+        assert created.status_code == 201, created.text
+
+        # Case-insensitive: the alert was created with mixed case, the
+        # watchlist lookup normalizes both sides the same way.
+        resp = client.get("/alerts", params={"email": "shopper@example.com"})
+        assert resp.status_code == 200, resp.text
+        items = resp.json()["items"]
+        assert len(items) == 1
+        item = items[0]
+        assert item["provider_product_id"] == "B09VPHVT9Z"
+        assert item["title"] == "Anker 737 Power Bank"
+        assert item["price_cents"] == 4300
+        assert item["currency"] == "CAD"
+        assert item["verdict"] in {"BUY", "FAIR", "WAIT", "UNKNOWN"}
+        assert item["status"] == "active"
+        # an untagged buy link earns nothing — the watchlist must carry our tag
+        assert item["buy_url"] == (
+            "https://www.amazon.ca/dp/B09VPHVT9Z?tag=saveiq-20"
+        )
+    finally:
+        app.dependency_overrides.clear()
+        session.close()
+
+
+def test_public_watchlist_drops_unsubscribed_items(monkeypatch) -> None:
+    client, session = _client(monkeypatch)
+    try:
+        created = client.post(
+            "/alerts",
+            json={"email": "shopper@example.com", "product_id": "B09VPHVT9Z"},
+        )
+        token = created.json()["unsubscribe_url"].split("token=")[1]
+        client.get("/alerts/unsubscribe", params={"token": token})
+
+        resp = client.get("/alerts", params={"email": "shopper@example.com"})
+        assert resp.status_code == 200
+        assert resp.json()["items"] == []
+    finally:
+        app.dependency_overrides.clear()
+        session.close()
+
+
+def test_public_watchlist_empty_for_unknown_email(monkeypatch) -> None:
+    client, session = _client(monkeypatch)
+    try:
+        resp = client.get("/alerts", params={"email": "nobody@example.com"})
+        assert resp.status_code == 200
+        assert resp.json()["items"] == []
+    finally:
+        app.dependency_overrides.clear()
+        session.close()
+
+
+def test_public_watchlist_rejects_bad_email(monkeypatch) -> None:
+    client, session = _client(monkeypatch)
+    try:
+        resp = client.get("/alerts", params={"email": "nope"})
+        assert resp.status_code == 422
+    finally:
+        app.dependency_overrides.clear()
+        session.close()
+
+
 def test_public_create_alert_rejects_bad_email(monkeypatch) -> None:
     client, session = _client(monkeypatch)
     try:

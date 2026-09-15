@@ -2687,6 +2687,90 @@ h3 {
   }
 }
 
+/* --- /watchlist ------------------------------------------------------- */
+
+.watchlist-view {
+  display: grid;
+  gap: 20px;
+  margin-top: 18px;
+}
+
+.watchlist-form {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  max-width: 480px;
+}
+
+.watchlist-form .field input {
+  border-radius: 10px;
+  min-height: 46px;
+}
+
+.watchlist-submit {
+  background: var(--foreground);
+  border: 0;
+  border-radius: 10px;
+  color: #ffffff;
+  cursor: pointer;
+  font-weight: 700;
+  padding: 0 18px;
+}
+
+.watchlist-submit:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.watchlist-empty {
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.watchlist-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.watchlist-card {
+  align-items: start;
+  position: relative;
+}
+
+.watchlist-card-link {
+  color: inherit;
+  display: grid;
+  gap: 8px;
+  text-decoration: none;
+}
+
+.watchlist-remove {
+  background: none;
+  border: 0;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.78rem;
+  justify-self: start;
+  padding: 0;
+  text-decoration: underline;
+}
+
+.watchlist-remove:hover {
+  color: var(--foreground);
+}
+
+.watchlist-remove:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+@media (max-width: 640px) {
+  .watchlist-form {
+    grid-template-columns: 1fr;
+  }
+}
+
 .verdict-spark {
   display: grid;
   gap: 4px;

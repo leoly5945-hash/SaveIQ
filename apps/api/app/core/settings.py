@@ -95,6 +95,10 @@ class Settings(BaseSettings):
         default=10,
         validation_alias="ALERT_CREATE_RATE_PER_MINUTE",
     )
+    watchlist_rate_per_minute: int = Field(
+        default=20,
+        validation_alias="WATCHLIST_RATE_PER_MINUTE",
+    )
     acquire_rate_per_minute: int = Field(
         default=20,
         validation_alias="ACQUIRE_RATE_PER_MINUTE",

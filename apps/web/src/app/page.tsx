@@ -39,6 +39,7 @@ export default function Home() {
           <nav className="home-nav">
             <Link href="/deals">Deals</Link>
             <Link href="/guides">Guides</Link>
+            <Link href="/watchlist">Watchlist</Link>
             <Link href="/about">About</Link>
             <a href="#how-it-works">How it works</a>
           </nav>
