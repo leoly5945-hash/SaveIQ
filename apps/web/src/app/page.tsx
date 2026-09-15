@@ -71,8 +71,15 @@ export default function Home() {
           </p>
           <CheckBox />
           <p className="home-bookmarklet-hint">
-            Or check straight from the Amazon page —{" "}
-            <Link href="/tools">add the 1-click bookmarklet</Link>.
+            Or see the verdict right on the Amazon page —{" "}
+            <a
+              href="https://chromewebstore.google.com/detail/epcfmakpbfdeonhppndolmadnbakjoie"
+              rel="noreferrer"
+              target="_blank"
+            >
+              get the Chrome extension
+            </a>
+            , or <Link href="/tools">add the 1-click bookmarklet</Link>.
           </p>
         </div>
 
