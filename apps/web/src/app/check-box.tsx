@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { type FormEvent, useEffect, useRef, useState } from "react";
 
 import { type AcquireResult, requestAcquire } from "@/lib/acquire";
@@ -267,7 +268,7 @@ function AlertForm({ productInput }: { productInput: string }) {
     return (
       <p className="alert-done" role="status">
         Done — we&apos;ll email you once if the price drops. One-time alert; no
-        spam.
+        spam. <Link href="/watchlist">See everything you&apos;re tracking →</Link>
       </p>
     );
   }
