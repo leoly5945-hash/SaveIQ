@@ -90,16 +90,16 @@ export default async function CheckAsinPage({ params }: Params) {
     "@context": "https://schema.org",
     "@graph": [
       {
+        // No `offers` here on purpose: an Offer with a price makes Google
+        // validate this as a Merchant Listing, which requires shippingDetails
+        // + hasMerchantReturnPolicy — real per-item shipping/return terms
+        // that belong to Amazon.ca (the seller), not to us. We'd either have
+        // to fabricate them or leave the validation permanently failing;
+        // this page was never trying to be a Merchant Listing anyway — it's
+        // a price-history verdict, not a storefront (see check/2026-09-16
+        // Search Console error clearing this Product's Offer entirely).
         "@type": "Product",
         name,
-        offers: {
-          "@type": "Offer",
-          price: (effective / 100).toFixed(2),
-          priceCurrency: currency,
-          availability: "https://schema.org/InStock",
-          url: result.product_url ?? undefined,
-          seller: { "@type": "Organization", name: "Amazon.ca" },
-        },
       },
       {
         "@type": "BreadcrumbList",
