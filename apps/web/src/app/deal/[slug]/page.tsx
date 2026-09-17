@@ -56,19 +56,15 @@ export default async function DealPage({ params }: Params) {
     "@context": "https://schema.org",
     "@graph": [
       {
+        // No `offers` here on purpose — see check/[asin]/page.tsx for why:
+        // an Offer with a price makes Google validate this as a Merchant
+        // Listing, which needs real shippingDetails/hasMerchantReturnPolicy
+        // that belong to the actual seller, not to us.
         "@type": "Product",
         name: deal.title,
         ...(deal.brand ? { brand: { "@type": "Brand", name: deal.brand } } : {}),
         ...(deal.category ? { category: deal.category } : {}),
         ...(deal.blurb ? { description: deal.blurb } : {}),
-        offers: {
-          "@type": "Offer",
-          price: (deal.price_cents / 100).toFixed(2),
-          priceCurrency: deal.currency,
-          availability: "https://schema.org/InStock",
-          seller: { "@type": "Organization", name: deal.merchant },
-          url: `${site}/deal/${deal.slug}`,
-        },
       },
       {
         "@type": "BreadcrumbList",
