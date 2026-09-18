@@ -38,6 +38,7 @@ export default function Home() {
           </p>
           <nav className="home-nav">
             <Link href="/deals">Deals</Link>
+            <Link href="/finance">Finance</Link>
             <Link href="/guides">Guides</Link>
             <Link href="/watchlist">Watchlist</Link>
             <Link href="/about">About</Link>
@@ -147,6 +148,8 @@ export default function Home() {
             </p>
             <p className="home-footer-links">
               <Link href="/deals">Deals</Link>
+              <span aria-hidden="true"> · </span>
+              <Link href="/finance">Finance</Link>
               <span aria-hidden="true"> · </span>
               <Link href="/guides">Guides</Link>
               <span aria-hidden="true"> · </span>
