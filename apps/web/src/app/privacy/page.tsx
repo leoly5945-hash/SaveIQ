@@ -1,14 +1,13 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 
-import { getBrandName } from "@/lib/config";
+import { CONTACT_EMAIL, getBrandName } from "@/lib/config";
 
 const brandName = getBrandName();
 
 const CONTACT_NAME = "Leo Do";
-const CONTACT_EMAIL = "leoly5945@gmail.com";
 const OPERATOR_NAME = "Nextwave Software Company";
-const LAST_UPDATED = "August 28, 2026";
+const LAST_UPDATED = "September 19, 2026";
 
 export const metadata: Metadata = {
   title: `Privacy — ${brandName}`,

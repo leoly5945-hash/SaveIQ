@@ -1,14 +1,13 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 
-import { getBrandName, getSiteUrl } from "@/lib/config";
+import { CONTACT_EMAIL, getBrandName, getSiteUrl } from "@/lib/config";
 import { safeJsonLd } from "@/lib/json-ld";
 
 const brandName = getBrandName();
 
 const OPERATOR_NAME = "Nextwave Software Company";
 const CONTACT_NAME = "Leo Do";
-const CONTACT_EMAIL = "leoly5945@gmail.com";
 
 const DESCRIPTION =
   "Who runs SaveIQ, how it makes money, and the rules we hold ourselves to when we list a price.";
@@ -81,6 +80,17 @@ export default function AboutPage() {
           SaveIQ is not a store. We do not hold inventory, take payment, or ship
           anything. Every purchase happens on the retailer&apos;s own site under
           the retailer&apos;s own terms.
+        </p>
+      </section>
+
+      <section className="privacy-section">
+        <h2>Beyond shopping</h2>
+        <p>
+          We also publish plain-language guides on financial products for
+          Canadians, starting with the crypto platforms authorized to operate in
+          Canada. The same rules apply: we cite the source and the date, we
+          explain how we reached a conclusion, and we do not give financial
+          advice.
         </p>
       </section>
 

@@ -30,6 +30,6 @@ describe("Terms", () => {
     expect(text).toContain("is not a store and does not sell anything");
     expect(text).toContain("affiliate links");
     expect(text).toContain("British Columbia");
-    expect(text).toContain("leoly5945@gmail.com");
+    expect(text).toContain("info@saveiq.ca");
   });
 });

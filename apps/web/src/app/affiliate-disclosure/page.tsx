@@ -1,13 +1,12 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 
-import { getBrandName, getSiteUrl } from "@/lib/config";
+import { CONTACT_EMAIL, getBrandName, getSiteUrl } from "@/lib/config";
 import { AMAZON_ASSOCIATE_DISCLOSURE } from "@/lib/featured-deals";
 import { safeJsonLd } from "@/lib/json-ld";
 
 const brandName = getBrandName();
 
-const CONTACT_EMAIL = "leoly5945@gmail.com";
 const LAST_UPDATED = "September 18, 2026";
 
 const DESCRIPTION =
@@ -88,6 +87,24 @@ export default function AffiliateDisclosurePage() {
         <p>
           The commission comes out of the retailer&apos;s margin, not your
           price. You pay the same as you would going to the retailer directly.
+        </p>
+      </section>
+
+      <section className="privacy-section">
+        <h2>Financial products and risk warning</h2>
+        <p>
+          Some pages compare financial products such as crypto trading
+          platforms, credit cards or brokerages. If you sign up through a link
+          on one of them, we may earn a commission. That does not change what we
+          publish, and we only feature crypto platforms that are authorized to
+          serve Canadians.
+        </p>
+        <p>
+          Content on {brandName} is general information, not financial,
+          investment, tax or legal advice, and we do not recommend that you buy,
+          sell or hold any asset. Crypto assets are volatile, and you can lose
+          some or all of the money you put in. Only use a platform that is
+          authorized in Canada, and only risk money you can afford to lose.
         </p>
       </section>
 

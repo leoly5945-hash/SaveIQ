@@ -27,6 +27,7 @@ describe("SiteFooter", () => {
     expect(text).toContain(HOME_AFFILIATE_DISCLOSURE);
     expect(text).toContain("Editorial Guidelines");
     expect(text).toContain("Affiliate Disclosure");
+    expect(text).toContain("Contact");
     expect(text).toContain("Privacy");
     expect(text).toContain("Terms");
   });

@@ -25,6 +25,83 @@ export type Guide = {
 
 export const GUIDES: Guide[] = [
   {
+    slug: "crypto-platforms-authorized-in-canada",
+    title: "Which crypto platforms are authorized to serve Canadians?",
+    description:
+      "The platforms on the Canadian Securities Administrators’ list of crypto platforms authorized to do business with Canadians, what being listed does and does not mean, and how to check a platform yourself.",
+    updated: "2026-09-19",
+    checked: "2026-09-19",
+    readMinutes: 4,
+    intro: [
+      "Canadian securities regulators require crypto platforms that serve Canadians to be authorized. The Canadian Securities Administrators (CSA), the umbrella group of the provincial and territorial regulators, publishes a list of the platforms that have received a decision allowing them to do business with Canadians.",
+      "This guide reproduces that list as it stood on September 19, 2026, explains how to read it, and shows how to check any platform yourself. It is general information, not financial or investment advice, and we do not recommend that you buy, sell or hold any crypto asset.",
+    ],
+    sections: [
+      {
+        heading: "The CSA list",
+        body: [
+          "These are the entries on the CSA page, using the CSA’s own names and descriptions. Not every entry is a consumer exchange: some are lending platforms or infrastructure providers, and some are limited to certain provinces.",
+        ],
+        table: {
+          caption:
+            "Platforms listed by the Canadian Securities Administrators, checked September 19, 2026 (the CSA page shows “last updated September 18, 2026”)",
+          headers: ["Name as listed by the CSA", "Listed as", "Limits shown by the CSA"],
+          rows: [
+            ["APX Inc.", "Crypto-backed lending platform", "None shown"],
+            ["Coinbase Canada Inc.", "Crypto asset trading platform", "None shown"],
+            ["Coinsquare Capital Markets Limited", "Crypto asset trading platform", "None shown"],
+            ["Cybrid Canada Inc.", "Crypto asset trading platform", "Ontario only"],
+            ["Fidelity Clearing Canada ULC", "Crypto asset trading platform", "None shown"],
+            ["Fidelity Digital Assets Services", "Exempt marketplace and clearing agency; crypto asset trading platform", "None shown"],
+            ["Foris DAX CAN ULC (Crypto.com)", "Crypto asset trading platform", "None shown"],
+            ["Hibit Technology Ltd.", "Crypto asset trading platform", "Alberta, British Columbia, Manitoba and Saskatchewan only"],
+            ["Payward Canada Inc. (Kraken)", "Crypto asset trading platform", "None shown"],
+            ["Ndax Canada Inc.", "Crypto asset trading platform", "None shown"],
+            ["Netcoins Inc.", "Crypto asset trading platform", "None shown"],
+            ["Newton Crypto Ltd.", "Crypto asset trading platform", "None shown"],
+            ["Satstreet Inc.", "Crypto asset trading platform", "Ontario, Alberta, British Columbia, Manitoba, Québec and Saskatchewan only"],
+            ["Shakepay Inc.", "Crypto asset trading platform", "None shown"],
+            ["Shakepay Credit Inc.", "Crypto-backed lending platform", "None shown"],
+            ["VirgoCX", "Crypto asset trading platform", "Subject to terms requiring wind-down of its registrable business"],
+            ["Wealthsimple Investments Inc.", "Crypto asset trading platform", "None shown"],
+            ["Webull Canada Crypto Limited", "Crypto asset trading platform", "None shown"],
+            ["zerohash llc", "Immediate delivery VRCA-trading platform", "None shown"],
+          ],
+        },
+      },
+      {
+        heading: "What being on the list means, and what it does not",
+        body: [
+          "Being listed means a Canadian securities regulator has issued a decision allowing the platform to operate for Canadians, usually with terms and conditions attached. It is a minimum bar, not a seal of approval.",
+          "It is not a recommendation from us, and it is not a guarantee of safety, service quality or returns. Crypto prices move sharply, and you can lose some or all of the money you put in. Read each platform’s fees and terms before you deposit anything, and read the CSA’s own decision if you want to know the conditions that apply.",
+        ],
+      },
+      {
+        heading: "Platforms that are not on the list",
+        body: [
+          "We did not find Binance, Bybit, OKX or KuCoin on the CSA list when we checked. If a platform that serves Canadians is not listed, check with your provincial securities regulator before you use it, and do not send it funds first.",
+          "We only feature platforms from this list on SaveIQ, and we do not link to platforms that are not on it.",
+        ],
+      },
+      {
+        heading: "How to check a platform yourself",
+        body: [
+          "Open the CSA page linked under Sources and search it for the platform’s registered company name, which is often different from the brand name on its app. The list is updated when decisions change, so check again before you sign up rather than relying on this page.",
+          "Also read what the entry says. A listing may be limited to certain provinces, may cover a lending product rather than an exchange, or may carry a wind-down condition, as VirgoCX’s does.",
+        ],
+      },
+      {
+        heading: "Risk warning",
+        body: [
+          "Crypto assets are volatile and can lose value quickly. Only use a platform that is authorized in Canada, and only risk money you can afford to lose. Nothing on SaveIQ is financial, investment, tax or legal advice.",
+        ],
+      },
+    ],
+    sources: [
+      { label: "Canadian Securities Administrators: Crypto Platforms Authorized to Do Business with Canadians (checked 2026-09-19)", url: "https://www.securities-administrators.ca/crypto-platforms-regulation-and-enforcement-actions/crypto-platforms-authorized-to-do-business-with-canadians/" },
+    ],
+  },
+  {
     slug: "samsung-galaxy-s26-canada-price-specs",
     title: "Samsung Galaxy S26 in Canada: price, specs and who it’s for",
     description:
