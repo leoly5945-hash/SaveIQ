@@ -25,6 +25,184 @@ export type Guide = {
 
 export const GUIDES: Guide[] = [
   {
+    slug: "crypto-exchange-fees-canada-compared",
+    title: "Crypto exchange fees in Canada compared: Kraken, NDAX, Newton, Shakepay and Crypto.com",
+    description:
+      "What Kraken, NDAX, Newton, Shakepay and Crypto.com publish about their trading costs at entry level, and why the numbers are not directly comparable.",
+    updated: "2026-09-19",
+    checked: "2026-09-19",
+    readMinutes: 6,
+    intro: [
+      "This guide compares the entry-level trading costs that five crypto platforms authorized in Canada publish on their own pages. We have not opened accounts or traded on any of them, and every figure below comes from the platform’s own fee page, checked September 19, 2026. Fees change, so read the platform’s current page before you deposit.",
+      "It is general information, not financial or investment advice, and we do not recommend that you buy, sell or hold any crypto asset. We did not compare Coinbase because its Canadian fee schedule could not be read without signing in, and we have not covered every platform on the Canadian Securities Administrators’ list.",
+    ],
+    sections: [
+      {
+        heading: "Entry-level trading costs",
+        body: [
+          "Each platform charges for trading in a different way, so read the “How you pay” column before comparing the numbers.",
+        ],
+        table: {
+          caption: "Published entry-level trading costs, checked September 19, 2026",
+          headers: ["Platform", "How you pay", "Entry-level figure"],
+          rows: [
+            ["Kraken (Kraken Pro spot)", "Maker and taker fees on each order", "0.40% maker and 0.80% taker at the lowest volume tier; 0.30% and 0.60% from US$2,500 of 30-day volume"],
+            ["NDAX", "One flat trading fee", "0.20% on every buy and sell, with no volume tiers and no maker/taker split"],
+            ["Newton", "Fee included in the quoted price, varying by asset", "1.00%–1.15% for BTC, ETH and USDC; 1.25%–1.45% for LTC, SOL and XLM; 1.50%–1.60% for other assets (Silver level)"],
+            ["Shakepay", "A spread built into the buy or sell price, with no commission", "Targets a spread of 0.5%–2.0% over its benchmark price, which can rise by up to 1.5% more in adverse market conditions"],
+            ["Crypto.com", "Not stated on the pages we read", "See Crypto.com’s own fee page for current trading costs"],
+          ],
+        },
+      },
+      {
+        heading: "What a $1,000 trade could cost",
+        body: [
+          "To make the percentages concrete, here is the arithmetic on a $1,000 trade using the published figures. On NDAX, 0.20% is $2.00. On Kraken Pro at the lowest tier, a maker order at 0.40% costs $4.00 and a taker order at 0.80% costs $8.00. On Newton at the Silver level, 1.00% to 1.15% for Bitcoin is $10.00 to $11.50. On Shakepay, a spread of 0.5% to 2.0% is $5 to $20, and up to $35 if the spread widens by the full extra 1.5%.",
+          "These are illustrations of the published rates, not quotes. Kraken’s figure is in US dollars for the volume tiers, and the actual cost depends on the pair, the order type and the price at the moment you trade.",
+        ],
+      },
+      {
+        heading: "Why the numbers are not directly comparable",
+        body: [
+          "A fee charged on the order and a spread built into the price are different things. With a fee, you see the price and the fee separately. With a spread, the cost sits in the gap between the price you pay and the reference price, which you have to look up yourself to measure.",
+          "Kraken’s maker and taker fees also depend on whether your order adds liquidity to the order book (maker) or takes it (taker), and they fall as your 30-day volume grows. They apply to Kraken Pro; Kraken’s simpler Buy and Convert features are priced differently and are not covered here. Newton’s rates fall with your trailing 365-day volume. NDAX’s single rate does not change with volume. Check the current page of any platform before you rely on a figure here.",
+        ],
+      },
+      {
+        heading: "Costs beyond the trading fee",
+        body: [
+          "Deposit and withdrawal charges, network fees for moving crypto out, and any subscription can matter as much as the trading fee for small or occasional trades. Our guide to Interac e-Transfer funding lists the published deposit and CAD withdrawal costs for these platforms.",
+        ],
+      },
+      {
+        heading: "Risk warning",
+        body: [
+          "Crypto assets are volatile and can lose value quickly. Only use a platform that is authorized in Canada, and only risk money you can afford to lose. Nothing on SaveIQ is financial, investment, tax or legal advice.",
+        ],
+      },
+    ],
+    sources: [
+      { label: "Kraken: fee schedule (Kraken Pro spot tiers, checked 2026-09-19)", url: "https://www.kraken.com/features/fee-schedule" },
+      { label: "Kraken Support: how trading fees work on Kraken", url: "https://support.kraken.com/articles/201893638-how-trading-fees-work-on-kraken" },
+      { label: "NDAX: fees (checked 2026-09-19)", url: "https://ndax.io/en/fees" },
+      { label: "Newton Help Center: What are Newton’s fees? (checked 2026-09-19)", url: "https://help.newton.co/hc/en-us/articles/360052371793-What-are-Newton-s-Fees" },
+      { label: "Shakepay Help Center: How does Shakepay make money? (checked 2026-09-19)", url: "https://help.shakepay.com/en/articles/3171250-how-does-shakepay-make-money" },
+    ],
+  },
+  {
+    slug: "interac-e-transfer-crypto-exchanges-canada",
+    title: "Funding a crypto exchange with Interac e-Transfer: fees and limits in Canada",
+    description:
+      "The published Interac e-Transfer deposit fees, CAD withdrawal fees and limits at Kraken, NDAX, Newton, Shakepay and Crypto.com, and what to check before you send money.",
+    updated: "2026-09-19",
+    checked: "2026-09-19",
+    readMinutes: 5,
+    intro: [
+      "Most Canadians fund a crypto platform with Interac e-Transfer. This guide lists what five platforms authorized in Canada publish about e-Transfer deposits, CAD withdrawals and limits, checked September 19, 2026 on each platform’s own pages. We have not tested any of them, and limits and fees change, so confirm them in your account before you send money.",
+      "It is general information, not financial or investment advice. Your own bank may also charge fees for e-Transfers that are not shown here.",
+    ],
+    sections: [
+      {
+        heading: "Deposits and CAD withdrawals",
+        body: [
+          "Where a platform did not state a figure on the pages we read, the table says so instead of guessing.",
+        ],
+        table: {
+          caption: "Published Interac e-Transfer and CAD withdrawal terms, checked September 19, 2026",
+          headers: ["Platform", "Interac e-Transfer deposit", "CAD withdrawal"],
+          rows: [
+            ["Kraken", "Free. Limits of CAD 10,000 per transaction and per day, CAD 30,000 per week and CAD 100,000 per month; takes between an hour and a day", "CAD 10 fee via e-Transfer"],
+            ["NDAX", "Free, processed in 0–30 minutes", "Interac e-Transfer CAD 1.50 with a CAD 10,000 limit; direct bank deposit (EFT) CAD 4.99"],
+            ["Newton", "Free", "Interac e-Transfer free, EFT free; wire free for transfers of $10,000 or more, and a $35 fee for wires between $5,000 and $10,000"],
+            ["Shakepay", "Free. Minimum $5 and maximum $10,000 per e-Transfer", "Outgoing e-Transfer limits are $5 to $10,000; no separate fee is listed on the fees page we read"],
+            ["Crypto.com", "No Crypto.com fee for Interac Standard Transfer, though your bank might charge one. Minimum $20, up to $25,000 a day", "$1.99 CAD per withdrawal, with a daily maximum of $25,000 and review of up to 1–3 business days"],
+          ],
+        },
+      },
+      {
+        heading: "What to check before you send money",
+        body: [
+          "Confirm the platform’s current limits in your own account, because a per-day or per-week limit can slow a larger deposit. Check the processing time for your first deposit, since new accounts can be reviewed more closely.",
+          "Send the e-Transfer only to the address or contact the platform shows inside your logged-in account, and never to an address someone sends you by message or email. Then check for a withdrawal fee before you deposit, since a flat withdrawal fee matters more the smaller your balance is.",
+        ],
+      },
+      {
+        heading: "Crypto withdrawals are a separate cost",
+        body: [
+          "The table covers moving Canadian dollars. Moving crypto off a platform has its own network fees. For example, Newton says it covers up to $5 of network fees on your first crypto withdrawal each day, and charges a $10 CAD fee plus the network fee for its fastest Bitcoin lane. Check each platform’s crypto withdrawal terms as well.",
+        ],
+      },
+      {
+        heading: "Risk warning",
+        body: [
+          "Crypto assets are volatile and can lose value quickly. Only use a platform that is authorized in Canada, and only risk money you can afford to lose. Nothing on SaveIQ is financial, investment, tax or legal advice.",
+        ],
+      },
+    ],
+    sources: [
+      { label: "Kraken Support: funding your account with an Interac e-Transfer (checked 2026-09-19)", url: "https://support.kraken.com/hc/en-us/articles/4412259063444-How-do-I-fund-my-account-with-an-Interac-e-Transfer-" },
+      { label: "NDAX: fees (checked 2026-09-19)", url: "https://ndax.io/en/fees" },
+      { label: "Newton Help Center: What are Newton’s fees? (checked 2026-09-19)", url: "https://help.newton.co/hc/en-us/articles/360052371793-What-are-Newton-s-Fees" },
+      { label: "Shakepay: funding fees, limits and timeline (checked 2026-09-19)", url: "https://shakepay.com/fees" },
+      { label: "Crypto.com Help Center: CAD deposit via Interac Standard Transfer (checked 2026-09-19)", url: "https://help.crypto.com/en/articles/4531462-cad-deposit-via-interac-standard-transfer" },
+      { label: "Crypto.com Help Center: CAD withdrawal (checked 2026-09-19)", url: "https://help.crypto.com/en/articles/4533192-cad-withdrawal" },
+    ],
+  },
+  {
+    slug: "how-crypto-trading-fees-and-spreads-work",
+    title: "How crypto trading fees, spreads and withdrawal costs work in Canada",
+    description:
+      "A plain-language explanation of maker and taker fees, spreads, flat fees, deposit and withdrawal charges, and how to compare the real cost of a crypto trade.",
+    updated: "2026-09-19",
+    readMinutes: 5,
+    intro: [
+      "Two crypto platforms can both say “low fees” and still cost very different amounts. The difference usually comes down to how the platform charges you. This guide explains the common ways, so you can read any platform’s fee page and work out what a trade would actually cost.",
+      "It is general information, not financial or investment advice, and we do not recommend that you buy, sell or hold any crypto asset.",
+    ],
+    sections: [
+      {
+        heading: "A trading fee is charged on the order",
+        body: [
+          "Some platforms charge a percentage of each trade. A flat fee applies the same rate to every trade. A maker and taker model charges less if your order rests on the order book waiting to be matched (a maker order) and more if it is matched immediately against an existing order (a taker order). Maker and taker rates often fall as your trading volume over a recent period rises.",
+          "The fee is shown separately from the price, so you can see what you paid for the asset and what you paid to trade it.",
+        ],
+      },
+      {
+        heading: "A spread is built into the price",
+        body: [
+          "Other platforms advertise no commission and earn a spread instead: the price you pay to buy is a little above a reference price, and the price you receive to sell is a little below it. There is no separate line item, so the cost is easy to miss. To estimate it, compare the platform’s buy or sell price with a widely quoted market price at the same moment.",
+          "Some platforms publish a target range for their spread, and say it can widen when markets are volatile or liquidity is thin.",
+        ],
+      },
+      {
+        heading: "Costs around the trade",
+        body: [
+          "Deposit charges, Canadian-dollar withdrawal fees, network fees for sending crypto to another wallet, and subscriptions can all add to the total. For small or occasional trades, a flat withdrawal fee can outweigh a low trading fee, so add these up alongside the trading cost.",
+          "Your own bank may also charge for e-Transfers or wires, which no platform’s fee page includes.",
+        ],
+      },
+      {
+        heading: "A worked example",
+        body: [
+          "Suppose you buy $1,000 of Bitcoin. A platform charging a flat 0.20% costs $2.00 to trade. A platform whose quoted price includes a 1.00% fee costs $10.00. A platform with a spread of 0.5% to 2.0% costs between $5 and $20, and you would only learn which by comparing its price with the market’s.",
+          "Then add any deposit, withdrawal and network fees. The cheapest platform for a $1,000 purchase is not always the cheapest for a $50 purchase or a $50,000 one, because flat fees and volume tiers change the answer.",
+        ],
+      },
+      {
+        heading: "Where to find real figures",
+        body: [
+          "See our comparison of entry-level trading costs at platforms authorized in Canada, and our guide to Interac e-Transfer funding and CAD withdrawals. Both cite each platform’s own fee page and the date we checked it. To confirm that a platform is authorized in Canada, see our guide to the Canadian Securities Administrators’ list.",
+        ],
+      },
+      {
+        heading: "Risk warning",
+        body: [
+          "Crypto assets are volatile and can lose value quickly. Only use a platform that is authorized in Canada, and only risk money you can afford to lose. Nothing on SaveIQ is financial, investment, tax or legal advice.",
+        ],
+      },
+    ],
+  },
+  {
     slug: "crypto-platforms-authorized-in-canada",
     title: "Which crypto platforms are authorized to serve Canadians?",
     description:
