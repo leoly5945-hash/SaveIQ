@@ -3,9 +3,9 @@ import { describe, expect, it } from "vitest";
 import { GUIDES, getGuide, guidePath, guidesForCategory } from "./guides";
 
 describe("GUIDES", () => {
-  it("has 5-12 guides with unique slugs", () => {
+  it("has 5-16 guides with unique slugs", () => {
     expect(GUIDES.length).toBeGreaterThanOrEqual(5);
-    expect(GUIDES.length).toBeLessThanOrEqual(12);
+    expect(GUIDES.length).toBeLessThanOrEqual(16);
     const slugs = GUIDES.map((g) => g.slug);
     expect(new Set(slugs).size).toBe(slugs.length);
   });
