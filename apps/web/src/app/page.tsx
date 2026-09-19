@@ -86,33 +86,6 @@ export default function Home() {
           </a>
         </div>
 
-        <section className="home-latest" aria-labelledby="latest-guides-heading">
-          <div className="home-how-head">
-            <h2 id="latest-guides-heading">Latest buying guides</h2>
-            <p>
-              Plain, factual guides written to be useful to a shopper, not to
-              sell. Each one shows when it was last updated.
-            </p>
-          </div>
-          <ul className="guides-list">
-            {LATEST_GUIDES.map((guide) => (
-              <li className="guide-card" key={guide.slug}>
-                <h3 className="guide-card-title">
-                  <Link href={guidePath(guide.slug)}>{guide.title}</Link>
-                </h3>
-                <p className="guide-card-desc">{guide.description}</p>
-                <p className="guide-card-meta">
-                  Updated {formatGuideDate(guide.updated)} · {guide.readMinutes}{" "}
-                  min read
-                </p>
-              </li>
-            ))}
-          </ul>
-          <p className="deal-page-back">
-            <Link href="/guides">All buying guides →</Link>
-          </p>
-        </section>
-
         <section className="home-pricecheck" id="price-check" aria-labelledby="price-check-heading">
           <div className="home-how-head">
             <h2 id="price-check-heading">Check a price</h2>
@@ -144,6 +117,33 @@ export default function Home() {
           </div>
 
           <MultiStoreShowcase />
+        </section>
+
+        <section className="home-latest" aria-labelledby="latest-guides-heading">
+          <div className="home-how-head">
+            <h2 id="latest-guides-heading">Latest buying guides</h2>
+            <p>
+              Plain, factual guides written to be useful to a shopper, not to
+              sell. Each one shows when it was last updated.
+            </p>
+          </div>
+          <ul className="guides-list">
+            {LATEST_GUIDES.map((guide) => (
+              <li className="guide-card" key={guide.slug}>
+                <h3 className="guide-card-title">
+                  <Link href={guidePath(guide.slug)}>{guide.title}</Link>
+                </h3>
+                <p className="guide-card-desc">{guide.description}</p>
+                <p className="guide-card-meta">
+                  Updated {formatGuideDate(guide.updated)} · {guide.readMinutes}{" "}
+                  min read
+                </p>
+              </li>
+            ))}
+          </ul>
+          <p className="deal-page-back">
+            <Link href="/guides">All buying guides →</Link>
+          </p>
         </section>
 
         <section className="home-how" id="how-we-evaluate">
