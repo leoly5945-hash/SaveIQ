@@ -1,6 +1,6 @@
 import { getApiBaseUrl } from "@/lib/config";
 
-export const FEATURED_DEALS_HEADING = "Featured deals";
+export const FEATURED_DEALS_HEADING = "Recently checked prices";
 export const FEATURED_DEALS_BLURB =
   "Real products we price-checked by hand, across everyday categories. Prices are a snapshot from the date shown — always confirm the current price at the retailer before you buy.";
 export const AMAZON_ASSOCIATE_DISCLOSURE =

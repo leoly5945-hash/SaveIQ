@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { Archivo } from "next/font/google";
 import "./globals.css";
 
+import { SiteFooter } from "@/components/site-footer";
 import { getBrandName, getSiteUrl } from "@/lib/config";
 
 const brandName = getBrandName();
@@ -16,8 +17,9 @@ const archivo = Archivo({
 
 export const metadata: Metadata = {
   metadataBase: new URL(getSiteUrl()),
-  title: brandName,
-  description: "Find product deals and affiliate offers in Canada.",
+  title: `${brandName} — Independent buying guides for Canadian shoppers`,
+  description:
+    "Independent buying guides and price analysis for Canadian shoppers.",
   alternates: { canonical: "/" },
 };
 
@@ -48,6 +50,7 @@ export default function RootLayout({
           createElement("meta", { key: tag.value, name: tag.name, value: tag.value }),
         )}
         {children}
+        <SiteFooter />
       </body>
     </html>
   );

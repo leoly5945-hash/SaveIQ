@@ -4,13 +4,19 @@
  * Each guide links to the deal categories it relates to.
  */
 
-export type GuideSection = { heading: string; body: string[] };
+export type GuideTable = { caption: string; headers: string[]; rows: string[][] };
+
+export type GuideSection = { heading: string; body: string[]; table?: GuideTable };
+
+export type GuideSource = { label: string; url: string };
 
 export type Guide = {
   slug: string;
   title: string;
   description: string;
   updated: string; // ISO date
+  checked?: string; // ISO date the prices/specs were last checked at the source
+  sources?: GuideSource[];
   readMinutes: number;
   intro: string[];
   sections: GuideSection[];
@@ -18,6 +24,233 @@ export type Guide = {
 };
 
 export const GUIDES: Guide[] = [
+  {
+    slug: "samsung-galaxy-s26-canada-price-specs",
+    title: "Samsung Galaxy S26 in Canada: price, specs and who it’s for",
+    description:
+      "Canadian list prices and published specifications for the Galaxy S26 family, what the differences add up to, and who each model suits.",
+    updated: "2026-09-18",
+    checked: "2026-09-18",
+    readMinutes: 5,
+    intro: [
+      "This is a research guide, not a hands-on review. We have not tested the Galaxy S26. Everything below comes from the prices and specifications Samsung publishes for Canada, plus arithmetic on those numbers, and the source and date for each figure are listed at the end.",
+      "Prices are a snapshot from September 18, 2026. Samsung, retailers and carriers change prices and promotions often, so confirm the current price before you buy.",
+    ],
+    sections: [
+      {
+        heading: "Canadian list prices",
+        body: [
+          "These are the prices Samsung Canada lists for outright purchase, in Canadian dollars. Samsung also shows monthly-payment options next to each price; check the term and the total you would pay before choosing one.",
+        ],
+        table: {
+          caption: "Galaxy S26 family: Samsung Canada list prices (CAD), checked September 18, 2026",
+          headers: ["Model", "Storage / RAM", "List price"],
+          rows: [
+            ["Galaxy S26 FE", "Starting configuration", "$1,049.99"],
+            ["Galaxy S26", "256 GB / 12 GB", "$1,249.99"],
+            ["Galaxy S26", "512 GB / 12 GB", "$1,529.99"],
+            ["Galaxy S26+", "Starting configuration", "$1,529.99"],
+            ["Galaxy S26 Ultra", "256 GB / 12 GB", "$1,899.99"],
+            ["Galaxy S26 Ultra", "512 GB / 12 GB", "$2,179.99"],
+            ["Galaxy S26 Ultra", "1 TB / 16 GB", "$2,599.99"],
+          ],
+        },
+      },
+      {
+        heading: "The Galaxy S26 specifications that matter",
+        body: [
+          "Samsung’s own comparison lists these figures for the standard Galaxy S26. Battery-life figures are Samsung’s estimates and are not directly comparable with other brands’ figures, which use different test methods.",
+        ],
+        table: {
+          caption: "Galaxy S26 published specifications (Samsung Canada)",
+          headers: ["Spec", "Galaxy S26"],
+          rows: [
+            ["Display", "6.3-inch, 2340 x 1080 (FHD+) Dynamic AMOLED 2X"],
+            ["Processor", "Snapdragon 8 Elite Gen 5 for Galaxy"],
+            ["Rear cameras", "50 MP wide, 12 MP ultra wide, 10 MP telephoto (3x optical zoom)"],
+            ["Front camera", "12 MP"],
+            ["Battery", "4,300 mAh; Samsung estimates up to 31 hours of video playback"],
+            ["Weight", "167 g"],
+          ],
+        },
+      },
+      {
+        heading: "What the price gaps buy you",
+        body: [
+          "Going from the Galaxy S26 to the S26+ costs $280 at the starting configuration ($1,249.99 to $1,529.99). Samsung’s specifications show what that money changes: a 6.7-inch QHD+ (3120 x 1440) display instead of a 6.3-inch FHD+ one, a 4,900 mAh battery instead of 4,300 mAh, and a heavier phone at 190 g instead of 167 g. The processor and camera resolutions are the same on both.",
+          "Doubling the Galaxy S26’s storage from 256 GB to 512 GB is also $280. The Galaxy S26 FE is $200 below the S26 at its starting price, with a 6.7-inch FHD+ display, a 4,900 mAh battery and a different processor (Exynos 2500).",
+          "The S26 Ultra starts $650 above the S26 and $370 above the S26+ at 256 GB. Samsung lists it at 214 g with a 5,000 mAh battery. See Samsung’s comparison tool for its full specification list.",
+        ],
+      },
+      {
+        heading: "Who the Galaxy S26 suits",
+        body: [
+          "On the numbers, the standard S26 is the compact choice. At 167 g it is the lightest phone in Samsung’s S26 line-up, and it has the same processor as the S26+. It suits someone who wants a flagship-class chip without a large, heavy phone.",
+          "It is a weaker fit if a bigger screen or a larger battery matters more than size: the S26+ offers both for $280 more, and the S26 FE offers a large screen for less, with a different processor.",
+        ],
+      },
+      {
+        heading: "What we haven’t tested",
+        body: [
+          "We haven’t measured battery life, camera quality, performance or display brightness. Samsung notes its battery estimates come from testing on pre-release units, and real-world results depend on network, settings and usage. For those questions, rely on independent lab tests and reviewers who have used the phone, and read more than one.",
+        ],
+      },
+      {
+        heading: "Before you buy in Canada",
+        body: [
+          "Samsung’s page lists some colours as available only at Samsung.com and Samsung Experience Stores, and shows a trade-in credit (up to $490 on the Galaxy S26 FE when we checked). Trade-in values depend on the device you trade in.",
+          "Compare an unlocked phone with a carrier plan on the total cost over the full term, not the monthly figure alone. Then read the retailer’s return policy: it is part of the price.",
+        ],
+      },
+    ],
+    sources: [
+      { label: "Samsung Canada: Galaxy S26, S26+ and S26 FE (buy page, checked 2026-09-18)", url: "https://www.samsung.com/ca/smartphones/galaxy-s26/buy/" },
+      { label: "Samsung Canada: Galaxy S26 Ultra (buy page, checked 2026-09-18)", url: "https://www.samsung.com/ca/smartphones/galaxy-s26-ultra/buy/" },
+      { label: "MobileSyrup: Galaxy S26 series Canadian pricing (February 25, 2026)", url: "https://mobilesyrup.com/2026/02/25/samsung-galaxy-s26-series-pricing-canada/" },
+    ],
+    relatedCategories: ["electronics"],
+  },
+  {
+    slug: "which-samsung-galaxy-phone-to-buy-canada",
+    title: "Which Samsung Galaxy S26 should you buy in Canada?",
+    description:
+      "A plain guide to choosing between the Galaxy S26, S26+, S26 FE and S26 Ultra in Canada, with the price gaps and what each step up changes.",
+    updated: "2026-09-18",
+    checked: "2026-09-18",
+    readMinutes: 5,
+    intro: [
+      "Samsung sells four Galaxy S26 models in Canada, and the price range from the cheapest to the dearest is more than $1,500. This guide helps you decide how far up the range you actually need to go.",
+      "It is built from Samsung Canada’s published prices and specifications, checked September 18, 2026. We have not tested the phones. Confirm current prices before you buy.",
+    ],
+    sections: [
+      {
+        heading: "The four models at a glance",
+        body: [
+          "Start with the physical size you are happy to carry, since that narrows the choice faster than any spec.",
+        ],
+        table: {
+          caption: "Galaxy S26 family: Samsung Canada published figures, checked September 18, 2026",
+          headers: ["Model", "Display", "Weight", "Battery", "Starting price"],
+          rows: [
+            ["Galaxy S26", "6.3-inch FHD+", "167 g", "4,300 mAh", "$1,249.99"],
+            ["Galaxy S26 FE", "6.7-inch FHD+", "193 g", "4,900 mAh", "$1,049.99"],
+            ["Galaxy S26+", "6.7-inch QHD+", "190 g", "4,900 mAh", "$1,529.99"],
+            ["Galaxy S26 Ultra", "See Samsung’s page", "214 g", "5,000 mAh", "$1,899.99"],
+          ],
+        },
+      },
+      {
+        heading: "Is the S26+ worth $280 more than the S26?",
+        body: [
+          "Only if you want the bigger screen and battery. For $280 more you get a 6.7-inch QHD+ display (3120 x 1440) rather than a 6.3-inch FHD+ one, and a 4,900 mAh battery rather than 4,300 mAh. Both phones use the same Snapdragon 8 Elite Gen 5 for Galaxy processor and have the same camera resolutions, so if you do not need the larger screen or battery, the standard S26 does the same job for less.",
+        ],
+      },
+      {
+        heading: "Where the S26 FE fits",
+        body: [
+          "The S26 FE is $200 cheaper than the S26 at its starting price and has a large 6.7-inch screen and a 4,900 mAh battery. The trade-off Samsung lists is a different processor, the Exynos 2500, and a slightly lower video-playback estimate (29 hours against 31). It is the option to look at if screen size and price matter more than having the S26’s chip.",
+        ],
+      },
+      {
+        heading: "Do you need 512 GB?",
+        body: [
+          "Doubling storage on the S26 from 256 GB to 512 GB costs $280 ($1,249.99 to $1,529.99). Choose 512 GB if you record a lot of video, keep large offline libraries, or plan to keep the phone for many years. If most of your photos and files live in the cloud, 256 GB is usually enough.",
+        ],
+      },
+      {
+        heading: "What the S26 Ultra adds",
+        body: [
+          "The Ultra starts at $1,899.99, which is $650 above the S26 and $370 above the S26+. Samsung lists it at 214 g with a 5,000 mAh battery. Compare its full specification sheet on Samsung’s site and decide whether the features that differ are ones you would use every week, since that is what you are paying the extra for.",
+        ],
+      },
+      {
+        heading: "Unlocked, carrier plan or trade-in",
+        body: [
+          "Samsung lists monthly-payment options beside each price. Add up the full amount you would pay over the whole term and compare it with the outright price, and check whether the phone is locked to the carrier.",
+          "Samsung’s page shows a trade-in credit on the Galaxy S26 FE of up to $490 with an eligible device; the amount depends on what you trade in and its condition.",
+        ],
+      },
+      {
+        heading: "Should you wait for a lower price?",
+        body: [
+          "Samsung’s list prices for the S26, S26+ and S26 Ultra were the same on September 18, 2026 as the launch prices MobileSyrup reported in February. That suggests Samsung’s own list price has not moved. Retailer and carrier promotions are separate and change often, so compare the same model and storage across stores before you buy.",
+        ],
+      },
+    ],
+    sources: [
+      { label: "Samsung Canada: Galaxy S26, S26+ and S26 FE (buy page, checked 2026-09-18)", url: "https://www.samsung.com/ca/smartphones/galaxy-s26/buy/" },
+      { label: "Samsung Canada: Galaxy S26 Ultra (buy page, checked 2026-09-18)", url: "https://www.samsung.com/ca/smartphones/galaxy-s26-ultra/buy/" },
+      { label: "MobileSyrup: Galaxy S26 series Canadian pricing (February 25, 2026)", url: "https://mobilesyrup.com/2026/02/25/samsung-galaxy-s26-series-pricing-canada/" },
+    ],
+    relatedCategories: ["electronics"],
+  },
+  {
+    slug: "galaxy-s26-vs-iphone-17-vs-pixel-10-canada",
+    title: "Galaxy S26 vs iPhone 17 vs Pixel 10 in Canada: prices and specs compared",
+    description:
+      "The Samsung Galaxy S26, Apple iPhone 17 and Google Pixel 10 side by side: Canadian prices and manufacturer-published specifications, with what the differences mean.",
+    updated: "2026-09-18",
+    checked: "2026-09-18",
+    readMinutes: 6,
+    intro: [
+      "These three phones are the standard-size flagships from Samsung, Apple and Google. This guide compares the prices each company lists in Canada and the specifications each publishes, checked September 18, 2026. We have not tested any of them.",
+      "Two cautions apply throughout. Each maker measures battery life its own way, so those figures are not directly comparable. And the prices below are starting prices, so compare storage tiers before you conclude one phone is cheaper.",
+    ],
+    sections: [
+      {
+        heading: "Canadian prices",
+        body: [
+          "The Galaxy S26 (256 GB) is $49.01 cheaper than the iPhone 17 (256 GB) at list price. Google’s page shows the Pixel 10 “from” $1,099 but does not state the storage tier at that price on the page we read, so check the storage before comparing it with the other two.",
+        ],
+        table: {
+          caption: "List prices in CAD from each maker’s Canadian store, checked September 18, 2026",
+          headers: ["Phone", "Starting price", "Storage at that price"],
+          rows: [
+            ["Samsung Galaxy S26", "$1,249.99", "256 GB"],
+            ["Apple iPhone 17", "$1,299.00", "256 GB"],
+            ["Google Pixel 10", "$1,099.00", "Not stated on the page we read"],
+          ],
+        },
+      },
+      {
+        heading: "Specifications side by side",
+        body: [
+          "All figures below are as published by each manufacturer for Canada.",
+        ],
+        table: {
+          caption: "Manufacturer-published specifications",
+          headers: ["Spec", "Galaxy S26", "iPhone 17", "Pixel 10"],
+          rows: [
+            ["Display", "6.3-inch, 2340 x 1080 Dynamic AMOLED 2X", "6.3-inch, 2622 x 1206 OLED, ProMotion up to 120 Hz", "160 mm (about 6.3-inch), 1080 x 2424 OLED, 60–120 Hz"],
+            ["Processor", "Snapdragon 8 Elite Gen 5 for Galaxy", "A19", "Google Tensor G5"],
+            ["Weight", "167 g", "177 g", "204 g"],
+            ["Battery", "4,300 mAh", "Capacity not published; up to 30 hours video playback (Apple)", "4,970 mAh typical"],
+          ],
+        },
+      },
+      {
+        heading: "What the differences add up to",
+        body: [
+          "Size and weight are the clearest gap. The Galaxy S26 is the lightest at 167 g; the iPhone 17 is 10 g heavier at 177 g; the Pixel 10 is 204 g, which is 37 g heavier than the Galaxy S26. If you carry the phone in a small pocket all day, that matters.",
+          "Battery capacity in mAh only compares like with like. The Pixel 10 has the largest published capacity, but the phones use different chips and software, and Apple does not publish a capacity at all. For battery life, look for independent tests that ran the same workload on all three.",
+          "All three use roughly 6.3-inch OLED panels, so screen size is unlikely to separate them. Resolution and refresh-rate details differ between the makers’ spec sheets, and we have not compared the screens side by side.",
+        ],
+      },
+      {
+        heading: "Which should you choose?",
+        body: [
+          "The biggest factor is usually the ecosystem you already live in. If your laptop, watch, earbuds and family sharing are Apple, the iPhone 17 is the smoother fit. If you use Google services heavily, the Pixel 10 is built around them. If you want an Android phone from a company that also makes its own TVs, tablets and wearables, the Galaxy S26 fits that.",
+          "If weight and pocket size are your priority, the specifications favour the Galaxy S26. If price is the deciding factor, check the Pixel 10’s storage tier and any current promotion on all three before you decide.",
+        ],
+      },
+    ],
+    sources: [
+      { label: "Samsung Canada: Galaxy S26 (buy page, checked 2026-09-18)", url: "https://www.samsung.com/ca/smartphones/galaxy-s26/buy/" },
+      { label: "Apple Canada: iPhone 17 (buy page and technical specifications, checked 2026-09-18)", url: "https://www.apple.com/ca/iphone-17/specs/" },
+      { label: "Google Store Canada: Pixel 10 (price and specifications, checked 2026-09-18)", url: "https://store.google.com/ca/product/pixel_10_specs?hl=en-CA" },
+    ],
+    relatedCategories: ["electronics"],
+  },
   {
     slug: "how-to-find-the-lowest-price-in-canada",
     title: "How to actually find the lowest price in Canada",

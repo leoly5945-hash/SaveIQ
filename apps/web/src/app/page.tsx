@@ -1,12 +1,25 @@
 import Link from "next/link";
 
 import { getBrandName } from "@/lib/config";
-import { HOME_AFFILIATE_DISCLOSURE } from "@/lib/home-recommendations";
+import { GUIDES, guidePath } from "@/lib/guides";
 
 import { CheckBox } from "./check-box";
 import { DiscoverBox } from "./discover-box";
 import { FeaturedDeals } from "./featured-deals";
 import { MultiStoreShowcase } from "./multi-store-showcase";
+
+const LATEST_GUIDES = [...GUIDES]
+  .sort((a, b) => b.updated.localeCompare(a.updated))
+  .slice(0, 3);
+
+function formatGuideDate(iso: string) {
+  return new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-CA", {
+    day: "numeric",
+    month: "short",
+    timeZone: "UTC",
+    year: "numeric",
+  });
+}
 
 export default function Home() {
   const brandName = getBrandName();
@@ -37,11 +50,12 @@ export default function Home() {
             {brandName}
           </p>
           <nav className="home-nav">
-            <Link href="/deals">Deals</Link>
             <Link href="/guides">Guides</Link>
+            <a href="#price-check">Price Check</a>
+            <Link href="/deals">Price Watch</Link>
             <Link href="/watchlist">Watchlist</Link>
             <Link href="/about">About</Link>
-            <a href="#how-it-works">How it works</a>
+            <a href="#how-we-evaluate">How we evaluate</a>
           </nav>
         </div>
         <p className="home-valueprop">
@@ -51,45 +65,90 @@ export default function Home() {
       </header>
 
       <main className="home-shell">
-        <p className="home-eyebrow">Shopping decisions · Canada</p>
+        <p className="home-eyebrow">Independent buying guides · Canada</p>
         <h1 className="home-title">
-          What are you thinking of buying?
+          Independent buying guides{" "}
           <br />
-          <span>We&apos;ll tell you: buy now, or wait.</span>
+          <span>for Canadian shoppers.</span>
         </h1>
         <p className="home-sub">
-          Describe a product and {brandName} finds it, reads the last 90 days of
-          price history, and gives you one clear call — with the reasons. Not a
-          good time? We&apos;ll email you once when it drops.
+          {brandName} publishes buying guides, side-by-side comparisons and
+          price-history analysis for everyday products, and shows its reasoning.
+          We don&apos;t sell products or run coupon codes or cashback programs,
+          and no retailer can pay for a better verdict.
         </p>
-
-        <DiscoverBox />
-
-        <div className="home-secondary">
-          <p className="home-secondary-label">
-            Already looking at something on Amazon.ca? Paste the link.
-          </p>
-          <CheckBox />
-          <p className="home-bookmarklet-hint">
-            Or see the verdict right on the Amazon page —{" "}
-            <a
-              href="https://chromewebstore.google.com/detail/epcfmakpbfdeonhppndolmadnbakjoie"
-              rel="noreferrer"
-              target="_blank"
-            >
-              get the Chrome extension
-            </a>
-            , or <Link href="/tools">add the 1-click bookmarklet</Link>.
-          </p>
+        <div className="home-cta-row">
+          <Link className="deal-card-cta" href="/guides">
+            Read the buying guides
+          </Link>
+          <a className="home-cta-secondary" href="#price-check">
+            Check a price →
+          </a>
         </div>
 
-        <MultiStoreShowcase />
-
-        <FeaturedDeals />
-
-        <section className="home-how" id="how-it-works">
+        <section className="home-latest" aria-labelledby="latest-guides-heading">
           <div className="home-how-head">
-            <h2>How the check works</h2>
+            <h2 id="latest-guides-heading">Latest buying guides</h2>
+            <p>
+              Plain, factual guides written to be useful to a shopper, not to
+              sell. Each one shows when it was last updated.
+            </p>
+          </div>
+          <ul className="guides-list">
+            {LATEST_GUIDES.map((guide) => (
+              <li className="guide-card" key={guide.slug}>
+                <h3 className="guide-card-title">
+                  <Link href={guidePath(guide.slug)}>{guide.title}</Link>
+                </h3>
+                <p className="guide-card-desc">{guide.description}</p>
+                <p className="guide-card-meta">
+                  Updated {formatGuideDate(guide.updated)} · {guide.readMinutes}{" "}
+                  min read
+                </p>
+              </li>
+            ))}
+          </ul>
+          <p className="deal-page-back">
+            <Link href="/guides">All buying guides →</Link>
+          </p>
+        </section>
+
+        <section className="home-pricecheck" id="price-check" aria-labelledby="price-check-heading">
+          <div className="home-how-head">
+            <h2 id="price-check-heading">Check a price</h2>
+            <p>
+              Describe a product and {brandName} finds it, reads the last 90 days
+              of price history, and gives you one clear call — with the reasons.
+              Not a good time? We&apos;ll email you once when it drops.
+            </p>
+          </div>
+
+          <DiscoverBox />
+
+          <div className="home-secondary">
+            <p className="home-secondary-label">
+              Already looking at something on Amazon.ca? Paste the link.
+            </p>
+            <CheckBox />
+            <p className="home-bookmarklet-hint">
+              Or see the verdict right on the Amazon page —{" "}
+              <a
+                href="https://chromewebstore.google.com/detail/epcfmakpbfdeonhppndolmadnbakjoie"
+                rel="noreferrer"
+                target="_blank"
+              >
+                get the Chrome extension
+              </a>
+              , or <Link href="/tools">add the 1-click bookmarklet</Link>.
+            </p>
+          </div>
+
+          <MultiStoreShowcase />
+        </section>
+
+        <section className="home-how" id="how-we-evaluate">
+          <div className="home-how-head">
+            <h2>How we evaluate</h2>
             <p>
               {brandName} is a read-out, not a store. We look at the numbers; you
               buy from the retailer you already trust.
@@ -133,37 +192,16 @@ export default function Home() {
               </p>
             </li>
           </ol>
+          <p className="home-how-note">
+            We don&apos;t lab-test products. Our guides and verdicts are built
+            from published specifications, the price history we record at
+            Canadian retailers, and independent measurements we cite by name.
+            Read our <Link href="/editorial-guidelines">Editorial Guidelines</Link>{" "}
+            and <Link href="/affiliate-disclosure">Affiliate Disclosure</Link>.
+          </p>
         </section>
 
-        <footer className="home-footer">
-          <div className="home-footer-org">
-            <p className="home-footer-brand">{brandName}</p>
-            <p>
-              <strong>Nextwave Software Company</strong> (registered in Vietnam)
-              {" · "}Vancouver, BC, Canada
-              <br />
-              Contact: Leo Do —{" "}
-              <a href="mailto:leoly5945@gmail.com">leoly5945@gmail.com</a>
-            </p>
-            <p className="home-footer-links">
-              <Link href="/deals">Deals</Link>
-              <span aria-hidden="true"> · </span>
-              <Link href="/guides">Guides</Link>
-              <span aria-hidden="true"> · </span>
-              <Link href="/tools">Bookmarklet</Link>
-              <span aria-hidden="true"> · </span>
-              <Link href="/about">About</Link>
-              <span aria-hidden="true"> · </span>
-              <Link href="/privacy">Privacy</Link>
-              <span aria-hidden="true"> · </span>
-              <Link href="/terms">Terms</Link>
-            </p>
-          </div>
-          <p>{HOME_AFFILIATE_DISCLOSURE}</p>
-          <p className="home-footer-legal">
-            © 2026 Nextwave Software Company. All rights reserved.
-          </p>
-        </footer>
+        <FeaturedDeals />
       </main>
     </div>
   );
