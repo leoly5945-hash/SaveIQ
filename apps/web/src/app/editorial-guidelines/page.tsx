@@ -1,14 +1,13 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 
-import { getBrandName, getSiteUrl } from "@/lib/config";
+import { CONTACT_EMAIL, getBrandName, getSiteUrl } from "@/lib/config";
 import { safeJsonLd } from "@/lib/json-ld";
 
 const brandName = getBrandName();
 
 const OPERATOR_NAME = "Nextwave Software Company";
 const CONTACT_NAME = "Leo Do";
-const CONTACT_EMAIL = "leoly5945@gmail.com";
 const LAST_UPDATED = "September 18, 2026";
 
 const DESCRIPTION =
@@ -142,6 +141,27 @@ export default function EditorialGuidelinesPage() {
           <li>
             We do not sell, ship or take payment for products. Every purchase
             happens on the retailer&apos;s own site under its own terms.
+          </li>
+        </ul>
+      </section>
+
+      <section className="privacy-section">
+        <h2>Financial topics</h2>
+        <ul>
+          <li>
+            We compare fees and terms that companies publish, and we cite the
+            official page and the date we checked it.
+          </li>
+          <li>
+            We only feature crypto platforms that appear on the Canadian
+            Securities Administrators&apos; list of platforms authorized to do
+            business with Canadians.
+          </li>
+          <li>
+            We do not tell readers to buy, sell or hold any asset, and our
+            content is not financial, investment, tax or legal advice. See the
+            risk warning in our{" "}
+            <Link href="/affiliate-disclosure">Affiliate Disclosure</Link>.
           </li>
         </ul>
       </section>

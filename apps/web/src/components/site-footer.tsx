@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { getBrandName } from "@/lib/config";
+import { CONTACT_EMAIL, getBrandName } from "@/lib/config";
 import { HOME_AFFILIATE_DISCLOSURE } from "@/lib/home-recommendations";
 
 const FOOTER_LINKS: { href: string; label: string }[] = [
@@ -8,6 +8,7 @@ const FOOTER_LINKS: { href: string; label: string }[] = [
   { href: "/deals", label: "Price Watch" },
   { href: "/tools", label: "Bookmarklet" },
   { href: "/about", label: "About" },
+  { href: "/contact", label: "Contact" },
   { href: "/editorial-guidelines", label: "Editorial Guidelines" },
   { href: "/affiliate-disclosure", label: "Affiliate Disclosure" },
   { href: "/privacy", label: "Privacy" },
@@ -26,7 +27,7 @@ export function SiteFooter() {
           {" · "}Vancouver, BC, Canada
           <br />
           Contact: Leo Do —{" "}
-          <a href="mailto:leoly5945@gmail.com">leoly5945@gmail.com</a>
+          <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>
         </p>
         <p className="home-footer-links">
           {FOOTER_LINKS.map((link, index) => (

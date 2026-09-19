@@ -23,7 +23,7 @@ describe("AboutPage", () => {
     expect(text).toContain("Nextwave Software Company");
     expect(text).toContain("Vancouver, BC, Canada");
     expect(text).toContain("Leo Do");
-    expect(text).toContain("leoly5945@gmail.com");
+    expect(text).toContain("info@saveiq.ca");
     expect(text).toContain("Amazon Associate");
     expect(text).toContain("never add a markup");
     expect(text).toContain("checked by hand");

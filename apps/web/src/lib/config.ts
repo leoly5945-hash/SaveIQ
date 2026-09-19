@@ -13,3 +13,6 @@ export function getSiteUrl() {
     "https://www.saveiq.ca"
   );
 }
+
+/** Public contact address shown on the site (routed by Cloudflare Email Routing). */
+export const CONTACT_EMAIL = "info@saveiq.ca";
