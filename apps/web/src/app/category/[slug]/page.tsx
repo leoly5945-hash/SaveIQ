@@ -86,7 +86,7 @@ export default async function CategoryPage({ params }: Params) {
 
       <p className="category-page-disclosure">{AMAZON_ASSOCIATE_DISCLOSURE}</p>
       <p className="deal-page-back">
-        <Link href="/deals">← All deals</Link>
+        <Link href="/deals">← All price checks</Link>
         {" · "}
         <Link href="/guides">All guides</Link>
       </p>

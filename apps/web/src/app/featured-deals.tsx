@@ -51,7 +51,7 @@ export function FeaturedDeals() {
       </div>
 
       {categories.length > 0 ? (
-        <nav className="home-featured-cats" aria-label="Browse deals by category">
+        <nav className="home-featured-cats" aria-label="Browse price checks by category">
           {categories.map((cat) => (
             <Link key={cat.slug} href={categoryPath(cat.slug)}>
               {cat.name}
@@ -59,7 +59,7 @@ export function FeaturedDeals() {
             </Link>
           ))}
           <Link className="home-featured-cats-all" href="/deals">
-            All deals →
+            All price checks →
           </Link>
         </nav>
       ) : null}
@@ -91,7 +91,7 @@ export function FeaturedDeals() {
       </ul>
 
       <p className="home-featured-more">
-        <Link href="/deals">Browse all deals →</Link>
+        <Link href="/deals">See every price check →</Link>
       </p>
       <p className="home-featured-disclosure">{AMAZON_ASSOCIATE_DISCLOSURE}</p>
     </section>

@@ -46,7 +46,7 @@ export default function GuidesPage() {
       </ul>
 
       <p className="deal-page-back">
-        <Link href="/deals">Browse all deals →</Link>
+        <Link href="/deals">See recent price checks →</Link>
       </p>
     </main>
   );
