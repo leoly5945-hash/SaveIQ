@@ -110,6 +110,19 @@ export default function AboutPage() {
       </section>
 
       <section className="privacy-section">
+        <h2>How we research</h2>
+        <p>
+          We do not lab-test products or receive them for review. Our guides and
+          verdicts are built from published specifications, the price history we
+          record at Canadian retailers, and independent measurements we cite by
+          name. The full process is in our{" "}
+          <Link href="/editorial-guidelines">Editorial Guidelines</Link>, and
+          the commercial side is explained in our{" "}
+          <Link href="/affiliate-disclosure">Affiliate Disclosure</Link>.
+        </p>
+      </section>
+
+      <section className="privacy-section">
         <h2>The rules we hold ourselves to</h2>
         <ul>
           <li>
@@ -138,9 +151,9 @@ export default function AboutPage() {
       <section className="privacy-section">
         <h2>Where to start</h2>
         <p>
-          Browse the <Link href="/deals">current deals</Link>, or read the{" "}
-          <Link href="/guides">buying guides</Link> for how to tell a real price
-          from a marked-up one. The full <Link href="/terms">Terms of Use</Link>{" "}
+          Read the <Link href="/guides">buying guides</Link> for how to tell a
+          real price from a marked-up one, or see our{" "}
+          <Link href="/deals">recent price checks</Link>. The full <Link href="/terms">Terms of Use</Link>{" "}
           cover the legal side.
         </p>
       </section>

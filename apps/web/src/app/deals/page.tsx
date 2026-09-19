@@ -15,11 +15,11 @@ import {
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "All deals — hand-checked prices in Canada | SaveIQ",
+  title: "Price Watch — hand-checked prices in Canada | SaveIQ",
   description: FEATURED_DEALS_BLURB,
   alternates: { canonical: "/deals" },
   openGraph: {
-    title: "All deals — SaveIQ",
+    title: "Price Watch — SaveIQ",
     description: FEATURED_DEALS_BLURB,
     url: `${getSiteUrl()}/deals`,
     type: "website",
@@ -37,14 +37,14 @@ export default async function DealsPage() {
       <nav className="crumbs" aria-label="Breadcrumb">
         <Link href="/">SaveIQ</Link>
         <span aria-hidden="true"> / </span>
-        <span>Deals</span>
+        <span>Price Watch</span>
       </nav>
 
-      <h1 className="home-title deals-page-title">All deals</h1>
+      <h1 className="home-title deals-page-title">Price Watch</h1>
       <p className="deals-page-intro">{FEATURED_DEALS_BLURB}</p>
 
       {categories.length > 0 ? (
-        <nav className="deals-page-cats" aria-label="Deal categories">
+        <nav className="deals-page-cats" aria-label="Price Watch categories">
           {categories.map((cat) => (
             <Link key={cat.slug} href={categoryPath(cat.slug)}>
               {cat.name} ({cat.count})
@@ -56,7 +56,7 @@ export default async function DealsPage() {
       {deals.length > 0 ? (
         <DealGrid deals={deals} />
       ) : (
-        <p className="state-message">Deals are loading. Check back shortly.</p>
+        <p className="state-message">Price checks are loading. Check back shortly.</p>
       )}
 
       <p className="category-page-disclosure">{AMAZON_ASSOCIATE_DISCLOSURE}</p>

@@ -78,10 +78,12 @@ export default async function GuidePage({ params }: Params) {
     ],
   };
 
-  const updated = new Intl.DateTimeFormat("en-CA", {
-    dateStyle: "long",
-    timeZone: "UTC",
-  }).format(new Date(`${guide.updated}T00:00:00Z`));
+  const formatDate = (iso: string) =>
+    new Intl.DateTimeFormat("en-CA", {
+      dateStyle: "long",
+      timeZone: "UTC",
+    }).format(new Date(`${iso}T00:00:00Z`));
+  const updated = formatDate(guide.updated);
 
   return (
     <main className="home-shell guide-page">
@@ -99,6 +101,9 @@ export default async function GuidePage({ params }: Params) {
       <h1 className="home-title guide-page-title">{guide.title}</h1>
       <p className="guide-page-meta">
         {guide.readMinutes} min read · Updated {updated}
+        {guide.checked
+          ? ` · Prices and specifications checked ${formatDate(guide.checked)}`
+          : null}
       </p>
 
       {guide.intro.map((p, i) => (
@@ -113,12 +118,52 @@ export default async function GuidePage({ params }: Params) {
           {section.body.map((p, i) => (
             <p key={i}>{p}</p>
           ))}
+          {section.table ? (
+            <div className="guide-table-wrap">
+              <table className="guide-table">
+                <caption>{section.table.caption}</caption>
+                <thead>
+                  <tr>
+                    {section.table.headers.map((header) => (
+                      <th scope="col" key={header}>
+                        {header}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {section.table.rows.map((row) => (
+                    <tr key={row.join("|")}>
+                      {row.map((cell, i) => (
+                        <td key={i}>{cell}</td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : null}
         </section>
       ))}
 
+      {guide.sources && guide.sources.length > 0 ? (
+        <section className="guide-section guide-sources">
+          <h2>Sources</h2>
+          <ul>
+            {guide.sources.map((source) => (
+              <li key={source.url}>
+                <a href={source.url} rel="noopener noreferrer" target="_blank">
+                  {source.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
       {guide.relatedCategories && guide.relatedCategories.length > 0 ? (
         <section className="guide-related">
-          <h2>Related deals</h2>
+          <h2>Related price checks</h2>
           <p className="guide-related-links">
             {guide.relatedCategories.map((cat) => (
               <Link href={categoryPath(cat)} key={cat}>
@@ -129,11 +174,16 @@ export default async function GuidePage({ params }: Params) {
         </section>
       ) : null}
 
-      <p className="guide-page-disclosure">{AMAZON_ASSOCIATE_DISCLOSURE}</p>
+      <p className="guide-page-disclosure">
+        How we research: see our{" "}
+        <Link href="/editorial-guidelines">Editorial Guidelines</Link> and{" "}
+        <Link href="/affiliate-disclosure">Affiliate Disclosure</Link>.{" "}
+        {AMAZON_ASSOCIATE_DISCLOSURE}
+      </p>
       <p className="deal-page-back">
         <Link href="/guides">← All guides</Link>
         {" · "}
-        <Link href="/deals">Browse deals</Link>
+        <Link href="/deals">Price Watch</Link>
       </p>
     </main>
   );

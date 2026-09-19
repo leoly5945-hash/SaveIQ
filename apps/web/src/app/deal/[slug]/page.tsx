@@ -139,7 +139,7 @@ export default async function DealPage({ params }: Params) {
       <p className="deal-page-disclosure">{AMAZON_ASSOCIATE_DISCLOSURE}</p>
 
       <p className="deal-page-back">
-        <Link href="/deals">← Browse all deals</Link>
+        <Link href="/deals">← See every price check</Link>
         {deal.category && deal.category_slug ? (
           <>
             {" · "}
