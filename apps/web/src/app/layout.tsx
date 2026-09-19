@@ -21,6 +21,8 @@ export const metadata: Metadata = {
   description:
     "Independent buying guides and price analysis for Canadian shoppers.",
   alternates: { canonical: "/" },
+  // Awin publisher site verification (Promotional Spaces > Verify Site).
+  other: { verification: "610cabf17a8c5a0d90e5d7e1ebc642c0" },
 };
 
 // Site-verification <meta> tags. Impact.com's crawler reads the `value`
