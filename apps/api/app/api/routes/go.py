@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ipaddress
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
@@ -16,8 +17,21 @@ AppSettings = Annotated[Settings, Depends(get_settings)]
 router = APIRouter(prefix="/go", tags=["go"])
 
 
+def _valid_ip(value: str | None) -> str | None:
+    if not value:
+        return None
+    try:
+        return str(ipaddress.ip_address(value.strip()))
+    except ValueError:
+        return None
+
+
 def _resolve_client_ip(
-    *, cf_connecting_ip: str | None, x_forwarded_for: str | None, request: Request
+    *,
+    cf_connecting_ip: str | None,
+    x_forwarded_for: str | None,
+    request: Request,
+    x_saveiq_client_ip: str | None = None,
 ) -> str | None:
     """Best-effort real client IP for the click log fraud_detection relies on.
 
@@ -32,7 +46,18 @@ def _resolve_client_ip(
     raw TCP peer. None of this is bulletproof if the API is reachable by a
     path that bypasses Cloudflare entirely, but it stops the trivial case of
     "just send the header you want logged."
+
+    Clicks normally reach this API from our own web service, not from the
+    visitor, so every header above describes the web service's egress IP. The
+    web `/go` route therefore passes the visitor's IP as `X-SaveIQ-Client-IP`
+    (it cannot use `CF-Connecting-IP`, which Cloudflare rejects when sent by a
+    client). It is preferred when it parses as an IP address. A direct caller
+    can forge it, but only to vary the value hashed for click de-dup and fraud
+    signals — the same power the client-supplied `aid` already gives them.
     """
+    forwarded = _valid_ip(x_saveiq_client_ip)
+    if forwarded:
+        return forwarded
     if cf_connecting_ip:
         return cf_connecting_ip.strip()
     if x_forwarded_for:
@@ -54,13 +79,17 @@ def redirect_to_offer(
     referer: Annotated[str | None, Header(alias="referer")] = None,
     x_forwarded_for: Annotated[str | None, Header(alias="x-forwarded-for")] = None,
     cf_connecting_ip: Annotated[str | None, Header(alias="cf-connecting-ip")] = None,
+    x_saveiq_client_ip: Annotated[str | None, Header(alias="x-saveiq-client-ip")] = None,
     sec_purpose: Annotated[str | None, Header(alias="sec-purpose")] = None,
     x_purpose: Annotated[str | None, Header(alias="x-purpose")] = None,
     purpose: Annotated[str | None, Header(alias="purpose")] = None,
 ) -> RedirectResponse:
     """Log the click server-side, then 302 to the affiliate URL with our SubID."""
     client_ip = _resolve_client_ip(
-        cf_connecting_ip=cf_connecting_ip, x_forwarded_for=x_forwarded_for, request=request
+        cf_connecting_ip=cf_connecting_ip,
+        x_forwarded_for=x_forwarded_for,
+        request=request,
+        x_saveiq_client_ip=x_saveiq_client_ip,
     )
     is_bot = looks_like_bot(user_agent, sec_purpose=sec_purpose, purpose=x_purpose or purpose)
     salt = settings.affiliate_postback_secret or settings.admin_api_token

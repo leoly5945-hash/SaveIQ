@@ -193,3 +193,25 @@ def test_resolve_client_ip_none_when_nothing_available() -> None:
         request=_fake_request(None),  # type: ignore[arg-type]
     )
     assert got is None
+
+
+def test_resolve_client_ip_prefers_the_web_route_header() -> None:
+    # The web service is the API's direct peer, so its own CF/XFF values name
+    # the web service; the visitor's IP arrives in X-SaveIQ-Client-IP.
+    got = _resolve_client_ip(
+        cf_connecting_ip="10.9.9.9",
+        x_forwarded_for="10.9.9.9",
+        request=_fake_request("10.9.9.9"),  # type: ignore[arg-type]
+        x_saveiq_client_ip="198.51.100.7",
+    )
+    assert got == "198.51.100.7"
+
+
+def test_resolve_client_ip_ignores_a_malformed_web_route_header() -> None:
+    got = _resolve_client_ip(
+        cf_connecting_ip="198.51.100.7",
+        x_forwarded_for=None,
+        request=_fake_request("10.0.0.1"),  # type: ignore[arg-type]
+        x_saveiq_client_ip="not-an-ip; DROP TABLE",
+    )
+    assert got == "198.51.100.7"
