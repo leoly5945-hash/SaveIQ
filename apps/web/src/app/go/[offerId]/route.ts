@@ -12,9 +12,6 @@ const FORWARD_HEADERS = [
   "user-agent",
   "referer",
   "x-forwarded-for",
-  // Set by Cloudflare at its edge — not something the browser can forge —
-  // so the API's click logging can prefer it over the spoofable XFF chain.
-  "cf-connecting-ip",
   "sec-purpose",
   "x-purpose",
   "purpose",
@@ -62,6 +59,13 @@ export async function GET(request: Request, context: RouteContext) {
     if (value) {
       headers[name] = value;
     }
+  }
+  // The API sits behind Cloudflare, which rejects any request that carries a
+  // client-sent `CF-Connecting-IP` header (403 "error code: 1000"), so every
+  // click fell back to the homepage. Pass the visitor's IP under our own name.
+  const clientIp = request.headers.get("cf-connecting-ip");
+  if (clientIp) {
+    headers["x-saveiq-client-ip"] = clientIp;
   }
 
   try {

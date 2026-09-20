@@ -42,6 +42,31 @@ describe("GET /go/[offerId]", () => {
     expect(init.headers["sec-purpose"]).toBe("prefetch;prerender");
   });
 
+  it("never sends cf-connecting-ip to the API (Cloudflare rejects it), only a custom header", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(null, {
+        status: 302,
+        headers: { location: "https://retailer.test/p?subid=abc123" },
+      })
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await GET(
+      new Request("https://saveiq.ca/go/7?t=affiliate", {
+        headers: {
+          "cf-connecting-ip": "203.0.113.9",
+          "x-forwarded-for": "203.0.113.9, 10.0.0.1",
+        },
+      }),
+      ctx("7")
+    );
+
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init.headers["cf-connecting-ip"]).toBeUndefined();
+    expect(init.headers["x-saveiq-client-ip"]).toBe("203.0.113.9");
+    expect(init.headers["x-forwarded-for"]).toBe("203.0.113.9, 10.0.0.1");
+  });
+
   it("redirects home when the API has no destination", async () => {
     vi.stubGlobal(
       "fetch",
