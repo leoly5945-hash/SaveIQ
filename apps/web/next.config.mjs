@@ -16,11 +16,12 @@ const SECURITY_HEADERS = [
     value: [
       "default-src 'self'",
       // Next.js needs inline script/style for hydration without a nonce setup.
-      "script-src 'self' 'unsafe-inline'",
+      // static.cloudflareinsights.com serves the cookie-free Web Analytics beacon.
+      "script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com",
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data:",
       // All API calls go through this app's own /api/* proxy routes (same-origin).
-      "connect-src 'self'",
+      "connect-src 'self' https://cloudflareinsights.com",
       "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'",
