@@ -56,6 +56,12 @@ export default function PrivacyPage() {
           may use cookies or similar technologies for basic site operation and
           aggregated analytics. We do not run third-party advertising trackers.
         </p>
+        <p>
+          To count visits in aggregate (pages viewed, referrers, countries and
+          device types) we use Cloudflare Web Analytics. Cloudflare states that
+          this service does not use cookies or local storage and does not track
+          visitors across sites.
+        </p>
       </section>
 
       <section className="privacy-section">

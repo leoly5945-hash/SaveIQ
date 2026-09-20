@@ -4,7 +4,7 @@ import { Archivo } from "next/font/google";
 import "./globals.css";
 
 import { SiteFooter } from "@/components/site-footer";
-import { getBrandName, getSiteUrl } from "@/lib/config";
+import { CLOUDFLARE_ANALYTICS_TOKEN, getBrandName, getSiteUrl } from "@/lib/config";
 
 const brandName = getBrandName();
 
@@ -53,6 +53,14 @@ export default function RootLayout({
         )}
         {children}
         <SiteFooter />
+        {CLOUDFLARE_ANALYTICS_TOKEN ? (
+          <script
+            async
+            type="module"
+            src="https://static.cloudflareinsights.com/beacon.min.js"
+            data-cf-beacon={JSON.stringify({ token: CLOUDFLARE_ANALYTICS_TOKEN })}
+          />
+        ) : null}
       </body>
     </html>
   );

@@ -28,6 +28,7 @@ describe("Privacy", () => {
     expect(text).toContain("info@saveiq.ca");
     expect(text).toContain("Nextwave Software Company");
     expect(text).toContain("anonymous identifier");
+    expect(text).toContain("Cloudflare Web Analytics");
     expect(text).toContain("PIPEDA");
   });
 });
