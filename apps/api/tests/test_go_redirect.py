@@ -95,6 +95,24 @@ def test_go_dedups_rapid_repeat_clicks() -> None:
         session.close()
 
 
+def test_go_logs_distinct_visitors_by_forwarded_client_ip() -> None:
+    client, session = make_client()
+    try:
+        offer_id = _seed_offer(client)
+        for ip in ("198.51.100.7", "198.51.100.8"):
+            client.get(
+                f"/go/{offer_id}?t=product",
+                headers={"user-agent": "Mozilla/5.0", "x-saveiq-client-ip": ip},
+            )
+        clicks = client.get("/admin/affiliate/clicks", headers=ADMIN).json()
+        assert len(clicks) == 2
+        prefixes = {click["ip_hash_prefix"] for click in clicks}
+        assert len(prefixes) == 2 and None not in prefixes
+    finally:
+        app.dependency_overrides.clear()
+        session.close()
+
+
 def test_go_unknown_offer_is_404() -> None:
     client, session = make_client()
     try:
