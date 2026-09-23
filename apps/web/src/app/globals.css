@@ -1342,25 +1342,65 @@ h3 {
 }
 
 .home-valueprop {
-  align-items: center;
   background: var(--accent-strong);
+  overflow: hidden;
+  padding: 14px 0;
+  position: relative;
+}
+
+.home-valueprop-track {
+  animation: home-valueprop-scroll 16s linear infinite;
+  display: flex;
+  width: max-content;
+}
+
+.home-valueprop-item {
+  align-items: center;
   color: #d7f0ec;
   display: flex;
-  font-size: 0.86rem;
-  font-weight: 600;
-  gap: 10px;
-  justify-content: center;
-  margin: 0;
-  padding: 11px 24px;
-  text-align: center;
+  flex-shrink: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  gap: 12px;
+  padding-right: 56px;
+  white-space: nowrap;
 }
 
 .home-valueprop-dot {
   background: #f97316;
   border-radius: 999px;
   flex-shrink: 0;
-  height: 7px;
-  width: 7px;
+  height: 9px;
+  width: 9px;
+}
+
+@keyframes home-valueprop-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    /* Content is duplicated once above, so half a track-width is one full
+       loop of the message — the seam is invisible. */
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-valueprop-track {
+    animation: none;
+  }
+}
+
+.sr-only {
+  border: 0;
+  clip: rect(0, 0, 0, 0);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
 }
 
 .home-shell {
@@ -2211,10 +2251,9 @@ h3 {
     gap: 10px;
   }
 
-  .home-valueprop {
-    font-size: 0.8rem;
-    justify-content: flex-start;
-    text-align: left;
+  .home-valueprop-item {
+    font-size: 0.95rem;
+    padding-right: 40px;
   }
 
   .home-search-form {
