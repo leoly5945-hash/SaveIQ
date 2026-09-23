@@ -34,7 +34,7 @@ export default function GuidesPage() {
       <p className="guides-page-intro">{DESCRIPTION}</p>
 
       <ul className="guides-list">
-        {GUIDES.map((guide) => (
+        {GUIDES.filter((guide) => !guide.unlisted).map((guide) => (
           <li className="guide-card" key={guide.slug}>
             <h2 className="guide-card-title">
               <Link href={guidePath(guide.slug)}>{guide.title}</Link>
