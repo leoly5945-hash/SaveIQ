@@ -25,7 +25,8 @@ describe("Home", () => {
 
     expect(text).toContain("SaveIQ");
     expect(text).toContain("Independent buying guides");
-    expect(text).toContain("for Canadian shoppers.");
+    expect(text).toContain("Shopping intelligence");
+    expect(text).toContain("at its smartest.");
     expect(text).toContain("Latest buying guides");
     expect(text).toContain("Check a price");
     // paste-a-link is still offered, just demoted below search

@@ -67,9 +67,9 @@ export default function Home() {
       <main className="home-shell">
         <p className="home-eyebrow">Independent buying guides · Canada</p>
         <h1 className="home-title">
-          Independent buying guides{" "}
+          Shopping intelligence{" "}
           <br />
-          <span>for Canadian shoppers.</span>
+          <span>at its smartest.</span>
         </h1>
         <p className="home-sub">
           {brandName} publishes buying guides, side-by-side comparisons and
