@@ -21,11 +21,16 @@ export type Guide = {
   intro: string[];
   sections: GuideSection[];
   relatedCategories?: string[]; // category slugs
+  // True hides the guide from the homepage "Latest buying guides" and from
+  // /guides — the page itself stays live, statically built and in the
+  // sitemap (still indexed), just not surfaced from those two listings.
+  unlisted?: boolean;
 };
 
 export const GUIDES: Guide[] = [
   {
     slug: "crypto-exchange-fees-canada-compared",
+    unlisted: true,
     title: "Crypto exchange fees in Canada compared: Kraken, NDAX, Newton, Shakepay and Crypto.com",
     description:
       "What Kraken, NDAX, Newton, Shakepay and Crypto.com publish about their trading costs at entry level, and why the numbers are not directly comparable.",
@@ -91,6 +96,7 @@ export const GUIDES: Guide[] = [
   },
   {
     slug: "interac-e-transfer-crypto-exchanges-canada",
+    unlisted: true,
     title: "Funding a crypto exchange with Interac e-Transfer: fees and limits in Canada",
     description:
       "The published Interac e-Transfer deposit fees, CAD withdrawal fees and limits at Kraken, NDAX, Newton, Shakepay and Crypto.com, and what to check before you send money.",
@@ -150,6 +156,7 @@ export const GUIDES: Guide[] = [
   },
   {
     slug: "how-crypto-trading-fees-and-spreads-work",
+    unlisted: true,
     title: "How crypto trading fees, spreads and withdrawal costs work in Canada",
     description:
       "A plain-language explanation of maker and taker fees, spreads, flat fees, deposit and withdrawal charges, and how to compare the real cost of a crypto trade.",
@@ -204,6 +211,7 @@ export const GUIDES: Guide[] = [
   },
   {
     slug: "crypto-platforms-authorized-in-canada",
+    unlisted: true,
     title: "Which crypto platforms are authorized to serve Canadians?",
     description:
       "The platforms on the Canadian Securities Administrators’ list of crypto platforms authorized to do business with Canadians, what being listed does and does not mean, and how to check a platform yourself.",

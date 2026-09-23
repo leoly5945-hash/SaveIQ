@@ -8,7 +8,7 @@ import { DiscoverBox } from "./discover-box";
 import { FeaturedDeals } from "./featured-deals";
 import { MultiStoreShowcase } from "./multi-store-showcase";
 
-const LATEST_GUIDES = [...GUIDES]
+const LATEST_GUIDES = GUIDES.filter((guide) => !guide.unlisted)
   .sort((a, b) => b.updated.localeCompare(a.updated))
   .slice(0, 3);
 
