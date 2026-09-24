@@ -85,10 +85,7 @@ export default function Home() {
           and no retailer can pay for a better verdict.
         </p>
         <div className="home-cta-row">
-          <Link className="deal-card-cta" href="/guides">
-            Read the buying guides
-          </Link>
-          <a className="home-cta-secondary" href="#price-check">
+          <a className="deal-card-cta" href="#price-check">
             Check a price →
           </a>
         </div>
