@@ -118,8 +118,9 @@ export function CheckBox() {
       </form>
 
       {status === "idle" ? (
-        <p className="state-message">
-          We read the price history and tell you: buy now, or wait. No account.
+        <p className="check-price-hint">
+          We read the price history and tell you: buy now, or wait. Leave
+          your email and we&apos;ll tell you when it drops.
         </p>
       ) : null}
       {status === "error" ? (
