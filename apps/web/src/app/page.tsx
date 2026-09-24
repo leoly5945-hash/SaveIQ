@@ -84,12 +84,6 @@ export default function Home() {
           We don&apos;t sell products or run coupon codes or cashback programs,
           and no retailer can pay for a better verdict.
         </p>
-        <div className="home-cta-row">
-          <a className="deal-card-cta" href="#price-check">
-            Check a price →
-          </a>
-        </div>
-
         <section className="home-pricecheck" id="price-check" aria-labelledby="price-check-heading">
           <div className="home-how-head">
             <h2 id="price-check-heading">Check a price</h2>
