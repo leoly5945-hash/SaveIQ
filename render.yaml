@@ -137,7 +137,7 @@ services:
     plan: free
     region: oregon
     image:
-      url: "ghcr.io/leoly5945-hash/saveiq-web@sha256:e6feb8ee7ac3f51683f09a12ae62c6ddecd28849ea7584619a3a4f7184b82769"
+      url: "ghcr.io/leoly5945-hash/saveiq-web@sha256:sha256:e7214b01b5490dca07400d6e72c9cc16b4abab89a15a646da730ee30141e6288"
       creds:
         fromRegistryCreds:
           name: ghcr-saveiq
