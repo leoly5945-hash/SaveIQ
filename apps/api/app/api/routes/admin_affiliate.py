@@ -512,8 +512,6 @@ def list_click_events(db: DbSession) -> list[dict[str, Any]]:
             "source_record_id": event.source_record_id,
             "market": event.market,
             "referrer": event.referrer,
-            # Enough to tell visitors apart when checking IP capture; never the full hash.
-            "ip_hash_prefix": event.ip_hash[:10] if event.ip_hash else None,
             "created_at": event.created_at,
         }
         for event in events

@@ -13,6 +13,7 @@ from app.core.settings import get_settings
 from app.db.base import Base
 from app.db.session import get_db
 from app.main import app
+from app.models import AffiliateClickEvent
 
 ADMIN = {"X-Admin-Token": "dev-admin-token"}
 
@@ -106,8 +107,13 @@ def test_go_logs_distinct_visitors_by_forwarded_client_ip() -> None:
             )
         clicks = client.get("/admin/affiliate/clicks", headers=ADMIN).json()
         assert len(clicks) == 2
-        prefixes = {click["ip_hash_prefix"] for click in clicks}
-        assert len(prefixes) == 2 and None not in prefixes
+
+        # ip_hash isn't (and shouldn't be) exposed over the API — a salted
+        # hash an admin-token holder could otherwise brute-force back to the
+        # raw IP, since the salt defaults to that same admin token. Check
+        # distinctness straight from the DB instead.
+        hashes = {row.ip_hash for row in session.query(AffiliateClickEvent).all()}
+        assert len(hashes) == 2 and None not in hashes
     finally:
         app.dependency_overrides.clear()
         session.close()
