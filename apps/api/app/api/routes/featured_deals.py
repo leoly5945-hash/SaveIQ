@@ -42,6 +42,7 @@ class FeaturedDealResponse(BaseModel):
     price_checked: str | None
     blurb: str | None
     latest_price: LatestPriceResponse | None = None
+    no_offer_checked_at: str | None = None
 
 
 class FeaturedDealsResponse(BaseModel):

@@ -237,6 +237,7 @@ def test_daily_poll_tracks_curated_products_and_lists_drops() -> None:
         body = client.get("/featured-deals/price-drops?limit=5").json()
         assert body["count"] == 5
         latest = body["deals"][0]["latest_price"]
+        assert body["deals"][0]["no_offer_checked_at"] is None
         assert latest["price_cents"] == 4500
         assert latest["avg90_cents"] == 5000
         assert latest["pct_below_avg90"] == 10
@@ -298,6 +299,16 @@ def test_a_later_check_with_no_offer_hides_the_old_price() -> None:
         assert client.get("/featured-deals/price-drops").json()["count"] == 0
         listed = client.get("/featured-deals?limit=1").json()["deals"][0]
         assert listed["latest_price"] is None
+        assert listed["no_offer_checked_at"] is not None
+        detail = client.get(f"/featured-deals/{listed['slug']}").json()
+        assert detail["latest_price"] is None
+        assert detail["no_offer_checked_at"] == listed["no_offer_checked_at"]
+
+        # Back in stock: the next priced check clears the flag.
+        _poll(session, _FakeKeepa(price_cents=4500, avg90_cents=5000))
+        relisted = client.get("/featured-deals?limit=1").json()["deals"][0]
+        assert relisted["no_offer_checked_at"] is None
+        assert relisted["latest_price"]["price_cents"] == 4500
     finally:
         app.dependency_overrides.clear()
         session.close()

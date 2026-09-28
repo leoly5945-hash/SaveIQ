@@ -3191,3 +3191,18 @@ h3 {
   font-weight: 700;
   line-height: 1.35;
 }
+
+.deal-card-unavailable,
+.deal-page-unavailable {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.deal-card-unavailable {
+  font-size: 0.95rem;
+}
+
+.deal-page-unavailable {
+  font-family: var(--display-font);
+  font-size: 1.35rem;
+}

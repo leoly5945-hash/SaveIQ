@@ -115,13 +115,25 @@ describe("latest recorded price helpers", () => {
       currency: "CAD",
       checked: "Sep 29, 2026",
       daily: true,
+      unavailableSince: null,
     });
     expect(dealPriceNow(SAMPLE)).toEqual({
       cents: 1699,
       currency: "CAD",
       checked: "Aug 29, 2026",
       daily: false,
+      unavailableSince: null,
     });
+  });
+
+  it("flags a deal our latest check found no seller for", () => {
+    const now = dealPriceNow({
+      ...SAMPLE,
+      latest_price: null,
+      no_offer_checked_at: "2026-09-28T14:40:00+00:00",
+    });
+    expect(now.unavailableSince).toBe("Sep 28, 2026");
+    expect(now.cents).toBe(1699); // the hand-checked snapshot, shown only as history
   });
 
   it("formats the observed date in Canadian Eastern time", () => {

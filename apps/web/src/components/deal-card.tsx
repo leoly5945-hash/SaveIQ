@@ -5,6 +5,7 @@ import {
   dealPath,
   dealPriceNow,
   formatMoney,
+  UNAVAILABLE_LABEL,
   type FeaturedDeal,
 } from "@/lib/featured-deals";
 
@@ -17,10 +18,17 @@ export function DealCard({ deal }: { deal: FeaturedDeal }) {
         <Link href={dealPath(deal)}>{deal.title}</Link>
       </h3>
       {deal.blurb ? <p className="deal-card-blurb">{deal.blurb}</p> : null}
-      <p className="deal-card-price">
-        {formatMoney(now.cents, now.currency)}
-      </p>
-      {now.checked ? (
+      {now.unavailableSince ? (
+        <>
+          <p className="deal-card-unavailable">{UNAVAILABLE_LABEL}</p>
+          <p className="deal-card-checked">Checked {now.unavailableSince}</p>
+        </>
+      ) : (
+        <p className="deal-card-price">
+          {formatMoney(now.cents, now.currency)}
+        </p>
+      )}
+      {now.checked && !now.unavailableSince ? (
         <p className="deal-card-checked">
           {now.daily ? "Recorded" : "Price checked"} {now.checked}
         </p>
