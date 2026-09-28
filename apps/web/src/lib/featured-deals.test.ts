@@ -3,8 +3,11 @@ import { describe, expect, it, vi } from "vitest";
 import {
   categoryPath,
   dealPath,
+  dealPriceNow,
+  describeVsAverage,
   featuredDealHref,
   formatMoney,
+  formatObservedDate,
   formatPriceCheckedDate,
   requestFeaturedDeals,
   type FeaturedDeal,
@@ -80,5 +83,50 @@ describe("formatting", () => {
   it("formatPriceCheckedDate returns null for missing or invalid input", () => {
     expect(formatPriceCheckedDate(null)).toBeNull();
     expect(formatPriceCheckedDate("not-a-date")).toBeNull();
+  });
+});
+
+describe("latest recorded price helpers", () => {
+  const latest = {
+    price_cents: 1499,
+    currency: "CAD",
+    avg90_cents: 1710,
+    pct_below_avg90: 12,
+    observed_at: "2026-09-29T13:00:00+00:00",
+  };
+
+  it("describes a price under its 90-day average without sale wording", () => {
+    expect(describeVsAverage(latest)).toBe(
+      "12% below its 90-day average of $17.10"
+    );
+  });
+
+  it("says nothing when the price is not under the average", () => {
+    expect(describeVsAverage({ ...latest, pct_below_avg90: 0 })).toBeNull();
+    expect(describeVsAverage({ ...latest, pct_below_avg90: -4 })).toBeNull();
+    expect(
+      describeVsAverage({ ...latest, avg90_cents: null, pct_below_avg90: null })
+    ).toBeNull();
+  });
+
+  it("prefers the daily recorded price over the hand-checked snapshot", () => {
+    expect(dealPriceNow({ ...SAMPLE, latest_price: latest })).toEqual({
+      cents: 1499,
+      currency: "CAD",
+      checked: "Sep 29, 2026",
+      daily: true,
+    });
+    expect(dealPriceNow(SAMPLE)).toEqual({
+      cents: 1699,
+      currency: "CAD",
+      checked: "Aug 29, 2026",
+      daily: false,
+    });
+  });
+
+  it("formats the observed date in Canadian Eastern time", () => {
+    expect(formatObservedDate("2026-09-29T02:00:00+00:00")).toBe("Sep 28, 2026");
+    expect(formatObservedDate("not a date")).toBeNull();
+    expect(formatObservedDate(null)).toBeNull();
   });
 });

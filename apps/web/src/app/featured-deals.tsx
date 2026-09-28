@@ -7,10 +7,10 @@ import {
   AMAZON_ASSOCIATE_DISCLOSURE,
   categoryPath,
   dealPath,
+  dealPriceNow,
   FEATURED_DEALS_BLURB,
   FEATURED_DEALS_HEADING,
   formatMoney,
-  formatPriceCheckedDate,
   requestDealCategories,
   requestFeaturedDeals,
   type DealCategory,
@@ -66,7 +66,7 @@ export function FeaturedDeals() {
 
       <ul className="home-featured-list">
         {deals.map((deal) => {
-          const checked = formatPriceCheckedDate(deal.price_checked);
+          const now = dealPriceNow(deal);
           return (
             <li className="home-featured-card" key={deal.offer_id}>
               <p className="merchant-name">{deal.merchant}</p>
@@ -76,10 +76,11 @@ export function FeaturedDeals() {
               {deal.blurb ? (
                 <p className="home-featured-blurb">{deal.blurb}</p>
               ) : null}
-              <p className="price">{formatMoney(deal.price_cents, deal.currency)}</p>
-              {checked ? (
+              <p className="price">{formatMoney(now.cents, now.currency)}</p>
+              {now.checked ? (
                 <p className="home-featured-checked">
-                  Price checked {checked} — confirm at {deal.merchant}
+                  {now.daily ? "Recorded" : "Price checked"} {now.checked} — confirm
+                  at {deal.merchant}
                 </p>
               ) : null}
               <Link className="source-link" href={dealPath(deal)}>

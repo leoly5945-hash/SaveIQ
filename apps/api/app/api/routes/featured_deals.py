@@ -11,11 +11,20 @@ from app.services.featured_deals import (
     get_featured_deal,
     list_deal_categories,
     list_featured_deals,
+    list_price_drops,
 )
 
 DbSession = Annotated[Session, Depends(get_db)]
 
 router = APIRouter(prefix="/featured-deals", tags=["featured-deals"])
+
+
+class LatestPriceResponse(BaseModel):
+    price_cents: int
+    currency: str
+    avg90_cents: int | None
+    pct_below_avg90: int | None
+    observed_at: str
 
 
 class FeaturedDealResponse(BaseModel):
@@ -31,6 +40,7 @@ class FeaturedDealResponse(BaseModel):
     product_url: str | None
     price_checked: str | None
     blurb: str | None
+    latest_price: LatestPriceResponse | None = None
 
 
 class FeaturedDealsResponse(BaseModel):
@@ -68,6 +78,20 @@ def get_deal_categories(db: DbSession) -> DealCategoriesResponse:
     return DealCategoriesResponse(
         count=len(categories),
         categories=[DealCategoryResponse(**cat) for cat in categories],
+    )
+
+
+@router.get("/price-drops", response_model=FeaturedDealsResponse)
+def get_price_drops(
+    db: DbSession,
+    limit: Annotated[int, Query(ge=1, le=50)] = 12,
+) -> FeaturedDealsResponse:
+    """Price Watch products recorded under their own 90-day average today."""
+
+    deals = list_price_drops(db, limit=limit)
+    return FeaturedDealsResponse(
+        count=len(deals),
+        deals=[FeaturedDealResponse(**deal) for deal in deals],
     )
 
 

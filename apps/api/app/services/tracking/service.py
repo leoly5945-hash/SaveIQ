@@ -24,6 +24,11 @@ from app.providers.registry import ProviderRegistry
 from app.services.decision.assess import assess_from_provider
 from app.services.decision.comparison_cache import poll_pending_comparisons
 from app.services.decision.price_check import PriceCheckError, resolve_target
+from app.services.featured_deals import (
+    TRACKING_MARKET,
+    TRACKING_PROVIDER,
+    curated_amazon_products,
+)
 from app.services.tracking.email import EmailMessage, EmailSender
 
 logger = logging.getLogger(__name__)
@@ -159,6 +164,45 @@ def latest_observation(db: Session, tracked: TrackedProduct) -> PriceObservation
         .order_by(PriceObservation.observed_at.desc())
         .limit(1)
     ).scalar_one_or_none()
+
+
+def sync_curated_tracked_products(db: Session) -> int:
+    """Make every curated Price Watch ASIN a tracked product.
+
+    The daily cycle then records a real Keepa price + 90-day average for each
+    one, which is what the "below its 90-day average today" section reads.
+    Idempotent; returns how many curated products are tracked.
+    """
+
+    curated = curated_amazon_products(db)
+    for item in curated:
+        get_or_create_tracked_product(
+            db,
+            provider=TRACKING_PROVIDER,
+            provider_product_id=item["asin"],
+            market=TRACKING_MARKET,
+            title=item["title"],
+            product_url=item["product_url"],
+        )
+    db.flush()
+    return len(curated)
+
+
+async def _prefetch(registry: ProviderRegistry, tracked_products: list[TrackedProduct]) -> None:
+    """Batch-warm provider caches so the per-product loop makes no extra calls."""
+
+    by_provider: dict[str, list[str]] = {}
+    for tracked in tracked_products:
+        by_provider.setdefault(tracked.provider, []).append(tracked.provider_product_id)
+    for provider, ids in by_provider.items():
+        adapter = registry.try_get(provider)
+        prefetch = getattr(adapter, "prefetch_products", None)
+        if prefetch is None:
+            continue
+        try:
+            await prefetch(ids, stats_days=90)
+        except Exception:  # noqa: BLE001 - fall back to per-product fetches
+            logger.exception("batch prefetch failed", extra={"provider": provider})
 
 
 # -- alerts ---------------------------------------------------------------
@@ -330,13 +374,16 @@ async def run_alert_cycle(
     settings: Settings | None = None,
     now: datetime | None = None,
 ) -> CycleStats:
-    """Re-check every tracked product, record an observation, fire due alerts."""
+    """Re-check every tracked product (including the curated Price Watch list),
+    record an observation, fire due alerts."""
 
     settings = settings or get_settings()
     now = now or _now()
     stats = CycleStats()
 
+    sync_curated_tracked_products(db)
     tracked_products = list(db.execute(select(TrackedProduct)).scalars())
+    await _prefetch(registry, tracked_products)
     for tracked in tracked_products:
         stats.tracked_checked += 1
         adapter = registry.try_get(tracked.provider)

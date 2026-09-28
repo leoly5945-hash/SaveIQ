@@ -481,6 +481,42 @@ class KeepaProvider:
         self._product_cache[asin] = (time.monotonic(), first)
         return first
 
+    _PREFETCH_BATCH_SIZE = 100  # Keepa's per-request ASIN limit
+
+    async def prefetch_products(self, asins: Sequence[str], *, stats_days: int = 90) -> int:
+        """Warm the product cache for many ASINs in as few Keepa calls as possible.
+
+        Token cost per product is the same as a single-ASIN call, but one batched
+        request replaces up to 100 sequential round-trips, so the daily cycle
+        over the curated catalogue finishes well inside the cron timeout. Callers
+        still use :meth:`get_price` / :meth:`get_price_history`, which then hit
+        the cache. Returns how many products were cached.
+        """
+
+        wanted = sorted({a.strip().upper() for a in asins if a and a.strip()})
+        cached = 0
+        for start in range(0, len(wanted), self._PREFETCH_BATCH_SIZE):
+            batch = wanted[start : start + self._PREFETCH_BATCH_SIZE]
+            params: dict[str, Any] = {"asin": ",".join(batch), "history": 1}
+            if stats_days > 0:
+                params["stats"] = stats_days
+                params["buybox"] = 1
+            payload = await self._request("product", params)
+            products = payload.get("products")
+            if not isinstance(products, list):
+                continue
+            stamp = time.monotonic()
+            for product in products:
+                if not isinstance(product, Mapping):
+                    continue
+                asin = str(product.get("asin") or "").strip().upper()
+                # Same stub check as _fetch_product: unknown ASINs come back empty.
+                if not asin or (product.get("title") in (None, "") and not product.get("csv")):
+                    continue
+                self._product_cache[asin] = (stamp, product)
+                cached += 1
+        return cached
+
     # -- parsing ------------------------------------------------------------
 
     def _now_dt(self) -> datetime:
