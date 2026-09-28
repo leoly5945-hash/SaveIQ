@@ -423,3 +423,24 @@ async def test_prefetch_splits_into_batches_of_100() -> None:
     await provider.prefetch_products([f"B0{n:08d}" for n in range(150)])
 
     assert len(transport.calls) == 2
+
+
+@pytest.mark.asyncio
+async def test_get_price_is_none_when_keepa_reports_no_current_offer() -> None:
+    # Out of stock everywhere: stats.current is -1 for every price type, but the
+    # csv still holds older prices. Those must not be passed off as today's.
+    product = _product(with_offers=False)
+    product["stats"]["current"] = [-1] * 19
+    provider = _provider(_envelope(product))
+    assert await provider.get_price("B09VPHVT9Z") is None
+
+
+@pytest.mark.asyncio
+async def test_csv_fallback_ignores_a_series_that_ends_with_no_offer() -> None:
+    product = _product(with_offers=False, with_stats=False)
+    for index in (0, 1, 18):
+        row = product["csv"][index]
+        step = 3 if index == 18 else 2
+        product["csv"][index] = row + [_keepa_minutes(_ago(0.5)), -1] + ([0] if step == 3 else [])
+    provider = _provider(_envelope(product))
+    assert await provider.get_price("B09VPHVT9Z") is None

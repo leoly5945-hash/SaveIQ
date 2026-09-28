@@ -159,10 +159,12 @@ class _FakeKeepa:
     currency = "CAD"
     capabilities = frozenset({ProviderCapability.get_price, ProviderCapability.price_history})
 
-    def __init__(self, price_cents: int, avg90_cents: int, low_cents: int | None = None) -> None:
+    def __init__(
+        self, price_cents: int | None, avg90_cents: int, low_cents: int | None = None
+    ) -> None:
         self._price = price_cents
         self._avg90 = avg90_cents
-        self._low = low_cents if low_cents is not None else price_cents
+        self._low = low_cents if low_cents is not None else (price_cents or avg90_cents)
         self.prefetched: list[str] = []
 
     def is_configured(self) -> bool:
@@ -173,6 +175,8 @@ class _FakeKeepa:
         return len(asins)
 
     async def get_price(self, pid: str) -> ProviderPrice | None:
+        if self._price is None:  # no current offer
+            return None
         return ProviderPrice(
             provider="keepa",
             provider_product_id=pid,
@@ -274,6 +278,26 @@ def test_drops_far_above_the_90_day_low_are_not_listed() -> None:
         listed = client.get("/featured-deals?limit=1").json()["deals"][0]
         assert listed["latest_price"]["pct_below_avg90"] == 10
         assert listed["latest_price"]["verdict"] != "BUY"
+    finally:
+        app.dependency_overrides.clear()
+        session.close()
+
+
+def test_a_later_check_with_no_offer_hides_the_old_price() -> None:
+    client, session = make_client()
+    try:
+        client.post("/admin/affiliate/sync/curated", headers=ADMIN)
+        _poll(
+            session,
+            _FakeKeepa(price_cents=4500, avg90_cents=5000),
+            now=datetime.now(tz=UTC) - timedelta(hours=2),
+        )
+        assert client.get("/featured-deals/price-drops").json()["count"] > 0
+
+        _poll(session, _FakeKeepa(price_cents=None, avg90_cents=5000))  # now out of stock
+        assert client.get("/featured-deals/price-drops").json()["count"] == 0
+        listed = client.get("/featured-deals?limit=1").json()["deals"][0]
+        assert listed["latest_price"] is None
     finally:
         app.dependency_overrides.clear()
         session.close()

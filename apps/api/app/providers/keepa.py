@@ -256,6 +256,20 @@ def _stat_value(stats: Mapping[str, Any] | None, key: str, index: int) -> int | 
     return value if value >= 0 else None
 
 
+def _is_no_offer(stats: Mapping[str, Any] | None, index: int) -> bool:
+    """True when ``stats.current[index]`` is an explicit negative (no offer)."""
+
+    if not stats:
+        return False
+    values = stats.get("current")
+    if not isinstance(values, Sequence) or isinstance(values, (str, bytes)):
+        return False
+    if index >= len(values):
+        return False
+    value = _as_int(values[index])
+    return value is not None and value < 0
+
+
 def _stat_pair(stats: Mapping[str, Any] | None, key: str, index: int) -> int | None:
     """Read a ``stats.min`` / ``stats.max`` entry, which is ``[time, price]``."""
 
@@ -557,7 +571,14 @@ class KeepaProvider:
         csv = raw.get("csv")
         if not isinstance(csv, list) or index >= len(csv):
             return None
-        series = _decode_series(csv[index], triplet=index in _TRIPLET_INDICES)
+        row = csv[index]
+        step = 3 if index in _TRIPLET_INDICES else 2
+        # A trailing -1 means the series currently has no offer.
+        if isinstance(row, list) and len(row) >= step:
+            last = _as_int(row[len(row) - len(row) % step - step + 1])
+            if last is not None and last < 0:
+                return None
+        series = _decode_series(row, triplet=index in _TRIPLET_INDICES)
         return series[-1][1] if series else None
 
     def _parse_price(self, asin: str, raw: Mapping[str, Any]) -> ProviderPrice | None:
@@ -566,7 +587,11 @@ class KeepaProvider:
         source = "keepa:unknown"
         for index, label, _kind in _PRICE_PRIORITY:
             value = _stat_value(stats, "current", index)
-            if value is None:
+            # Fall back to the csv series only when the current value is
+            # unknown (no stats, or a null slot). An explicit ``-1`` is Keepa
+            # saying "no offer right now" (out of stock / no seller): the
+            # csv's last positive point would be a stale price shown as today's.
+            if value is None and not _is_no_offer(stats, index):
                 value = self._fallback_current_from_csv(raw, index)
             if value is not None:
                 chosen_cents = value
