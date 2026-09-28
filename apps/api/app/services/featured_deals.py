@@ -122,7 +122,7 @@ def _latest_prices(db: Session, asins: list[str]) -> dict[str, LatestPrice]:
         .subquery()
     )
     rows = db.execute(
-        select(TrackedProduct.provider_product_id, PriceObservation)
+        select(TrackedProduct.provider_product_id, TrackedProduct.last_checked_at, PriceObservation)
         .join(PriceObservation, PriceObservation.tracked_product_id == TrackedProduct.id)
         .join(
             latest,
@@ -136,7 +136,10 @@ def _latest_prices(db: Session, asins: list[str]) -> dict[str, LatestPrice]:
         )
     ).all()
     result: dict[str, LatestPrice] = {}
-    for asin, obs in rows:
+    for asin, last_checked, obs in rows:
+        # A later check that found no current offer supersedes this reading.
+        if last_checked is not None and _as_utc(last_checked) > _as_utc(obs.observed_at):
+            continue
         result[asin] = {
             "price_cents": obs.effective_price_cents,
             "currency": obs.currency,

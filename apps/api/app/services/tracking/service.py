@@ -399,6 +399,9 @@ async def run_alert_cycle(
             logger.exception("price fetch failed", extra={"asin": tracked.provider_product_id})
             continue
         if price is None or price.price_cents is None or history is None:
+            # Checked, but no current offer: note the check so an older
+            # observation is not shown as today's price.
+            tracked.last_checked_at = now
             continue
 
         assessment = assess_from_provider(price, history, now=now)
