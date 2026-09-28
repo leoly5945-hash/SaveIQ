@@ -16,7 +16,12 @@ from app.db.base import Base
 from app.db.session import get_db
 from app.main import app
 from app.models.tracking import TrackedProduct
-from app.providers.base import ProviderCapability, ProviderPrice, ProviderPriceHistory
+from app.providers.base import (
+    ProviderCapability,
+    ProviderPrice,
+    ProviderPriceHistory,
+    ProviderPricePoint,
+)
 from app.providers.registry import ProviderRegistry
 from app.services.tracking.service import run_alert_cycle
 
@@ -143,16 +148,21 @@ def test_featured_deal_click_carries_amazon_tag_and_subid() -> None:
 
 
 class _FakeKeepa:
-    """Returns one fixed price and 90-day average for every ASIN."""
+    """Same price, 90-day average and 90-day history for every ASIN.
+
+    The history sits at the average with a dip to ``low_cents`` every ten
+    days, so ``low_cents`` is the 90-day low the decision engine sees.
+    """
 
     name = "keepa"
     market = "CA"
     currency = "CAD"
     capabilities = frozenset({ProviderCapability.get_price, ProviderCapability.price_history})
 
-    def __init__(self, price_cents: int, avg90_cents: int) -> None:
+    def __init__(self, price_cents: int, avg90_cents: int, low_cents: int | None = None) -> None:
         self._price = price_cents
         self._avg90 = avg90_cents
+        self._low = low_cents if low_cents is not None else price_cents
         self.prefetched: list[str] = []
 
     def is_configured(self) -> bool:
@@ -177,7 +187,14 @@ class _FakeKeepa:
             provider="keepa",
             provider_product_id=pid,
             currency="CAD",
-            points=[],
+            points=[
+                ProviderPricePoint(
+                    observed_at=datetime.now(tz=UTC) - timedelta(days=day),
+                    price_cents=self._low if day % 10 == 0 else self._avg90,
+                    kind="buy_box",
+                )
+                for day in range(89, 0, -1)
+            ],
             metadata={"keepa_stats": {"avg90_cents": self._avg90}},
         )
 
@@ -219,6 +236,7 @@ def test_daily_poll_tracks_curated_products_and_lists_drops() -> None:
         assert latest["price_cents"] == 4500
         assert latest["avg90_cents"] == 5000
         assert latest["pct_below_avg90"] == 10
+        assert latest["verdict"] == "BUY"
 
         slug = body["deals"][0]["slug"]
         detail = client.get(f"/featured-deals/{slug}").json()
@@ -240,6 +258,22 @@ def test_small_dips_are_not_price_drops() -> None:
         client.post("/admin/affiliate/sync/curated", headers=ADMIN)
         _poll(session, _FakeKeepa(price_cents=4900, avg90_cents=5000))  # only 2% under
         assert client.get("/featured-deals/price-drops").json()["count"] == 0
+    finally:
+        app.dependency_overrides.clear()
+        session.close()
+
+
+def test_drops_far_above_the_90_day_low_are_not_listed() -> None:
+    client, session = make_client()
+    try:
+        client.post("/admin/affiliate/sync/curated", headers=ADMIN)
+        # 10% under a (skewed) average, but the product regularly sells for
+        # $30 — so $45 is nowhere near its usual low and must not be a "drop".
+        _poll(session, _FakeKeepa(price_cents=4500, avg90_cents=5000, low_cents=3000))
+        assert client.get("/featured-deals/price-drops").json()["count"] == 0
+        listed = client.get("/featured-deals?limit=1").json()["deals"][0]
+        assert listed["latest_price"]["pct_below_avg90"] == 10
+        assert listed["latest_price"]["verdict"] != "BUY"
     finally:
         app.dependency_overrides.clear()
         session.close()

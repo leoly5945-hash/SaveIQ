@@ -24,6 +24,7 @@ class LatestPriceResponse(BaseModel):
     currency: str
     avg90_cents: int | None
     pct_below_avg90: int | None
+    verdict: str | None = None
     observed_at: str
 
 
@@ -86,7 +87,8 @@ def get_price_drops(
     db: DbSession,
     limit: Annotated[int, Query(ge=1, le=50)] = 12,
 ) -> FeaturedDealsResponse:
-    """Price Watch products recorded under their own 90-day average today."""
+    """Price Watch products recorded under their 90-day average and near their
+    90-day low today."""
 
     deals = list_price_drops(db, limit=limit)
     return FeaturedDealsResponse(
