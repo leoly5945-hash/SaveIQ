@@ -36,6 +36,7 @@ from app.models import (
     RecordStatus,
 )
 from app.models.tracking import PriceObservation, TrackedProduct
+from app.services.decision.deal_score import Verdict
 
 CURATED_PROVIDER_SOURCE = "amazon_ca"
 # The daily poll records curated products under the Keepa provider, Canada.
@@ -43,8 +44,13 @@ TRACKING_PROVIDER = "keepa"
 TRACKING_MARKET = "CA"
 
 # A "price drop" is a latest recorded price at least this far under the
-# product's own 90-day average, recorded recently enough to call it "today".
+# product's own 90-day average, recorded recently enough to call it "today",
+# AND scored BUY by the decision engine — which requires the price to be
+# within 5% of its 90-day low. The low guard matters: Keepa's average can be
+# pulled up by a stretch of high prices, so "% below average" alone can
+# overstate a drop that is nowhere near the product's usual low.
 PRICE_DROP_MIN_PCT = 5
+PRICE_DROP_VERDICT = Verdict.buy.value
 PRICE_DROP_MAX_AGE = timedelta(hours=36)
 
 _SLUG_STRIP = re.compile(r"[^a-z0-9]+")
@@ -59,6 +65,7 @@ class LatestPrice(TypedDict):
     currency: str
     avg90_cents: int | None
     pct_below_avg90: int | None
+    verdict: str | None
     observed_at: str
 
 
@@ -135,6 +142,7 @@ def _latest_prices(db: Session, asins: list[str]) -> dict[str, LatestPrice]:
             "currency": obs.currency,
             "avg90_cents": obs.avg90_cents,
             "pct_below_avg90": _pct_below(obs.effective_price_cents, obs.avg90_cents),
+            "verdict": obs.verdict,
             "observed_at": _as_utc(obs.observed_at).isoformat(),
         }
     return result
@@ -232,7 +240,9 @@ def list_price_drops(
     min_pct: int = PRICE_DROP_MIN_PCT,
     max_age: timedelta = PRICE_DROP_MAX_AGE,
 ) -> list[FeaturedDeal]:
-    """Curated deals whose latest recorded price is under their 90-day average.
+    """Curated deals whose latest recorded price is under their 90-day average
+    and near their 90-day low (a BUY verdict from the same rules as Price
+    Check).
 
     Only fresh observations count (``max_age``), so a stale reading never shows
     up as "today". Largest drop first. Empty when nothing qualifies — callers
@@ -252,6 +262,8 @@ def list_price_drops(
         pct = price["pct_below_avg90"]
         observed = datetime.fromisoformat(price["observed_at"])
         if pct is None or pct < min_pct or now - observed > max_age:
+            continue
+        if price["verdict"] != PRICE_DROP_VERDICT:
             continue
         seen.add(asin)
         drops.append(_row_to_deal(*row, latest))

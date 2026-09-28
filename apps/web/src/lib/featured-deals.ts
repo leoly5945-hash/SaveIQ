@@ -6,11 +6,11 @@ export const FEATURED_DEALS_BLURB =
 export const AMAZON_ASSOCIATE_DISCLOSURE =
   "As an Amazon Associate, SaveIQ earns from qualifying purchases.";
 
-export const PRICE_DROPS_HEADING = "Below their 90-day average today";
+export const PRICE_DROPS_HEADING = "Near their 90-day low today";
 export const PRICE_DROPS_BLURB =
-  "Products on our Price Watch list whose Amazon.ca price, re-checked this morning, is at least 5% under their own 90-day average (from Keepa price history). Prices move during the day — confirm at the retailer before you buy.";
+  "Products on our Price Watch list whose Amazon.ca price, re-checked this morning, is at least 5% under their 90-day average and within 5% of their lowest price in the last 90 days — the same rule behind a Buy verdict in our Price Check. Price history from Keepa. Prices move during the day, so confirm at the retailer before you buy.";
 export const PRICE_DROPS_EMPTY =
-  "None of the products on our Price Watch list is at least 5% under its 90-day average today. We re-check every morning.";
+  "None of the products on our Price Watch list is near its 90-day low today. We re-check every morning.";
 
 /** The latest price our daily poll recorded for a deal (real Keepa data). */
 export type LatestPrice = {
@@ -18,6 +18,7 @@ export type LatestPrice = {
   currency: string;
   avg90_cents: number | null;
   pct_below_avg90: number | null;
+  verdict?: string | null;
   observed_at: string;
 };
 
