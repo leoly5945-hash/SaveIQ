@@ -515,6 +515,80 @@ export const GUIDES: Guide[] = [
     relatedCategories: ["electronics"],
   },
   {
+    slug: "how-to-check-amazon-ca-price-history",
+    title: "How to check Amazon.ca price history before you buy",
+    description:
+      "Amazon.ca does not show a price chart. Here is how to see what a product has actually sold for, what Amazon’s own “List Price” and “Was Price” labels mean, and how to read the history.",
+    updated: "2026-09-28",
+    checked: "2026-09-28",
+    readMinutes: 6,
+    intro: [
+      "An Amazon.ca product page shows you today’s price, and sometimes a struck-through price next to it. It does not show you a chart of what the product has sold for over the past weeks or months. That history is the most useful single thing to know before you buy, because it tells you whether today’s price is normal, unusually high or genuinely low.",
+      "This guide covers what Amazon’s own price labels mean, three free ways to see the price history of an Amazon.ca product, and how to read the chart once you have it. SaveIQ is one of the three tools; we say so where it comes up.",
+    ],
+    sections: [
+      {
+        heading: "What Amazon.ca’s own price labels mean",
+        body: [
+          "Amazon.ca’s help page on strike-through pricing, checked September 28, 2026, defines the labels you see on product pages. They are more specific than most shoppers assume.",
+          "None of these labels shows you the history itself. The List Price and 30-day labels are rules about a fixed window, and the Was Price is worked out from a price history the page does not display. To see the history, you need one of the tools in the next section.",
+        ],
+        table: {
+          caption: "Amazon.ca price labels, as defined on Amazon.ca’s help page (checked September 28, 2026)",
+          headers: ["Label", "What Amazon.ca says it means"],
+          rows: [
+            ["List Price", "The suggested retail price from the manufacturer, supplier or seller. Except for books, it is only shown if at least half of the product’s Amazon.ca sales in the past 180 days were at or above it, or other retailers offered it at or above that price in the past 180 days."],
+            ["Was Price", "Calculated from the product’s price history on Amazon.ca."],
+            ["Lowest / Best Price in 30 Days", "Today’s price is lower than or equal to the lowest featured-offer price for the item on Amazon.ca in the past 30 days."],
+            ["You Save", "The dollar and percentage difference from the List Price or Was Price."],
+          ],
+        },
+      },
+      {
+        heading: "Three free ways to see the history",
+        body: [
+          "Each of these shows the price an Amazon.ca product has sold at over time and can email you when it drops. None of them needs you to pay.",
+          "SaveIQ (this site): paste an Amazon.ca link, or describe the product, in the Price Check box on the homepage. It reads the last 90 days of price history and gives one call, Buy, Wait or Fair, with the reasons written out. You can leave an email to be told once when the price drops, and there is a Chrome extension that shows the verdict on the Amazon page. Our price data comes from Keepa.",
+          "Keepa: shows detailed price-history charts, including new, used and Warehouse Deals prices and Buy Box history, and lets you zoom out over years of data. Its charts work without an account; a free account adds price watches and alerts. It has extensions for Chrome, Edge, Firefox and Opera, and a mobile app.",
+          "camelcamelcamel: a free tracker with a Canadian site at ca.camelcamelcamel.com. It charts three price types: sold by Amazon, third-party new and third-party used. It offers email price-drop alerts and a browser extension called the Camelizer.",
+        ],
+      },
+      {
+        heading: "How to read a price-history chart",
+        body: [
+          "Check which price you are looking at. A product can have a price for Amazon itself, a different one for third-party sellers, and a Buy Box price (the offer that gets the Add to Cart button). Compare today’s price against the same line, usually the Buy Box or the Amazon price.",
+          "Look at three numbers for the last 90 days: the lowest price, the typical (average) price and the highest price. If today’s price is at or near the low, it is a good time to buy. If it is well above the average, waiting usually costs you nothing.",
+          "Look for a pattern. Many products bounce between two or three price points every few weeks. If the chart shows a regular dip, the next one is likely to come round again, and you can set an alert for it rather than buy at the high point.",
+        ],
+      },
+      {
+        heading: "When the history does not help much",
+        body: [
+          "A product that launched a few weeks ago has little history, so a 90-day average means less. The same goes for items that are often out of stock, where the chart has gaps.",
+          "Seasonal events move prices too. Prices on many products shift around Amazon’s fall sale event, Black Friday and Boxing Day, so a 90-day window that includes one of them can make an ordinary price look high or low. Look at a longer range on Keepa or camelcamelcamel if a sale period is in the window.",
+        ],
+      },
+      {
+        heading: "A quick routine before any Amazon.ca purchase",
+        body: [
+          "1. Check the price history in one of the tools above and compare today’s price with the 90-day low and average.",
+          "2. Treat a “List Price” or “Was Price” as a hint, not a verdict, and check it against the chart.",
+          "3. Compare the same model number at one other Canadian retailer.",
+          "4. If today’s price is high, set an alert and wait for it to come down.",
+        ],
+      },
+    ],
+    sources: [
+      {
+        label: "Amazon.ca — Strike-Through Pricing and Savings (help page)",
+        url: "https://www.amazon.ca/gp/help/customer/display.html?nodeId=GQ6B6RH72AX8D2TD",
+      },
+      { label: "Keepa — Features", url: "https://keepa.com/#!features" },
+      { label: "camelcamelcamel — Amazon.ca price tracker", url: "https://ca.camelcamelcamel.com/" },
+    ],
+    relatedCategories: ["electronics", "home", "kitchen"],
+  },
+  {
     slug: "how-to-find-the-lowest-price-in-canada",
     title: "How to actually find the lowest price in Canada",
     description:
