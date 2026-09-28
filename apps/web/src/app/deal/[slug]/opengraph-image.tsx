@@ -1,9 +1,9 @@
 import { ImageResponse } from "next/og";
 
 import {
+  dealPriceNow,
   fetchDeal,
   formatMoney,
-  formatPriceCheckedDate,
 } from "@/lib/featured-deals";
 
 export const alt = "SaveIQ price check";
@@ -46,8 +46,9 @@ export default async function Image({
     );
   }
 
-  const price = formatMoney(deal.price_cents, deal.currency);
-  const checked = formatPriceCheckedDate(deal.price_checked);
+  const now = dealPriceNow(deal);
+  const price = formatMoney(now.cents, now.currency);
+  const checked = now.checked;
 
   return new ImageResponse(
     (

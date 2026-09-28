@@ -13,6 +13,7 @@ from collections.abc import Mapping
 from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
 from typing import Any
+from urllib.parse import parse_qs, urlsplit
 
 import pytest
 
@@ -388,3 +389,37 @@ def test_urllib_transport_gunzips_without_header(monkeypatch) -> None:
     monkeypatch.setattr("urllib.request.urlopen", fake_urlopen)
     result = UrllibKeepaHttpTransport().get_json("https://api.keepa.com/product", timeout_seconds=5)
     assert result == payload
+
+
+@pytest.mark.asyncio
+async def test_prefetch_batches_asins_and_serves_later_calls_from_cache() -> None:
+    first = _product(with_offers=False)
+    second = {**_product(with_offers=False), "asin": "B0SECOND01", "title": "Second product"}
+    stub = {"asin": "B0MISSING", "title": None}
+    transport = FakeTransport(
+        {"tokensLeft": 900, "tokensConsumed": 6, "products": [first, second, stub]}
+    )
+    provider = KeepaProvider(api_key="test-key", domain=6, transport=transport, now=NOW)
+
+    cached = await provider.prefetch_products(["b09vphvt9z", "B0SECOND01", "B0MISSING", ""])
+
+    assert cached == 2, "the unknown-ASIN stub is not cached"
+    assert len(transport.calls) == 1
+    query = parse_qs(urlsplit(transport.calls[0]).query)
+    assert query["asin"] == ["B09VPHVT9Z,B0MISSING,B0SECOND01"]
+    assert query["stats"] == ["90"]
+
+    price = await provider.get_price("B0SECOND01")
+    history = await provider.get_price_history("B09VPHVT9Z", days=90)
+    assert price is not None and history is not None
+    assert len(transport.calls) == 1, "cached products need no further Keepa call"
+
+
+@pytest.mark.asyncio
+async def test_prefetch_splits_into_batches_of_100() -> None:
+    transport = FakeTransport({"tokensLeft": 900, "products": []})
+    provider = KeepaProvider(api_key="test-key", domain=6, transport=transport, now=NOW)
+
+    await provider.prefetch_products([f"B0{n:08d}" for n in range(150)])
+
+    assert len(transport.calls) == 2

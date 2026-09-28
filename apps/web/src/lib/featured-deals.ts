@@ -6,6 +6,21 @@ export const FEATURED_DEALS_BLURB =
 export const AMAZON_ASSOCIATE_DISCLOSURE =
   "As an Amazon Associate, SaveIQ earns from qualifying purchases.";
 
+export const PRICE_DROPS_HEADING = "Below their 90-day average today";
+export const PRICE_DROPS_BLURB =
+  "Products on our Price Watch list whose Amazon.ca price, re-checked this morning, is at least 5% under their own 90-day average (from Keepa price history). Prices move during the day — confirm at the retailer before you buy.";
+export const PRICE_DROPS_EMPTY =
+  "None of the products on our Price Watch list is at least 5% under its 90-day average today. We re-check every morning.";
+
+/** The latest price our daily poll recorded for a deal (real Keepa data). */
+export type LatestPrice = {
+  price_cents: number;
+  currency: string;
+  avg90_cents: number | null;
+  pct_below_avg90: number | null;
+  observed_at: string;
+};
+
 export type FeaturedDeal = {
   offer_id: number;
   slug: string;
@@ -19,6 +34,7 @@ export type FeaturedDeal = {
   product_url: string | null;
   price_checked: string | null;
   blurb: string | null;
+  latest_price?: LatestPrice | null;
 };
 
 export type DealCategory = {
@@ -75,11 +91,11 @@ export async function requestDealCategories(
 
 // --- server — talks to the API directly, used by the SEO pages ---------------
 
-async function apiJson<T>(path: string): Promise<T | null> {
+async function apiJson<T>(path: string, revalidate = 3600): Promise<T | null> {
   try {
     const response = await fetch(new URL(path, getApiBaseUrl()), {
       headers: { Accept: "application/json" },
-      next: { revalidate: 3600 },
+      next: { revalidate },
     });
     if (!response.ok) {
       return null;
@@ -107,6 +123,16 @@ export async function fetchDeal(slug: string): Promise<FeaturedDeal | null> {
   return apiJson<FeaturedDeal>(
     `/featured-deals/${encodeURIComponent(slug)}`
   );
+}
+
+export async function fetchPriceDrops(limit = 6): Promise<FeaturedDeal[]> {
+  // Refreshed more often than the catalogue: the daily poll lands once a
+  // morning and the section should pick it up within the half hour.
+  const payload = await apiJson<FeaturedDealsPayload>(
+    `/featured-deals/price-drops?limit=${limit}`,
+    1800
+  );
+  return Array.isArray(payload?.deals) ? payload.deals : [];
 }
 
 export async function fetchDealCategories(): Promise<DealCategory[]> {
@@ -149,6 +175,59 @@ export function formatPriceCheckedDate(iso: string | null): string | null {
     year: "numeric",
     timeZone: "UTC",
   }).format(parsed);
+}
+
+/** "Sep 28, 2026" for an ISO timestamp from the daily poll. */
+export function formatObservedDate(iso: string | null | undefined): string | null {
+  if (!iso) {
+    return null;
+  }
+  const parsed = new Date(iso);
+  if (Number.isNaN(parsed.getTime())) {
+    return null;
+  }
+  return new Intl.DateTimeFormat("en-CA", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    timeZone: "America/Toronto",
+  }).format(parsed);
+}
+
+/**
+ * "12% below its 90-day average of $17.10" — or null when there is no average
+ * or the price is not actually below it. Never phrased as a sale or discount.
+ */
+export function describeVsAverage(latest: LatestPrice): string | null {
+  const pct = latest.pct_below_avg90;
+  if (latest.avg90_cents === null || pct === null || pct <= 0) {
+    return null;
+  }
+  return `${pct}% below its 90-day average of ${formatMoney(latest.avg90_cents, latest.currency)}`;
+}
+
+/**
+ * The price to show for a deal: the latest one our daily check recorded when
+ * there is one, otherwise the hand-checked snapshot. `checked` is its date.
+ */
+export function dealPriceNow(
+  deal: Pick<FeaturedDeal, "price_cents" | "currency" | "price_checked" | "latest_price">
+): { cents: number; currency: string; checked: string | null; daily: boolean } {
+  const latest = deal.latest_price;
+  if (latest) {
+    return {
+      cents: latest.price_cents,
+      currency: latest.currency,
+      checked: formatObservedDate(latest.observed_at),
+      daily: true,
+    };
+  }
+  return {
+    cents: deal.price_cents,
+    currency: deal.currency,
+    checked: formatPriceCheckedDate(deal.price_checked),
+    daily: false,
+  };
 }
 
 export function formatMoney(cents: number, currency: string): string {

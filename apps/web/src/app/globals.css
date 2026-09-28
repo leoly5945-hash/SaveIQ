@@ -3168,3 +3168,26 @@ h3 {
   color: var(--accent-strong);
   font-weight: 600;
 }
+
+/* --- price drops (daily Keepa re-check) ---------------------------------- */
+
+.price-drops {
+  display: grid;
+  gap: 8px;
+  margin: 10px 0 18px;
+}
+
+.price-drops-heading {
+  font-family: var(--display-font);
+  font-size: 1.35rem;
+  font-weight: 900;
+  letter-spacing: -0.4px;
+  margin-top: 8px;
+}
+
+.price-drop-versus {
+  color: var(--accent-strong);
+  font-size: 0.86rem;
+  font-weight: 700;
+  line-height: 1.35;
+}

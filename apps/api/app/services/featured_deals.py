@@ -10,14 +10,21 @@ Beyond the homepage strip, each deal gets its own indexable page
 (``/deal/<slug>``) and every category gets a listing page
 (``/category/<slug>``), so the site is real, browsable content rather than a
 bare product grid.
+
+The daily price poll also re-checks every curated ASIN against Keepa (see
+:func:`curated_amazon_products` and ``run_alert_cycle``), so each deal can carry
+its latest *recorded* price and 90-day average. :func:`list_price_drops` is the
+"below its 90-day average today" read-out built from those real observations —
+no invented "was" price, only what Keepa's history shows.
 """
 
 from __future__ import annotations
 
 import re
+from datetime import UTC, datetime, timedelta
 from typing import TypedDict
 
-from sqlalchemy import Select, select
+from sqlalchemy import Select, func, select
 from sqlalchemy.orm import Session
 
 from app.models import (
@@ -28,14 +35,31 @@ from app.models import (
     Offer,
     RecordStatus,
 )
+from app.models.tracking import PriceObservation, TrackedProduct
 
 CURATED_PROVIDER_SOURCE = "amazon_ca"
+# The daily poll records curated products under the Keepa provider, Canada.
+TRACKING_PROVIDER = "keepa"
+TRACKING_MARKET = "CA"
+
+# A "price drop" is a latest recorded price at least this far under the
+# product's own 90-day average, recorded recently enough to call it "today".
+PRICE_DROP_MIN_PCT = 5
+PRICE_DROP_MAX_AGE = timedelta(hours=36)
 
 _SLUG_STRIP = re.compile(r"[^a-z0-9]+")
 
 
 def slugify(value: str) -> str:
     return _SLUG_STRIP.sub("-", value.casefold()).strip("-")
+
+
+class LatestPrice(TypedDict):
+    price_cents: int
+    currency: str
+    avg90_cents: int | None
+    pct_below_avg90: int | None
+    observed_at: str
 
 
 class FeaturedDeal(TypedDict):
@@ -51,6 +75,13 @@ class FeaturedDeal(TypedDict):
     product_url: str | None
     price_checked: str | None
     blurb: str | None
+    latest_price: LatestPrice | None
+
+
+class CuratedProduct(TypedDict):
+    asin: str
+    title: str
+    product_url: str | None
 
 
 class DealCategory(TypedDict):
@@ -59,8 +90,66 @@ class DealCategory(TypedDict):
     count: int
 
 
+def _as_utc(value: datetime) -> datetime:
+    # SQLite hands back naive datetimes; Postgres keeps the tz. Stored values are UTC.
+    return value if value.tzinfo is not None else value.replace(tzinfo=UTC)
+
+
+def _pct_below(price_cents: int, avg90_cents: int | None) -> int | None:
+    if not avg90_cents or avg90_cents <= 0:
+        return None
+    return round((avg90_cents - price_cents) / avg90_cents * 100)
+
+
+def _latest_prices(db: Session, asins: list[str]) -> dict[str, LatestPrice]:
+    """Latest recorded observation per curated ASIN, in one query."""
+
+    if not asins:
+        return {}
+    latest = (
+        select(
+            PriceObservation.tracked_product_id.label("tracked_id"),
+            func.max(PriceObservation.observed_at).label("observed_at"),
+        )
+        .group_by(PriceObservation.tracked_product_id)
+        .subquery()
+    )
+    rows = db.execute(
+        select(TrackedProduct.provider_product_id, PriceObservation)
+        .join(PriceObservation, PriceObservation.tracked_product_id == TrackedProduct.id)
+        .join(
+            latest,
+            (latest.c.tracked_id == PriceObservation.tracked_product_id)
+            & (latest.c.observed_at == PriceObservation.observed_at),
+        )
+        .where(
+            TrackedProduct.provider == TRACKING_PROVIDER,
+            TrackedProduct.market == TRACKING_MARKET,
+            TrackedProduct.provider_product_id.in_(asins),
+        )
+    ).all()
+    result: dict[str, LatestPrice] = {}
+    for asin, obs in rows:
+        result[asin] = {
+            "price_cents": obs.effective_price_cents,
+            "currency": obs.currency,
+            "avg90_cents": obs.avg90_cents,
+            "pct_below_avg90": _pct_below(obs.effective_price_cents, obs.avg90_cents),
+            "observed_at": _as_utc(obs.observed_at).isoformat(),
+        }
+    return result
+
+
+def _asin(listing: MerchantListing) -> str:
+    return listing.provider_product_id.strip().upper()
+
+
 def _row_to_deal(
-    offer: Offer, listing: MerchantListing, merchant: Merchant, product: CanonicalProduct
+    offer: Offer,
+    listing: MerchantListing,
+    merchant: Merchant,
+    product: CanonicalProduct,
+    latest: dict[str, LatestPrice] | None = None,
 ) -> FeaturedDeal:
     metadata = listing.provider_metadata or {}
     title = product.title or listing.title or offer.title
@@ -77,6 +166,7 @@ def _row_to_deal(
         "product_url": listing.product_url,
         "price_checked": metadata.get("price_checked"),
         "blurb": metadata.get("blurb"),
+        "latest_price": (latest or {}).get(_asin(listing)),
     }
 
 
@@ -104,7 +194,9 @@ def list_featured_deals(
     if category_slug:
         statement = statement.where(CanonicalProduct.category.has(Category.slug == category_slug))
     statement = statement.limit(limit)
-    return [_row_to_deal(*row) for row in db.execute(statement).all()]
+    rows = db.execute(statement).all()
+    latest = _latest_prices(db, [_asin(row[1]) for row in rows])
+    return [_row_to_deal(*row, latest) for row in rows]
 
 
 def get_featured_deal(db: Session, slug: str) -> FeaturedDeal | None:
@@ -112,8 +204,59 @@ def get_featured_deal(db: Session, slug: str) -> FeaturedDeal | None:
     for row in db.execute(_base_statement().order_by(Offer.id.asc())).all():
         deal = _row_to_deal(*row)
         if deal["slug"] == target:
+            deal["latest_price"] = _latest_prices(db, [_asin(row[1])]).get(_asin(row[1]))
             return deal
     return None
+
+
+def curated_amazon_products(db: Session) -> list[CuratedProduct]:
+    """Every active curated ASIN, for the daily poll to track."""
+
+    seen: dict[str, CuratedProduct] = {}
+    for _offer, listing, _merchant, product in db.execute(_base_statement()).all():
+        asin = _asin(listing)
+        if asin and asin not in seen:
+            seen[asin] = {
+                "asin": asin,
+                "title": product.title or listing.title,
+                "product_url": listing.product_url,
+            }
+    return list(seen.values())
+
+
+def list_price_drops(
+    db: Session,
+    *,
+    limit: int = 12,
+    now: datetime | None = None,
+    min_pct: int = PRICE_DROP_MIN_PCT,
+    max_age: timedelta = PRICE_DROP_MAX_AGE,
+) -> list[FeaturedDeal]:
+    """Curated deals whose latest recorded price is under their 90-day average.
+
+    Only fresh observations count (``max_age``), so a stale reading never shows
+    up as "today". Largest drop first. Empty when nothing qualifies — callers
+    must say so rather than pad the list.
+    """
+
+    now = now or datetime.now(tz=UTC)
+    rows = db.execute(_base_statement().order_by(Offer.id.asc())).all()
+    latest = _latest_prices(db, [_asin(row[1]) for row in rows])
+    drops: list[FeaturedDeal] = []
+    seen: set[str] = set()
+    for row in rows:
+        asin = _asin(row[1])
+        price = latest.get(asin)
+        if asin in seen or price is None:
+            continue
+        pct = price["pct_below_avg90"]
+        observed = datetime.fromisoformat(price["observed_at"])
+        if pct is None or pct < min_pct or now - observed > max_age:
+            continue
+        seen.add(asin)
+        drops.append(_row_to_deal(*row, latest))
+    drops.sort(key=lambda d: -(d["latest_price"] or {}).get("pct_below_avg90", 0))
+    return drops[:limit]
 
 
 def list_deal_categories(db: Session) -> list[DealCategory]:

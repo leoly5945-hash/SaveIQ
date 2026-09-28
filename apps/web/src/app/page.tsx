@@ -7,6 +7,7 @@ import { CheckBox } from "./check-box";
 import { DiscoverBox } from "./discover-box";
 import { FeaturedDeals } from "./featured-deals";
 import { MultiStoreShowcase } from "./multi-store-showcase";
+import { HomePriceDrops } from "./price-drops-section";
 
 const LATEST_GUIDES = GUIDES.filter((guide) => !guide.unlisted)
   .sort((a, b) => b.updated.localeCompare(a.updated))
@@ -116,6 +117,8 @@ export default function Home() {
 
           <MultiStoreShowcase />
         </section>
+
+        <HomePriceDrops />
 
         <section className="home-latest" aria-labelledby="latest-guides-heading">
           <div className="home-how-head">

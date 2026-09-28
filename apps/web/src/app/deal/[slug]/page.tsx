@@ -7,10 +7,11 @@ import { safeJsonLd } from "@/lib/json-ld";
 import {
   AMAZON_ASSOCIATE_DISCLOSURE,
   categoryPath,
+  dealPriceNow,
+  describeVsAverage,
   featuredDealHref,
   fetchDeal,
   formatMoney,
-  formatPriceCheckedDate,
 } from "@/lib/featured-deals";
 import { getSiteUrl } from "@/lib/config";
 
@@ -24,7 +25,8 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   if (!deal) {
     return { title: "Deal not found — SaveIQ" };
   }
-  const price = formatMoney(deal.price_cents, deal.currency);
+  const now = dealPriceNow(deal);
+  const price = formatMoney(now.cents, now.currency);
   const description =
     deal.blurb ??
     `${deal.title} — ${price} at ${deal.merchant}, price checked by SaveIQ.`;
@@ -48,8 +50,10 @@ export default async function DealPage({ params }: Params) {
     notFound();
   }
 
-  const price = formatMoney(deal.price_cents, deal.currency);
-  const checked = formatPriceCheckedDate(deal.price_checked);
+  const now = dealPriceNow(deal);
+  const price = formatMoney(now.cents, now.currency);
+  const checked = now.checked;
+  const versus = deal.latest_price ? describeVsAverage(deal.latest_price) : null;
   const site = getSiteUrl();
 
   const jsonLd = {
@@ -115,11 +119,14 @@ export default async function DealPage({ params }: Params) {
       {deal.brand ? <p className="deal-page-brand">by {deal.brand}</p> : null}
 
       <p className="deal-page-price">{price}</p>
+      {versus ? <p className="price-drop-versus">{versus}</p> : null}
       {checked ? (
         <p className="deal-page-checked">
-          Price checked {checked} — this is a snapshot, not a live price. Confirm
-          the current price, delivery time and return policy at {deal.merchant}{" "}
-          before you buy.
+          {now.daily
+            ? `Recorded ${checked} by our daily price check`
+            : `Price checked ${checked}`}{" "}
+          — this is a snapshot, not a live price. Confirm the current price,
+          delivery time and return policy at {deal.merchant} before you buy.
         </p>
       ) : null}
 

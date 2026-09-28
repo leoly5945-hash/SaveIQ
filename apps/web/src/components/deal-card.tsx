@@ -3,13 +3,13 @@ import Link from "next/link";
 import {
   categoryPath,
   dealPath,
+  dealPriceNow,
   formatMoney,
-  formatPriceCheckedDate,
   type FeaturedDeal,
 } from "@/lib/featured-deals";
 
 export function DealCard({ deal }: { deal: FeaturedDeal }) {
-  const checked = formatPriceCheckedDate(deal.price_checked);
+  const now = dealPriceNow(deal);
   return (
     <li className="deal-card">
       <p className="deal-card-merchant">{deal.merchant}</p>
@@ -18,10 +18,12 @@ export function DealCard({ deal }: { deal: FeaturedDeal }) {
       </h3>
       {deal.blurb ? <p className="deal-card-blurb">{deal.blurb}</p> : null}
       <p className="deal-card-price">
-        {formatMoney(deal.price_cents, deal.currency)}
+        {formatMoney(now.cents, now.currency)}
       </p>
-      {checked ? (
-        <p className="deal-card-checked">Price checked {checked}</p>
+      {now.checked ? (
+        <p className="deal-card-checked">
+          {now.daily ? "Recorded" : "Price checked"} {now.checked}
+        </p>
       ) : null}
       <p className="deal-card-links">
         <Link className="deal-card-cta" href={dealPath(deal)}>
