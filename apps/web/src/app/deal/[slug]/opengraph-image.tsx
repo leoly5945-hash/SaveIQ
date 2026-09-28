@@ -47,8 +47,10 @@ export default async function Image({
   }
 
   const now = dealPriceNow(deal);
-  const price = formatMoney(now.cents, now.currency);
-  const checked = now.checked;
+  const price = now.unavailableSince
+    ? "Unavailable"
+    : formatMoney(now.cents, now.currency);
+  const checked = now.unavailableSince ?? now.checked;
 
   return new ImageResponse(
     (

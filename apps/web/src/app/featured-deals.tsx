@@ -12,6 +12,7 @@ import {
   FEATURED_DEALS_HEADING,
   formatMoney,
   requestDealCategories,
+  UNAVAILABLE_LABEL,
   requestFeaturedDeals,
   type DealCategory,
   type FeaturedDeal,
@@ -76,8 +77,12 @@ export function FeaturedDeals() {
               {deal.blurb ? (
                 <p className="home-featured-blurb">{deal.blurb}</p>
               ) : null}
-              <p className="price">{formatMoney(now.cents, now.currency)}</p>
-              {now.checked ? (
+              {now.unavailableSince ? (
+                <p className="deal-card-unavailable">{UNAVAILABLE_LABEL}</p>
+              ) : (
+                <p className="price">{formatMoney(now.cents, now.currency)}</p>
+              )}
+              {now.checked && !now.unavailableSince ? (
                 <p className="home-featured-checked">
                   {now.daily ? "Recorded" : "Price checked"} {now.checked} — confirm
                   at {deal.merchant}

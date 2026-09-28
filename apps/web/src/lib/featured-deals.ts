@@ -6,6 +6,8 @@ export const FEATURED_DEALS_BLURB =
 export const AMAZON_ASSOCIATE_DISCLOSURE =
   "As an Amazon Associate, SaveIQ earns from qualifying purchases.";
 
+export const UNAVAILABLE_LABEL = "Not available on Amazon.ca right now";
+
 export const PRICE_DROPS_HEADING = "Near their 90-day low today";
 export const PRICE_DROPS_BLURB =
   "Products on our Price Watch list whose Amazon.ca price, re-checked this morning, is at least 5% under their 90-day average and within 5% of their lowest price in the last 90 days — the same rule behind a Buy verdict in our Price Check. Price history from Keepa. Prices move during the day, so confirm at the retailer before you buy.";
@@ -36,6 +38,8 @@ export type FeaturedDeal = {
   price_checked: string | null;
   blurb: string | null;
   latest_price?: LatestPrice | null;
+  /** Set when our latest daily check found nobody selling it on Amazon.ca. */
+  no_offer_checked_at?: string | null;
 };
 
 export type DealCategory = {
@@ -210,10 +214,22 @@ export function describeVsAverage(latest: LatestPrice): string | null {
 /**
  * The price to show for a deal: the latest one our daily check recorded when
  * there is one, otherwise the hand-checked snapshot. `checked` is its date.
+ * `unavailableSince` is set (the date of that check) when our latest check
+ * found nobody selling it — callers show UNAVAILABLE_LABEL, not a price.
  */
 export function dealPriceNow(
-  deal: Pick<FeaturedDeal, "price_cents" | "currency" | "price_checked" | "latest_price">
-): { cents: number; currency: string; checked: string | null; daily: boolean } {
+  deal: Pick<
+    FeaturedDeal,
+    "price_cents" | "currency" | "price_checked" | "latest_price" | "no_offer_checked_at"
+  >
+): {
+  cents: number;
+  currency: string;
+  checked: string | null;
+  daily: boolean;
+  unavailableSince: string | null;
+} {
+  const unavailableSince = formatObservedDate(deal.no_offer_checked_at);
   const latest = deal.latest_price;
   if (latest) {
     return {
@@ -221,6 +237,7 @@ export function dealPriceNow(
       currency: latest.currency,
       checked: formatObservedDate(latest.observed_at),
       daily: true,
+      unavailableSince,
     };
   }
   return {
@@ -228,6 +245,7 @@ export function dealPriceNow(
     currency: deal.currency,
     checked: formatPriceCheckedDate(deal.price_checked),
     daily: false,
+    unavailableSince,
   };
 }
 

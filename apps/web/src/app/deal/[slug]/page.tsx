@@ -12,6 +12,7 @@ import {
   featuredDealHref,
   fetchDeal,
   formatMoney,
+  UNAVAILABLE_LABEL,
 } from "@/lib/featured-deals";
 import { getSiteUrl } from "@/lib/config";
 
@@ -26,7 +27,9 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
     return { title: "Deal not found — SaveIQ" };
   }
   const now = dealPriceNow(deal);
-  const price = formatMoney(now.cents, now.currency);
+  const price = now.unavailableSince
+    ? "currently unavailable"
+    : formatMoney(now.cents, now.currency);
   const description =
     deal.blurb ??
     `${deal.title} — ${price} at ${deal.merchant}, price checked by SaveIQ.`;
@@ -118,9 +121,25 @@ export default async function DealPage({ params }: Params) {
       <h1 className="home-title deal-page-title">{deal.title}</h1>
       {deal.brand ? <p className="deal-page-brand">by {deal.brand}</p> : null}
 
-      <p className="deal-page-price">{price}</p>
-      {versus ? <p className="price-drop-versus">{versus}</p> : null}
-      {checked ? (
+      {now.unavailableSince ? (
+        <>
+          <p className="deal-page-unavailable">{UNAVAILABLE_LABEL}</p>
+          <p className="deal-page-checked">
+            Our daily price check on {now.unavailableSince} found no seller
+            offering it on Amazon.ca, so we are not showing a price or a buy
+            link. We keep checking every morning and the price comes back here
+            as soon as it is on sale again.
+            {now.checked
+              ? ` The last price we checked was ${price} (${now.checked}).`
+              : null}
+          </p>
+        </>
+      ) : null}
+      {!now.unavailableSince ? <p className="deal-page-price">{price}</p> : null}
+      {versus && !now.unavailableSince ? (
+        <p className="price-drop-versus">{versus}</p>
+      ) : null}
+      {checked && !now.unavailableSince ? (
         <p className="deal-page-checked">
           {now.daily
             ? `Recorded ${checked} by our daily price check`
@@ -132,16 +151,18 @@ export default async function DealPage({ params }: Params) {
 
       {deal.blurb ? <p className="deal-page-blurb">{deal.blurb}</p> : null}
 
-      <p>
-        <a
-          className="deal-page-cta"
-          href={featuredDealHref(deal)}
-          rel="sponsored noreferrer"
-          target="_blank"
-        >
-          View deal at {deal.merchant}
-        </a>
-      </p>
+      {!now.unavailableSince ? (
+        <p>
+          <a
+            className="deal-page-cta"
+            href={featuredDealHref(deal)}
+            rel="sponsored noreferrer"
+            target="_blank"
+          >
+            View deal at {deal.merchant}
+          </a>
+        </p>
+      ) : null}
 
       <p className="deal-page-disclosure">{AMAZON_ASSOCIATE_DISCLOSURE}</p>
 

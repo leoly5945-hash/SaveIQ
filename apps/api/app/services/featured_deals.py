@@ -83,6 +83,9 @@ class FeaturedDeal(TypedDict):
     price_checked: str | None
     blurb: str | None
     latest_price: LatestPrice | None
+    # Set when our latest daily check found nobody selling it on Amazon.ca
+    # (Keepa: no current offer) — the time of that check, ISO 8601.
+    no_offer_checked_at: str | None
 
 
 class CuratedProduct(TypedDict):
@@ -151,6 +154,39 @@ def _latest_prices(db: Session, asins: list[str]) -> dict[str, LatestPrice]:
     return result
 
 
+def _no_offer_checks(db: Session, asins: list[str]) -> dict[str, str]:
+    """ASINs whose latest check found no current offer, with that check's time.
+
+    That is a tracked product checked more recently than its newest recorded
+    price (or checked but never priced) — the daily cycle stamps
+    ``last_checked_at`` even when Keepa reports no seller.
+    """
+
+    if not asins:
+        return {}
+    rows = db.execute(
+        select(
+            TrackedProduct.provider_product_id,
+            TrackedProduct.last_checked_at,
+            func.max(PriceObservation.observed_at),
+        )
+        .outerjoin(PriceObservation, PriceObservation.tracked_product_id == TrackedProduct.id)
+        .where(
+            TrackedProduct.provider == TRACKING_PROVIDER,
+            TrackedProduct.market == TRACKING_MARKET,
+            TrackedProduct.provider_product_id.in_(asins),
+            TrackedProduct.last_checked_at.is_not(None),
+        )
+        .group_by(TrackedProduct.id, TrackedProduct.provider_product_id)
+    ).all()
+    result: dict[str, str] = {}
+    for asin, last_checked, newest in rows:
+        checked = _as_utc(last_checked)
+        if newest is None or checked > _as_utc(newest):
+            result[asin] = checked.isoformat()
+    return result
+
+
 def _asin(listing: MerchantListing) -> str:
     return listing.provider_product_id.strip().upper()
 
@@ -161,6 +197,7 @@ def _row_to_deal(
     merchant: Merchant,
     product: CanonicalProduct,
     latest: dict[str, LatestPrice] | None = None,
+    no_offer: dict[str, str] | None = None,
 ) -> FeaturedDeal:
     metadata = listing.provider_metadata or {}
     title = product.title or listing.title or offer.title
@@ -178,6 +215,7 @@ def _row_to_deal(
         "price_checked": metadata.get("price_checked"),
         "blurb": metadata.get("blurb"),
         "latest_price": (latest or {}).get(_asin(listing)),
+        "no_offer_checked_at": (no_offer or {}).get(_asin(listing)),
     }
 
 
@@ -206,8 +244,10 @@ def list_featured_deals(
         statement = statement.where(CanonicalProduct.category.has(Category.slug == category_slug))
     statement = statement.limit(limit)
     rows = db.execute(statement).all()
-    latest = _latest_prices(db, [_asin(row[1]) for row in rows])
-    return [_row_to_deal(*row, latest) for row in rows]
+    asins = [_asin(row[1]) for row in rows]
+    latest = _latest_prices(db, asins)
+    no_offer = _no_offer_checks(db, asins)
+    return [_row_to_deal(*row, latest, no_offer) for row in rows]
 
 
 def get_featured_deal(db: Session, slug: str) -> FeaturedDeal | None:
@@ -215,7 +255,9 @@ def get_featured_deal(db: Session, slug: str) -> FeaturedDeal | None:
     for row in db.execute(_base_statement().order_by(Offer.id.asc())).all():
         deal = _row_to_deal(*row)
         if deal["slug"] == target:
-            deal["latest_price"] = _latest_prices(db, [_asin(row[1])]).get(_asin(row[1]))
+            asin = _asin(row[1])
+            deal["latest_price"] = _latest_prices(db, [asin]).get(asin)
+            deal["no_offer_checked_at"] = _no_offer_checks(db, [asin]).get(asin)
             return deal
     return None
 
