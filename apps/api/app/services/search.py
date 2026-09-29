@@ -146,7 +146,7 @@ def _merchant_has_cashback() -> ColumnElement[bool]:
     )
 
 
-def _active_coupon_statement(merchant_id: int) -> Select[tuple[Coupon]]:
+def _active_coupon_statement(merchant_id: int) -> Select[Coupon]:
     return (
         select(Coupon)
         .where(
@@ -158,7 +158,7 @@ def _active_coupon_statement(merchant_id: int) -> Select[tuple[Coupon]]:
     )
 
 
-def _active_cashback_statement(merchant_id: int) -> Select[tuple[CashbackOffer]]:
+def _active_cashback_statement(merchant_id: int) -> Select[CashbackOffer]:
     return (
         select(CashbackOffer)
         .where(
@@ -169,7 +169,7 @@ def _active_cashback_statement(merchant_id: int) -> Select[tuple[CashbackOffer]]
     )
 
 
-def _base_query() -> Select[tuple[Offer, MerchantListing, Merchant, CanonicalProduct]]:
+def _base_query() -> Select[Offer, MerchantListing, Merchant, CanonicalProduct]:
     return (
         select(Offer, MerchantListing, Merchant, CanonicalProduct)
         .join(MerchantListing, Offer.merchant_listing_id == MerchantListing.id)

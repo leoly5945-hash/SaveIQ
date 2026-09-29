@@ -181,6 +181,8 @@ def _no_offer_checks(db: Session, asins: list[str]) -> dict[str, str]:
     ).all()
     result: dict[str, str] = {}
     for asin, last_checked, newest in rows:
+        if last_checked is None:
+            continue
         checked = _as_utc(last_checked)
         if newest is None or checked > _as_utc(newest):
             result[asin] = checked.isoformat()
@@ -219,7 +221,7 @@ def _row_to_deal(
     }
 
 
-def _base_statement() -> Select[tuple[Offer, MerchantListing, Merchant, CanonicalProduct]]:
+def _base_statement() -> Select[Offer, MerchantListing, Merchant, CanonicalProduct]:
     return (
         select(Offer, MerchantListing, Merchant, CanonicalProduct)
         .join(MerchantListing, Offer.merchant_listing_id == MerchantListing.id)
@@ -260,6 +262,11 @@ def get_featured_deal(db: Session, slug: str) -> FeaturedDeal | None:
             deal["no_offer_checked_at"] = _no_offer_checks(db, [asin]).get(asin)
             return deal
     return None
+
+
+def _drop_pct(deal: FeaturedDeal) -> int:
+    latest = deal["latest_price"]
+    return (latest["pct_below_avg90"] or 0) if latest else 0
 
 
 def curated_amazon_products(db: Session) -> list[CuratedProduct]:
@@ -312,7 +319,7 @@ def list_price_drops(
             continue
         seen.add(asin)
         drops.append(_row_to_deal(*row, latest))
-    drops.sort(key=lambda d: -(d["latest_price"] or {}).get("pct_below_avg90", 0))
+    drops.sort(key=_drop_pct, reverse=True)
     return drops[:limit]
 
 

@@ -432,9 +432,7 @@ def test_public_watchlist_lists_tracked_products(monkeypatch) -> None:
         assert item["verdict"] in {"BUY", "FAIR", "WAIT", "UNKNOWN"}
         assert item["status"] == "active"
         # an untagged buy link earns nothing — the watchlist must carry our tag
-        assert item["buy_url"] == (
-            "https://www.amazon.ca/dp/B09VPHVT9Z?tag=saveiq-20"
-        )
+        assert item["buy_url"] == ("https://www.amazon.ca/dp/B09VPHVT9Z?tag=saveiq-20")
     finally:
         app.dependency_overrides.clear()
         session.close()
