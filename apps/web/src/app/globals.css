@@ -1356,7 +1356,7 @@ h3 {
 }
 
 .home-valueprop-track {
-  animation: home-valueprop-scroll 16s linear infinite;
+  animation: home-valueprop-scroll 14s linear infinite;
   display: flex;
   width: max-content;
 }
@@ -1382,19 +1382,20 @@ h3 {
 }
 
 @keyframes home-valueprop-scroll {
+  /* Enter just past the band's right edge, leave fully past the left edge
+     (-100% is the track's own width), then start again from the right. */
   from {
-    transform: translateX(0);
+    transform: translateX(100vw);
   }
   to {
-    /* Content is duplicated once above, so half a track-width is one full
-       loop of the message — the seam is invisible. */
-    transform: translateX(-50%);
+    transform: translateX(-100%);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .home-valueprop-track {
     animation: none;
+    padding-left: 16px;
   }
 }
 
