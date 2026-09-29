@@ -94,8 +94,22 @@ export function CheckBox() {
 
   return (
     <section className="check">
-      <form className="check-form" onSubmit={(e) => void onSubmit(e)}>
-        <label className="field check-field">
+      <form className="check-form pill-search" onSubmit={(e) => void onSubmit(e)}>
+        <label className="pill-search-field">
+          <svg
+            aria-hidden="true"
+            className="pill-search-icon"
+            fill="none"
+            height="22"
+            stroke="currentColor"
+            strokeLinecap="round"
+            strokeWidth="2.2"
+            viewBox="0 0 24 24"
+            width="22"
+          >
+            <path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1 1" />
+            <path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1-1" />
+          </svg>
           <span className="visually-hidden">Amazon.ca product link</span>
           <input
             autoComplete="off"
@@ -109,7 +123,7 @@ export function CheckBox() {
           />
         </label>
         <button
-          className="check-submit"
+          className="pill-search-chip"
           disabled={status === "loading" || input.trim().length === 0}
           type="submit"
         >

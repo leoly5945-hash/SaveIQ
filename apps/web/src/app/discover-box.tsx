@@ -37,8 +37,22 @@ export function DiscoverBox() {
 
   return (
     <section className="discover">
-      <form className="discover-form" onSubmit={(e) => void onSubmit(e)}>
-        <label className="field discover-field">
+      <form className="discover-form pill-search" onSubmit={(e) => void onSubmit(e)}>
+        <label className="pill-search-field">
+          <svg
+            aria-hidden="true"
+            className="pill-search-icon"
+            fill="none"
+            height="22"
+            stroke="currentColor"
+            strokeLinecap="round"
+            strokeWidth="2.2"
+            viewBox="0 0 24 24"
+            width="22"
+          >
+            <circle cx="10.5" cy="10.5" r="6.5" />
+            <path d="m20 20-4.8-4.8" />
+          </svg>
           <span className="visually-hidden">Describe what you want to buy</span>
           <input
             autoComplete="off"
@@ -51,7 +65,7 @@ export function DiscoverBox() {
           />
         </label>
         <button
-          className="discover-submit"
+          className="pill-search-chip"
           disabled={status === "loading" || q.trim().length < 2}
           type="submit"
         >
