@@ -574,7 +574,7 @@ def get_click_analytics(db: DbSession) -> dict[str, Any]:
         "top_merchants": [
             {
                 "merchant_id": merchant_id,
-                "merchant": merchants_by_id.get(merchant_id),
+                "merchant": (merchants_by_id.get(merchant_id) if merchant_id is not None else None),
                 "provider_source": provider_source,
                 "click_count": click_count,
             }
