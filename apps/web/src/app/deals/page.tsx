@@ -20,7 +20,7 @@ import {
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Price Watch — hand-checked prices in Canada | SaveIQ",
+  title: "Price Watch — everyday prices re-checked daily in Canada | SaveIQ",
   description: FEATURED_DEALS_BLURB,
   alternates: { canonical: "/deals" },
   openGraph: {

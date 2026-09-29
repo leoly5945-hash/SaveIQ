@@ -64,7 +64,7 @@ export function DiscoverBox() {
             maxLength={240}
             name="q"
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Describe it — “power bank under $100”, “robot vacuum”"
+            placeholder="Describe it — “power bank under $100”"
             type="text"
             value={q}
           />

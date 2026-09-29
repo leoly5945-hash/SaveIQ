@@ -2,7 +2,7 @@ import { getApiBaseUrl } from "@/lib/config";
 
 export const FEATURED_DEALS_HEADING = "Recently checked prices";
 export const FEATURED_DEALS_BLURB =
-  "Real products we price-checked by hand, across everyday categories. Prices are a snapshot from the date shown — always confirm the current price at the retailer before you buy.";
+  "Real products on our Price Watch list, across everyday categories. We re-check each price every morning; the date shows the latest check. Always confirm the current price at the retailer before you buy.";
 export const AMAZON_ASSOCIATE_DISCLOSURE =
   "As an Amazon Associate, SaveIQ earns from qualifying purchases.";
 
