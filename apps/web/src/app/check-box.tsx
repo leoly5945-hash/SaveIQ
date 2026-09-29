@@ -289,30 +289,47 @@ function AlertForm({ productInput }: { productInput: string }) {
   }
 
   return (
-    <form className="alert-form" onSubmit={(e) => void onSubmit(e)}>
-      <label className="field alert-field">
-        <span className="visually-hidden">Email for a price-drop alert</span>
-        <input
-          autoComplete="email"
-          name="email"
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="Email me if it drops"
-          type="email"
-          value={email}
-        />
-      </label>
-      <button
-        className="alert-submit"
-        disabled={state.kind === "loading" || email.trim().length === 0}
-        type="submit"
-      >
-        {state.kind === "loading" ? "Setting…" : "Set alert"}
-      </button>
+    <div className="alert-block">
+      <form className="alert-form pill-search" onSubmit={(e) => void onSubmit(e)}>
+        <label className="pill-search-field">
+          <svg
+            aria-hidden="true"
+            className="pill-search-icon"
+            fill="none"
+            height="22"
+            stroke="currentColor"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="2.2"
+            viewBox="0 0 24 24"
+            width="22"
+          >
+            <rect height="14" rx="2.5" width="18" x="3" y="5" />
+            <path d="m4 7 8 6 8-6" />
+          </svg>
+          <span className="visually-hidden">Email for a price-drop alert</span>
+          <input
+            autoComplete="email"
+            name="email"
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="Email me if it drops"
+            type="email"
+            value={email}
+          />
+        </label>
+        <button
+          className="pill-search-chip"
+          disabled={state.kind === "loading" || email.trim().length === 0}
+          type="submit"
+        >
+          {state.kind === "loading" ? "Setting…" : "Set alert"}
+        </button>
+      </form>
       {state.kind === "error" ? (
         <p className="state-message" role="alert">
           {state.message}
         </p>
       ) : null}
-    </form>
+    </div>
   );
 }
