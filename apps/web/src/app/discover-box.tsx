@@ -9,6 +9,7 @@ import {
   requestDiscover,
 } from "@/lib/discover";
 import { formatMoney } from "@/lib/price-check";
+import { VoiceButton } from "@/components/voice-button";
 
 type Status = "idle" | "loading" | "ready" | "error";
 
@@ -20,7 +21,10 @@ export function DiscoverBox() {
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const value = q.trim();
+    await runSearch(q.trim());
+  }
+
+  async function runSearch(value: string) {
     if (value.length < 2) return;
     setStatus("loading");
     setError("");
@@ -64,6 +68,17 @@ export function DiscoverBox() {
             value={q}
           />
         </label>
+        <VoiceButton
+          onError={(message) => {
+            setStatus("error");
+            setError(message);
+          }}
+          onFinal={(text) => {
+            setQ(text);
+            void runSearch(text);
+          }}
+          onText={setQ}
+        />
         <button
           className="pill-search-chip"
           disabled={status === "loading" || q.trim().length < 2}

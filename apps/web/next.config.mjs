@@ -10,7 +10,9 @@ const SECURITY_HEADERS = [
   // No legitimate reason for this app to be framed by another site.
   { key: "X-Frame-Options", value: "DENY" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-  { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+  // Camera (barcode scan) and microphone (voice search) for our own pages
+  // only — still denied to anything embedded from another origin.
+  { key: "Permissions-Policy", value: "camera=(self), microphone=(self), geolocation=()" },
   {
     key: "Content-Security-Policy",
     value: [

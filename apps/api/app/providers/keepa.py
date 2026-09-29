@@ -495,6 +495,30 @@ class KeepaProvider:
         self._product_cache[asin] = (time.monotonic(), first)
         return first
 
+    async def lookup_by_code(self, code: str, *, limit: int = 3) -> list[ProviderProduct]:
+        """Amazon.ca products for a product barcode (UPC / EAN / GTIN).
+
+        One Keepa ``/product?code=`` call without history, so it costs about
+        one token per product found. A code can map to several ASINs (packs,
+        variants); Keepa's own order is kept, capped at ``limit``.
+        """
+
+        code = code.strip()
+        if not code.isdigit() or not 8 <= len(code) <= 14:
+            raise ProviderProductNotFound("not a product barcode")
+        payload = await self._request("product", {"code": code, "code-limit": limit, "history": 0})
+        products = payload.get("products")
+        if not isinstance(products, list):
+            return []
+        found: list[ProviderProduct] = []
+        for raw in products:
+            if not isinstance(raw, Mapping) or not raw.get("asin"):
+                continue
+            if raw.get("title") in (None, ""):
+                continue
+            found.append(self._parse_product(raw))
+        return found[:limit]
+
     _PREFETCH_BATCH_SIZE = 100  # Keepa's per-request ASIN limit
 
     async def prefetch_products(self, asins: Sequence[str], *, stats_days: int = 90) -> int:

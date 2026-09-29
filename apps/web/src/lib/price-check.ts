@@ -175,6 +175,45 @@ export function looksSubmittable(value: string): boolean {
   return /amazon\.[a-z.]+\/|amzn\.to\/|a\.co\//i.test(v);
 }
 
+/** A retail barcode (UPC-E/EAN-8, UPC-A, EAN-13, GTIN-14), digits only. */
+export function looksLikeBarcode(value: string): boolean {
+  return /^(\d{8}|\d{12,14})$/.test(value.trim());
+}
+
+export type BarcodeOutcome =
+  | { ok: true; asin: string; title: string | null }
+  | { ok: false; detail: string };
+
+/** Barcode -> the first matching Amazon.ca ASIN. */
+export async function requestBarcode(
+  code: string,
+  fetchImpl: typeof fetch = fetch
+): Promise<BarcodeOutcome> {
+  const params = new URLSearchParams({ code: code.trim() });
+  try {
+    const res = await fetchImpl(`/api/check/barcode?${params.toString()}`, {
+      headers: { Accept: "application/json" },
+    });
+    const body = (await res.json()) as {
+      matches?: { asin: string; title: string | null }[];
+      detail?: unknown;
+    };
+    const first = body.matches?.[0];
+    if (!res.ok || !first) {
+      return {
+        ok: false,
+        detail:
+          typeof body.detail === "string"
+            ? body.detail
+            : "We couldn't look that barcode up. Try the Amazon.ca link instead.",
+      };
+    }
+    return { ok: true, asin: first.asin, title: first.title };
+  } catch {
+    return { ok: false, detail: "Barcode lookup is unavailable right now." };
+  }
+}
+
 // --- client (browser) via the same-origin proxy -------------------------
 
 export async function requestCheck(
