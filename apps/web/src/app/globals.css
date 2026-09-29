@@ -2259,6 +2259,13 @@ h3 {
     gap: 10px;
   }
 
+  /* Six links don't fit one row on a phone; without wrapping the nav
+     widened the whole page and the browser zoomed out to fit it. */
+  .home-nav {
+    flex-wrap: wrap;
+    gap: 8px 18px;
+  }
+
   .home-valueprop-item {
     font-size: 0.95rem;
     padding-right: 40px;
@@ -2283,33 +2290,6 @@ h3 {
   max-width: 640px;
 }
 
-.check-form .field input {
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  font-size: 0.98rem;
-  min-height: 48px;
-}
-
-.check-submit {
-  background: var(--surface);
-  border: 1px solid var(--foreground);
-  border-radius: 12px;
-  color: var(--foreground);
-  cursor: pointer;
-  font-weight: 700;
-  min-height: 48px;
-  padding: 0 20px;
-}
-
-.check-submit:hover:not(:disabled) {
-  background: var(--promo-hover);
-}
-
-.check-submit:disabled {
-  cursor: not-allowed;
-  opacity: 0.55;
-}
-
 /* --- Layer 3 discovery ------------------------------------------------- */
 
 .discover,
@@ -2321,35 +2301,6 @@ h3 {
 .discover-form {
   grid-template-columns: minmax(0, 1fr) auto;
   max-width: 640px;
-}
-
-.discover-form .field input {
-  border-color: var(--foreground);
-  border-radius: 12px;
-  border-width: 2px;
-  font-size: 1.05rem;
-  min-height: 58px;
-}
-
-.discover-submit {
-  background: var(--promo);
-  border: 0;
-  border-radius: 12px;
-  color: #ffffff;
-  cursor: pointer;
-  font-family: var(--display-font);
-  font-weight: 900;
-  min-height: 58px;
-  padding: 0 26px;
-}
-
-.discover-submit:hover:not(:disabled) {
-  background: var(--promo-hover);
-}
-
-.discover-submit:disabled {
-  cursor: not-allowed;
-  opacity: 0.5;
 }
 
 .discover-results {
@@ -3206,4 +3157,110 @@ h3 {
 .deal-page-unavailable {
   font-family: var(--display-font);
   font-size: 1.35rem;
+}
+
+/* --- pill search (homepage "Describe it" + "Paste a link") ------------- */
+
+form.pill-search {
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  box-shadow: 0 2px 10px rgb(32 36 44 / 8%);
+  display: flex;
+  gap: 6px;
+  max-width: 680px;
+  min-height: 60px;
+  padding: 6px 6px 6px 20px;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+form.pill-search:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 4px 18px rgb(32 36 44 / 14%);
+  outline: 3px solid var(--accent-soft);
+}
+
+.pill-search-field {
+  align-items: center;
+  display: flex;
+  flex: 1;
+  gap: 12px;
+  min-width: 0;
+}
+
+.pill-search-icon {
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.pill-search-field input {
+  background: transparent;
+  border: 0;
+  color: var(--foreground);
+  flex: 1;
+  font: inherit;
+  font-size: 1.05rem;
+  min-height: 46px;
+  min-width: 0;
+  outline: none;
+  padding: 0;
+  /* Zero basis: an input's intrinsic width would otherwise set the pill's
+     min-content and push the page wider than a phone screen. */
+  width: 0;
+}
+
+.pill-search-field input::placeholder {
+  color: #8a929e;
+}
+
+/* Grey chip while empty (like Google's), orange call to action once typed. */
+.pill-search-chip {
+  align-items: center;
+  background: var(--promo);
+  border: 0;
+  border-radius: 999px;
+  color: #ffffff;
+  cursor: pointer;
+  display: inline-flex;
+  flex-shrink: 0;
+  font-weight: 800;
+  gap: 8px;
+  min-height: 46px;
+  padding: 0 20px;
+  white-space: nowrap;
+  /* The global mobile rule stretches every button to 100%. */
+  width: auto;
+}
+
+.pill-search-chip:hover:not(:disabled) {
+  background: var(--promo-hover);
+}
+
+.pill-search-chip:disabled {
+  background: #f1f3f4;
+  color: var(--muted);
+  cursor: default;
+  opacity: 1;
+}
+
+@media (max-width: 640px) {
+  form.pill-search {
+    min-height: 54px;
+    padding-left: 16px;
+  }
+
+  .pill-search-field {
+    gap: 10px;
+  }
+
+  .pill-search-field input {
+    font-size: 1rem;
+  }
+
+  .pill-search-chip {
+    padding: 0 14px;
+  }
 }
