@@ -2645,44 +2645,16 @@ h3 {
   padding-top: 12px;
 }
 
-.alert-form {
+
+.alert-block {
   display: grid;
-  gap: 10px;
-  grid-template-columns: minmax(0, 1fr) auto;
-}
-
-.alert-form .field input {
-  border-radius: 10px;
-  min-height: 46px;
-}
-
-.alert-submit {
-  background: var(--foreground);
-  border: 0;
-  border-radius: 10px;
-  color: #ffffff;
-  cursor: pointer;
-  font-weight: 700;
-  padding: 0 18px;
-}
-
-.alert-submit:disabled {
-  cursor: not-allowed;
-  opacity: 0.55;
+  gap: 8px;
 }
 
 .alert-done {
   color: #15803d;
   font-size: 0.92rem;
   font-weight: 600;
-}
-
-@media (max-width: 640px) {
-  .check-form,
-  .discover-form,
-  .alert-form {
-    grid-template-columns: 1fr;
-  }
 }
 
 /* --- /watchlist ------------------------------------------------------- */
