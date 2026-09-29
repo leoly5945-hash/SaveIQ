@@ -113,6 +113,10 @@ export default function Home() {
             </p>
           </div>
 
+          {/* Price Watch right under the alert box, so it's seen without
+              scrolling to the bottom of the page. */}
+          <FeaturedDeals />
+
           <MultiStoreShowcase />
         </section>
 
@@ -199,8 +203,6 @@ export default function Home() {
             and <Link href="/affiliate-disclosure">Affiliate Disclosure</Link>.
           </p>
         </section>
-
-        <FeaturedDeals />
       </main>
     </div>
   );
