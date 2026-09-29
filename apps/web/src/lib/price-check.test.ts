@@ -1,11 +1,13 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import {
   type CheckResult,
   formatMoney,
+  looksLikeBarcode,
   looksSubmittable,
   ninetyDayBand,
   normalizeResult,
+  requestBarcode,
   VERDICT_COPY,
   type PriceIntelligence,
 } from "./price-check";
@@ -99,5 +101,49 @@ describe("normalizeResult", () => {
     expect(normalizeResult({ ...base, buy_url: null }).buy_url).toBe(
       "https://www.amazon.ca/dp/B0TEST00001"
     );
+  });
+});
+
+describe("barcode helpers", () => {
+  it("recognises retail barcodes but not ASINs or links", () => {
+    for (const code of ["12345670", "039800011329", "0039800011329", "10039800011326"]) {
+      expect(looksLikeBarcode(code)).toBe(true);
+    }
+    for (const other of ["B08LF175VC", "1234567", "123456789", "https://www.amazon.ca/dp/B08LF175VC"]) {
+      expect(looksLikeBarcode(other)).toBe(false);
+    }
+  });
+
+  it("resolves a barcode to its first Amazon.ca ASIN", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          code: "039800011329",
+          matches: [{ asin: "B000TEST01", title: "Batteries" }],
+        }),
+        { status: 200 }
+      )
+    );
+    await expect(requestBarcode(" 039800011329 ", fetchImpl)).resolves.toEqual({
+      ok: true,
+      asin: "B000TEST01",
+      title: "Batteries",
+    });
+    expect(fetchImpl).toHaveBeenCalledWith("/api/check/barcode?code=039800011329", {
+      headers: { Accept: "application/json" },
+    });
+  });
+
+  it("passes the API's not-found message through", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({ detail: "We couldn't find that barcode on Amazon.ca." }),
+        { status: 404 }
+      )
+    );
+    await expect(requestBarcode("039800011329", fetchImpl)).resolves.toEqual({
+      ok: false,
+      detail: "We couldn't find that barcode on Amazon.ca.",
+    });
   });
 });

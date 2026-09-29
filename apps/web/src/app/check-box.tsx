@@ -11,12 +11,16 @@ import {
 import {
   type CheckResult,
   formatMoney,
+  looksLikeBarcode,
   looksSubmittable,
   ninetyDayBand,
+  requestBarcode,
   requestCheck,
   requestCreateAlert,
   VERDICT_COPY,
 } from "@/lib/price-check";
+
+import { BarcodeScanButton } from "@/components/barcode-scan";
 
 import { AcquireBlock } from "./acquire-block";
 import { AlternativesBlock } from "./alternatives-block";
@@ -43,10 +47,27 @@ export function CheckBox() {
   );
   const ranFromUrl = useRef(false);
 
-  async function runCheck(value: string) {
+  async function runCheck(raw: string) {
+    let value = raw;
+    // A barcode (typed, or from the camera) is first turned into its ASIN.
+    if (looksLikeBarcode(value)) {
+      setStatus("loading");
+      setError("");
+      const found = await requestBarcode(value);
+      if (!found.ok) {
+        setStatus("error");
+        setError(found.detail);
+        setResult(null);
+        return;
+      }
+      value = found.asin;
+      setInput(value);
+    }
     if (!looksSubmittable(value)) {
       setStatus("error");
-      setError("Paste a full amazon.ca product link (or a 10-character ASIN).");
+      setError(
+        "Paste a full amazon.ca product link, a 10-character ASIN or a barcode number."
+      );
       return;
     }
     setStatus("loading");
@@ -117,11 +138,17 @@ export function CheckBox() {
             maxLength={2048}
             name="url"
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Paste an amazon.ca product link…"
+            placeholder="Paste an amazon.ca link or a barcode number…"
             type="text"
             value={input}
           />
         </label>
+        <BarcodeScanButton
+          onCode={(code) => {
+            setInput(code);
+            void runCheck(code);
+          }}
+        />
         <button
           className="pill-search-chip"
           disabled={status === "loading" || input.trim().length === 0}

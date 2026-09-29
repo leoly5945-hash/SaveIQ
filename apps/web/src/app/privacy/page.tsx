@@ -7,7 +7,7 @@ const brandName = getBrandName();
 
 const CONTACT_NAME = "Leo Do";
 const OPERATOR_NAME = "Nextwave Software Company";
-const LAST_UPDATED = "September 19, 2026";
+const LAST_UPDATED = "September 29, 2026";
 
 export const metadata: Metadata = {
   title: `Privacy — ${brandName}`,
@@ -46,7 +46,32 @@ export default function PrivacyPage() {
           offer identifiers you click, technical request data (such as time,
           referrer, and user agent), and similar usage analytics.
         </p>
-        <p>We do not collect names, emails, phone numbers, or payment details through this site.</p>
+        <p>
+          If you set a price-drop alert, we store the email address you enter
+          and the product it is for, so we can send that alert. Every alert
+          email has a link to stop it. Apart from that, we do not collect
+          names, phone numbers, or payment details through this site.
+        </p>
+      </section>
+
+      <section className="privacy-section">
+        <h2>Voice search and barcode scanning</h2>
+        <p>
+          Both are optional and only start when you press the microphone or
+          camera button, after your browser asks for permission.
+        </p>
+        <p>
+          Voice search uses your browser&apos;s own speech recognition. Some
+          browsers, including Chrome, send the audio to their provider (for
+          Chrome, Google) to turn it into text; SaveIQ never receives the
+          audio, only the text that ends up in the search box.
+        </p>
+        <p>
+          Barcode scanning reads the barcode on your device using the
+          browser&apos;s built-in detector. The camera image is not recorded or
+          sent anywhere; only the barcode number is sent to our server to look
+          the product up.
+        </p>
       </section>
 
       <section className="privacy-section">

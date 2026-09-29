@@ -3236,3 +3236,113 @@ form.pill-search:focus-within {
     padding: 0 14px;
   }
 }
+
+/* Icon tools inside a pill (voice, barcode) — like Google's mic / lens. */
+.pill-search-tool {
+  align-items: center;
+  background: transparent;
+  border-radius: 999px;
+  color: var(--muted);
+  display: inline-flex;
+  flex-shrink: 0;
+  height: 44px;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0;
+  /* The global mobile rule stretches every button to 100%. */
+  width: 44px;
+}
+
+.pill-search-tool:hover {
+  background: #f1f3f4;
+  color: var(--foreground);
+}
+
+.pill-search-tool.is-listening {
+  animation: pill-listening 1.2s ease-in-out infinite;
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+@keyframes pill-listening {
+  50% {
+    box-shadow: 0 0 0 6px rgb(220 38 38 / 15%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pill-search-tool.is-listening {
+    animation: none;
+  }
+}
+
+/* Barcode scanner overlay */
+.scan-dialog {
+  align-items: center;
+  background: rgb(15 23 42 / 72%);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 16px;
+  position: fixed;
+  z-index: 50;
+}
+
+.scan-panel {
+  background: var(--surface);
+  border-radius: 18px;
+  display: grid;
+  gap: 12px;
+  max-width: 440px;
+  padding: 18px;
+  width: 100%;
+}
+
+.scan-title {
+  font-family: var(--display-font);
+  font-size: 1.1rem;
+  font-weight: 900;
+}
+
+.scan-view {
+  aspect-ratio: 4 / 3;
+  background: #0f172a;
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+}
+
+.scan-view video {
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+.scan-frame {
+  border: 3px solid rgb(255 255 255 / 85%);
+  border-radius: 12px;
+  height: 38%;
+  left: 12%;
+  position: absolute;
+  top: 31%;
+  width: 76%;
+}
+
+.scan-hint,
+.scan-problem {
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
+.scan-problem {
+  color: #b91c1c;
+}
+
+.scan-close {
+  background: #f1f3f4;
+  border-radius: 999px;
+  color: var(--foreground);
+  justify-self: end;
+  width: auto;
+}

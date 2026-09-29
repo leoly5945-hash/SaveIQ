@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 
 from app.core.settings import Settings, get_settings
 from app.db.session import get_db
-from app.providers import get_provider_registry
+from app.providers import ProviderError, ProviderProductNotFound, get_provider_registry
 from app.services.affiliate.amazon_link import amazon_affiliate_url
 from app.services.decision.deal_score import DealAssessment
 from app.services.decision.price_check import PriceCheckError, run_price_check
@@ -76,6 +76,46 @@ class CheckResponse(BaseModel):
 
 def _client_ip(request: Request) -> str:
     return request.client.host if request.client else "unknown"
+
+
+class BarcodeMatchOut(BaseModel):
+    asin: str
+    title: str | None
+
+
+class BarcodeResponse(BaseModel):
+    code: str
+    matches: list[BarcodeMatchOut]
+
+
+@router.get("/barcode", response_model=BarcodeResponse)
+async def lookup_barcode(
+    request: Request,
+    code: Annotated[str, Query(pattern=r"^\d{8,14}$")],
+) -> BarcodeResponse:
+    """Barcode (UPC / EAN) -> the matching Amazon.ca product(s), so a shopper can
+    scan a box in a store and then run a normal price check on the ASIN."""
+
+    settings: Settings = get_settings()
+    if not allow("check", _client_ip(request), per_minute=settings.check_rate_per_minute):
+        raise HTTPException(status_code=429, detail="too many checks — try again in a minute")
+
+    keepa = get_provider_registry().try_get("keepa")
+    lookup = getattr(keepa, "lookup_by_code", None)
+    if lookup is None:
+        raise HTTPException(status_code=503, detail="barcode lookup is unavailable")
+    try:
+        products = await lookup(code)
+    except ProviderProductNotFound as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except ProviderError as exc:
+        raise HTTPException(status_code=502, detail=f"provider error: {exc}") from exc
+    if not products:
+        raise HTTPException(status_code=404, detail="We couldn't find that barcode on Amazon.ca.")
+    return BarcodeResponse(
+        code=code,
+        matches=[BarcodeMatchOut(asin=p.provider_product_id, title=p.title) for p in products],
+    )
 
 
 @router.get("", response_model=CheckResponse)
