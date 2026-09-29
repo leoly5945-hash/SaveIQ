@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "SaveIQ — Buy Now or Wait",
   "short_name": "SaveIQ",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "See SaveIQ's buy-now-or-wait call right on the Amazon.ca product page, from 90 days of price history.",
   "icons": {
     "16": "icons/icon16.png",
