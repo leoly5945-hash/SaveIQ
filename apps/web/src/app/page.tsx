@@ -61,12 +61,10 @@ export default function Home() {
         </div>
         <div className="home-valueprop">
           <div className="home-valueprop-track" aria-hidden="true">
-            {Array.from({ length: 2 }).map((_, i) => (
-              <span className="home-valueprop-item" key={i}>
-                <span className="home-valueprop-dot" />
-                No fees. No account. No markup.
-              </span>
-            ))}
+            <span className="home-valueprop-item">
+              <span className="home-valueprop-dot" />
+              No fees. No account. No markup.
+            </span>
           </div>
           <p className="sr-only">No fees. No account. No markup.</p>
         </div>
