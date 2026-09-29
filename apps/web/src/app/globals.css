@@ -3346,3 +3346,17 @@ form.pill-search:focus-within {
   justify-self: end;
   width: auto;
 }
+
+@media (max-width: 640px) {
+  /* Room for the input when a pill carries voice / scan tools: the tools
+     say "search" already, so the leading icon goes and they shrink a bit. */
+  form.pill-search:has(.pill-search-tool) .pill-search-icon {
+    display: none;
+  }
+
+  .pill-search-tool {
+    height: 38px;
+    min-height: 38px;
+    width: 38px;
+  }
+}

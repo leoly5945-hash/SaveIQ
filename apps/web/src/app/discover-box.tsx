@@ -8,7 +8,8 @@ import {
   type DiscoverResult,
   requestDiscover,
 } from "@/lib/discover";
-import { formatMoney } from "@/lib/price-check";
+import { formatMoney, requestCheckInPage } from "@/lib/price-check";
+import { BarcodeScanButton } from "@/components/barcode-scan";
 import { VoiceButton } from "@/components/voice-button";
 
 type Status = "idle" | "loading" | "ready" | "error";
@@ -79,6 +80,7 @@ export function DiscoverBox() {
           }}
           onText={setQ}
         />
+        <BarcodeScanButton onCode={requestCheckInPage} />
         <button
           className="pill-search-chip"
           disabled={status === "loading" || q.trim().length < 2}
