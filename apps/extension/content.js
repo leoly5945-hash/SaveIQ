@@ -31,6 +31,20 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
+// Mount `card` unless one is already showing. Only a real verdict may replace
+// an error card, never the other way round, so a late failure can't sit on top
+// of (or duplicate) a good card — e.g. when two copies of the extension are
+// installed and both answer for the same page.
+function mountCard(card, { replaceError }) {
+  const existing = document.getElementById("saveiq-card");
+  if (existing) {
+    if (!replaceError || !existing.classList.contains("saveiq-error")) return;
+    existing.remove();
+  }
+  card.querySelector(".saveiq-close").addEventListener("click", () => card.remove());
+  document.body.appendChild(card);
+}
+
 function renderCard(data) {
   const verdict = data?.assessment?.verdict ?? "UNKNOWN";
   const price = formatMoney(data?.assessment?.effective_price?.effective_cents, data?.currency);
@@ -62,21 +76,19 @@ function renderCard(data) {
     <a class="saveiq-link" href="${checkUrl}" target="_blank" rel="noreferrer">See full comparison →</a>
   `;
 
-  card.querySelector(".saveiq-close").addEventListener("click", () => card.remove());
-  document.body.appendChild(card);
+  mountCard(card, { replaceError: true });
 }
 
 function renderError() {
   const card = document.createElement("div");
   card.id = "saveiq-card";
-  card.className = "saveiq-card saveiq-unknown";
+  card.className = "saveiq-card saveiq-unknown saveiq-error";
   card.innerHTML = `
     <button class="saveiq-close" aria-label="Dismiss">&times;</button>
     <div class="saveiq-brand">SaveIQ</div>
     <div class="saveiq-reason">No price history yet for this product.</div>
   `;
-  card.querySelector(".saveiq-close").addEventListener("click", () => card.remove());
-  document.body.appendChild(card);
+  mountCard(card, { replaceError: false });
 }
 
 function main() {
