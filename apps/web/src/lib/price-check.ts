@@ -175,6 +175,16 @@ export function looksSubmittable(value: string): boolean {
   return /amazon\.[a-z.]+\/|amzn\.to\/|a\.co\//i.test(v);
 }
 
+/**
+ * Asks the page's price-check box to run a check (e.g. a barcode scanned from
+ * the main search box). The CheckBox listens for this event.
+ */
+export const CHECK_REQUEST_EVENT = "saveiq:check";
+
+export function requestCheckInPage(value: string): void {
+  window.dispatchEvent(new CustomEvent(CHECK_REQUEST_EVENT, { detail: value }));
+}
+
 /** A retail barcode (UPC-E/EAN-8, UPC-A, EAN-13, GTIN-14), digits only. */
 export function looksLikeBarcode(value: string): boolean {
   return /^(\d{8}|\d{12,14})$/.test(value.trim());

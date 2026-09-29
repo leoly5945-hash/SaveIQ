@@ -10,6 +10,7 @@ import {
 } from "@/lib/alternatives";
 import {
   type CheckResult,
+  CHECK_REQUEST_EVENT,
   formatMoney,
   looksLikeBarcode,
   looksSubmittable,
@@ -46,6 +47,7 @@ export function CheckBox() {
     null
   );
   const ranFromUrl = useRef(false);
+  const sectionRef = useRef<HTMLElement>(null);
 
   async function runCheck(raw: string) {
     let value = raw;
@@ -108,13 +110,27 @@ export function CheckBox() {
     });
   }, []);
 
+  // A barcode scanned from the main search box runs here, where the verdict
+  // is shown; bring this box into view so the result isn't off-screen.
+  useEffect(() => {
+    function onRequest(event: Event) {
+      const value = (event as CustomEvent<string>).detail;
+      if (typeof value !== "string" || !value.trim()) return;
+      setInput(value);
+      sectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      void runCheck(value);
+    }
+    window.addEventListener(CHECK_REQUEST_EVENT, onRequest);
+    return () => window.removeEventListener(CHECK_REQUEST_EVENT, onRequest);
+  }, []);
+
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     await runCheck(input.trim());
   }
 
   return (
-    <section className="check">
+    <section className="check" ref={sectionRef}>
       <form className="check-form pill-search" onSubmit={(e) => void onSubmit(e)}>
         <label className="pill-search-field">
           <svg
