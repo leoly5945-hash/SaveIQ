@@ -3592,3 +3592,17 @@ form.pill-search:focus-within {
   font-size: 0.82rem;
   margin-top: 2px;
 }
+
+/* A cheaper price at a store we haven't vetted: shown, but not as the main button. */
+.buy-cta-unvetted {
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1.45;
+  margin-top: 8px;
+  text-align: center;
+}
+
+.buy-cta-unvetted a {
+  color: var(--foreground);
+  font-weight: 700;
+}

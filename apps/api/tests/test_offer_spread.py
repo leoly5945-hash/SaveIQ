@@ -90,3 +90,22 @@ def test_shipping_counts_toward_the_total() -> None:
     spread = summarize_amazon_offers([o], buy_box_cents=13000, currency="CAD")
     # 110 + 25 shipping = 135 total, above the 130 buy box -> not shown
     assert spread is None
+
+
+def test_implausibly_cheap_offers_are_left_out() -> None:
+    # APC BE600M1 on prod: buy box $114.90, "new from $35" and "used from $20".
+    spread = summarize_amazon_offers(
+        [
+            _offer(11490, condition="new", buy_box=True),
+            _offer(3500, condition="new"),
+            _offer(10900, condition="new"),
+            _offer(2000, condition="used"),
+            _offer(6144, condition="used"),
+        ],
+        buy_box_cents=11490,
+        currency="CAD",
+    )
+    assert spread is not None
+    tiers = {t.condition: t for t in spread.tiers}
+    assert tiers["new"].lowest_total_cents == 10900 and tiers["new"].offer_count == 1
+    assert tiers["used"].lowest_total_cents == 6144 and tiers["used"].offer_count == 1

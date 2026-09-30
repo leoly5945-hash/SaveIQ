@@ -655,7 +655,7 @@ class KeepaProvider:
 
         parsed: list[ProviderOffer] = []
         if isinstance(offers_raw, list):
-            for entry in offers_raw:
+            for entry in self._live_offer_entries(raw, offers_raw, observed):
                 if not isinstance(entry, Mapping):
                     continue
                 offer = self._parse_single_offer(asin, entry, observed, buy_box_seller)
@@ -686,6 +686,38 @@ class KeepaProvider:
                 metadata={"synthesised_from": price.source},
             )
         ]
+
+    # Without liveOffersOrder, an offer last seen longer ago than this is stale.
+    _LIVE_OFFER_MAX_AGE = timedelta(hours=48)
+
+    def _live_offer_entries(
+        self, raw: Mapping[str, Any], offers_raw: list[Any], observed: datetime
+    ) -> list[Any]:
+        """Only the offers that are live now.
+
+        Keepa's ``offers`` array keeps every offer it has *ever* seen for the
+        product; ``liveOffersOrder`` indexes the ones live right now. Reading the
+        whole array surfaced long-gone sellers and their old prices (e.g. "70 new
+        sellers from $35" on a $115 UPS). Without ``liveOffersOrder`` we fall back
+        to ``lastSeen`` within the last 48 hours.
+        """
+
+        live_order = raw.get("liveOffersOrder")
+        if isinstance(live_order, list):
+            return [
+                offers_raw[i] for i in live_order if isinstance(i, int) and 0 <= i < len(offers_raw)
+            ]
+        cutoff = observed - self._LIVE_OFFER_MAX_AGE
+        live: list[Any] = []
+        for entry in offers_raw:
+            last_seen = (
+                _keepa_minutes_to_datetime(_as_int(entry.get("lastSeen")) or 0)
+                if isinstance(entry, Mapping) and entry.get("lastSeen") is not None
+                else None
+            )
+            if last_seen is None or last_seen >= cutoff:
+                live.append(entry)
+        return live
 
     def _parse_single_offer(
         self,
