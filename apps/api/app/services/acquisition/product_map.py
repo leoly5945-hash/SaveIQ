@@ -8,6 +8,8 @@ to, so the advisor still answers.
 
 from __future__ import annotations
 
+import re
+
 from app.services.acquisition.composer import ProductContext
 
 # (keywords, our category, tier). First hit on the category text or title wins.
@@ -65,6 +67,10 @@ _RULES: list[tuple[tuple[str, ...], str, str]] = [
 _MIDRANGE_HINTS = ("budget", "essential", "lite", "se ", " a1", " a2", "fan edition", " fe")
 
 
+# "... - Black (Renewed)", "Renewed Premium", "Refurbished" — Amazon's own naming.
+_REFURB_TITLE = re.compile(r"\b(renewed|refurbished|reconditioned)\b", re.IGNORECASE)
+
+
 def infer_product_context(
     *,
     price_cents: int,
@@ -88,4 +94,5 @@ def infer_product_context(
         brand=(brand or "").strip().lower() or None,
         tier=tier,
         carrier_eligible=carrier_eligible,
+        listing_is_refurbished=bool(_REFURB_TITLE.search(title or "")),
     )

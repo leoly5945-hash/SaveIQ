@@ -36,6 +36,14 @@ class ProductContext(BaseModel):
     tier: str = "flagship"  # picks the depreciation curve, e.g. smartphone_flagship
     # None -> inferred from the category. Set False for an item no carrier stocks.
     carrier_eligible: bool | None = None
+    # Lowest live used / renewed offer on Amazon.ca (price + shipping), when we
+    # have one. The refurbished option then uses this real price instead of a
+    # flat "N% under new" estimate.
+    live_used_price_cents: int | None = None
+    # The Amazon listing itself sells a renewed / refurbished unit ("... (Renewed)").
+    # Its price is already the refurbished price: no separate "Amazon Renewed"
+    # option (that would discount it twice), and "buy outright" says so.
+    listing_is_refurbished: bool = False
 
 
 def _resale_cents(base_cents: int, ctx: ProductContext, at_months: int) -> int:
@@ -88,6 +96,11 @@ def _build(
     )
 
     if program.kind == "retail":
+        if ctx.listing_is_refurbished:
+            common["notes"] = [
+                "This Amazon listing is itself renewed, not new — the price is for a renewed unit.",
+                *program.notes,
+            ]
         return AcquisitionOption(
             **common,
             upfront_cents=retail,
@@ -96,7 +109,20 @@ def _build(
         )
 
     if program.kind == "refurb":
-        eff = round(retail * (1.0 - program.discount_pct))
+        if ctx.live_used_price_cents and ctx.live_used_price_cents > 0:
+            eff = ctx.live_used_price_cents
+            # The program's "this estimate" caveat no longer applies to a real price.
+            common["notes"] = [
+                f"Lowest used / renewed offer on Amazon.ca right now: ${eff / 100:,.2f}.",
+                *(n for n in program.notes if "estimate" not in n.lower()),
+            ]
+        else:
+            eff = round(retail * (1.0 - program.discount_pct))
+            common["notes"] = [
+                *program.notes,
+                f"No live renewed offer to check against — estimated at "
+                f"{round(program.discount_pct * 100)}% under the new price.",
+            ]
         return AcquisitionOption(
             **common,
             upfront_cents=eff,
@@ -154,6 +180,8 @@ def compose_options(ctx: ProductContext, *, horizon_months: int = 36) -> list[Ac
         ):
             continue
         if program.carrier and not carrier_ok:
+            continue
+        if program.kind == "refurb" and ctx.listing_is_refurbished:
             continue
         # A plan cost only attaches to carrier-eligible devices (a phone needs
         # service however you got the handset); a TV / laptop / headphone carries

@@ -54,7 +54,8 @@ class PriceIntelligence(BaseModel):
     is_all_time_low: bool = False
     # Trading days-equivalent: calendar days since the series was last <= current.
     days_since_price_this_low: int | None = None
-    # How many distinct observations in 90d were <= current * 1.02.
+    # How many separate times in 90d the price fell to <= current * 1.02 (runs,
+    # not days: a price that sits at its low for 50 days counts once).
     times_this_low_90d: int = 0
     # Real provider price *changes* in the window / over the product's whole life
     # — distinct from ``total_points``, which for Keepa is a densified daily fill.
@@ -167,7 +168,16 @@ def summarize_points(
         # 0.0 => nothing was cheaper (current is the best seen), 1.0 => all cheaper.
         strictly_below = sum(1 for v in window_90 if v < effective_current)
         percentile_90d = round(strictly_below / len(window_90), 4)
-        times_low_90d = sum(1 for v in window_90 if v <= round(effective_current * 1.02))
+        # Count *episodes*, not days. The series is densified daily, so a price
+        # that fell once and stayed down would otherwise read as "this low 57
+        # times — it comes back", which is wrong for a steady decline.
+        threshold = round(effective_current * 1.02)
+        was_low = False
+        for v in window_90:
+            is_low = v <= threshold
+            if is_low and not was_low:
+                times_low_90d += 1
+            was_low = is_low
 
     # The provider's own lifetime min/max (Keepa's stats.min/max) beat what we can
     # see in a densified window that only spans the requested days.

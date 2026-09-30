@@ -273,3 +273,32 @@ def test_assess_from_provider_returns_none_without_price() -> None:
         source="keepa:unknown",
     )
     assert assess_from_provider(price, history, now=NOW) is None
+
+
+def test_times_this_low_counts_episodes_not_days() -> None:
+    # Steady decline to a new low, then flat there for weeks: that is ONE time
+    # this low, not one per day (the Galaxy S26 case on prod).
+    points = _pts(
+        *[(d, 9879 - (80 - d) * 10) for d in range(80, 45, -5)],
+        *[(d, 8729) for d in range(45, 0, -1)],
+    )
+    intel = summarize_points(points, currency="CAD", current_cents=8729, now=NOW)
+    assert intel.times_this_low_90d == 1
+
+
+def test_times_this_low_counts_separate_dips() -> None:
+    # Three separate dips to $40 with $50 in between.
+    points = _pts(
+        (85, 5000),
+        (80, 4000),
+        (75, 5000),
+        (60, 5000),
+        (55, 4000),
+        (50, 5000),
+        (30, 5000),
+        (25, 4000),
+        (20, 5000),
+        (2, 5000),
+    )
+    intel = summarize_points(points, currency="CAD", current_cents=4000, now=NOW)
+    assert intel.times_this_low_90d == 3

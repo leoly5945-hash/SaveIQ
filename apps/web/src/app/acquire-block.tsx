@@ -29,6 +29,15 @@ function OptionRow({
           </span>
         </span>
       </div>
+      <p className="acq-breakdown">
+        Device {money(option.upfront_cents + option.device_cost_cents)}
+        {option.plan_cost_cents > 0 ? (
+          <> · phone plan {money(option.plan_cost_cents)}</>
+        ) : null}
+        {option.resale_credit_cents > 0 ? (
+          <> · resale value −{money(option.resale_credit_cents)}</>
+        ) : null}
+      </p>
       {option.assumptions.length > 0 ? (
         <ul className="acq-notes">
           {option.assumptions.map((a, i) => (
@@ -48,6 +57,7 @@ function OptionRow({
 export function AcquireBlock({ data }: { data: AcquireResult | null }) {
   if (!data || data.recommendation.ranked.length === 0) return null;
   const { recommendation: rec, category } = data;
+  const includesPlan = rec.ranked.some((o) => o.plan_cost_cents > 0);
 
   return (
     <section className="acq">
@@ -57,6 +67,11 @@ export function AcquireBlock({ data }: { data: AcquireResult | null }) {
         {rec.runner_up_gap_cents > 0 ? (
           <> — next option costs {money(rec.runner_up_gap_cents)} more.</>
         ) : null}
+      </p>
+      <p className="acq-scope">
+        {includesPlan
+          ? `Totals are the full cost over ${rec.horizon_months} months: the device, an estimated phone plan, minus what you could resell it for at the end. They are not the phone's price.`
+          : `Totals are the full cost over ${rec.horizon_months} months, minus what you could resell it for at the end.`}
       </p>
 
       <ul className="acq-list">
