@@ -189,3 +189,58 @@ def test_build_comparison_dedupes_merchant_keeps_cheapest() -> None:
     )
     assert len(comp.offers) == 1
     assert comp.offers[0].price_cents == 88900
+
+
+def test_rejects_a_different_model_number() -> None:
+    # Prod: the BE600M1 check matched Vuugo's cheaper BE425M (a smaller UPS).
+    assert (
+        score_candidate(
+            reference_title=(
+                "APC UPS Battery Backup & Surge Protector with USB Charger, "
+                "600VA APC Back-UPS (BE600M1)"
+            ),
+            reference_brand="APC",
+            reference_price_cents=11490,
+            candidate_title=(
+                "APC Back-UPS 425VA / 255W 6 Outlets Battery Backup & Surge "
+                "Protector - AC 120V - 6x NEMA 5-15R (BE425M)"
+            ),
+            candidate_price_cents=9601,
+        )
+        == 0.0
+    )
+
+
+def test_rejects_a_different_capacity_without_model_numbers() -> None:
+    assert (
+        score_candidate(
+            reference_title="Samsung Galaxy S26 5G 256GB Unlocked Black",
+            reference_brand="Samsung",
+            reference_price_cents=87299,
+            candidate_title="Samsung Galaxy S26 5G 128GB Unlocked Black",
+            candidate_price_cents=79999,
+        )
+        == 0.0
+    )
+
+
+def test_same_model_number_still_matches() -> None:
+    s = score_candidate(
+        reference_title="APC UPS Battery Backup & Surge Protector 600VA APC Back-UPS (BE600M1)",
+        reference_brand="APC",
+        reference_price_cents=11490,
+        candidate_title="APC Back-UPS 600VA BE600M1 Battery Backup Surge Protector",
+        candidate_price_cents=10999,
+    )
+    assert s >= 0.65
+
+
+def test_candidate_without_a_model_number_is_not_rejected_for_it() -> None:
+    s = score_candidate(
+        reference_title="APC UPS Battery Backup 600VA APC Back-UPS (BE600M1)",
+        reference_brand="APC",
+        reference_price_cents=11490,
+        candidate_title="APC Back-UPS 600VA Battery Backup",
+        candidate_price_cents=10999,
+    )
+    assert s > 0.0
