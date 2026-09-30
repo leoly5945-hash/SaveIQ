@@ -34,8 +34,9 @@ from app.services.decision.deal_score import DealAssessment, Verdict, _resolve_b
 # A 90-day range narrower than this (relative to the low) counts as flat: a
 # one-cent wobble must not put the "today" marker at the red "highest" end.
 _FLAT_RANGE_RATIO = 0.02
-# A list price this far above the 90-day high is not a price it really sells at.
-_INFLATED_LIST_RATIO = 1.10
+# A list price more than this above the 90-day high is above anything it has
+# really sold for (2% absorbs rounding / a stray cent), so it is "inflated".
+_INFLATED_LIST_RATIO = 1.02
 # A list price within this of the usual price is a fair baseline for a discount.
 _USUAL_LIST_RATIO = 1.10
 # A 30-day peak this far above the 90-day median counts as a price hike...
@@ -122,12 +123,17 @@ def explain_verdict(
             "last 90 days."
         )
     elif verdict == Verdict.buy:
-        headline = (
-            "This is the lowest price in the last 90 days."
-            if now <= low
-            else f"Within {_pct(now - low, low)}% of its lowest price in the last "
-            f"90 days ({_money(low)})."
-        )
+        gap_pct = _pct(now - low, low)
+        if now <= low:
+            headline = "This is the lowest price in the last 90 days."
+        elif gap_pct < 1:
+            # "Within 0%" reads oddly: under 1%, give the dollar gap instead.
+            headline = (
+                f"Within {_money(now - low)} of its lowest price in the last "
+                f"90 days ({_money(low)})."
+            )
+        else:
+            headline = f"Within {gap_pct}% of its lowest price in the last 90 days ({_money(low)})."
     elif verdict == Verdict.wait:
         if now >= round(high * 0.98):
             headline = (
