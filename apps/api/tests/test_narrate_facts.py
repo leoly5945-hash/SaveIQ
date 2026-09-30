@@ -5,6 +5,12 @@ from app.services.decision.offer_spread import AmazonOfferSpread, SpreadTier
 from app.services.discovery.narrate import _SYSTEM, _facts
 
 
+def _tier(condition: str, cents: int) -> SpreadTier:
+    return SpreadTier(
+        condition=condition, lowest_total_cents=cents, offer_count=2, fba_available=False
+    )
+
+
 def _result(verdict: Verdict, spread: AmazonOfferSpread | None = None):
     assessment = SimpleNamespace(
         verdict=verdict,
@@ -40,8 +46,8 @@ def test_cheapest_used_seller_is_labelled_used():
         lowest_overall_cents=98000,
         savings_vs_buy_box_cents=16900,
         tiers=[
-            SpreadTier(condition="new", lowest_total_cents=112000, offer_count=3, fba_available=False),
-            SpreadTier(condition="used", lowest_total_cents=98000, offer_count=2, fba_available=False),
+            _tier("new", 112000),
+            _tier("used", 98000),
         ],
     )
     assert "980.00 CAD (used / renewed)" in _facts(_result(Verdict.fair, spread))
@@ -53,6 +59,6 @@ def test_cheapest_new_seller_is_not_labelled_used():
         currency="CAD",
         lowest_overall_cents=112000,
         savings_vs_buy_box_cents=2900,
-        tiers=[SpreadTier(condition="new", lowest_total_cents=112000, offer_count=3, fba_available=False)],
+        tiers=[_tier("new", 112000)],
     )
     assert "used / renewed" not in _facts(_result(Verdict.fair, spread))
