@@ -27,6 +27,9 @@ from pydantic import BaseModel, Field
 
 from app.services.decision.deal_score import DealAssessment, Verdict, _resolve_band
 
+# A 90-day range narrower than this (relative to the low) counts as flat: a
+# one-cent wobble must not put the "today" marker at the red "highest" end.
+_FLAT_RANGE_RATIO = 0.02
 # A list price this far above the 90-day high is not a price it really sells at.
 _INFLATED_LIST_RATIO = 1.10
 # A 30-day peak this far above the 90-day median counts as a price hike...
@@ -85,21 +88,32 @@ def explain_verdict(
             )
         )
 
-    position = PricePosition(
-        low_cents=low,
-        high_cents=high,
-        avg_cents=avg,
-        current_cents=now,
-        position=0.5 if high == low else max(0.0, min(1.0, (now - low) / (high - low))),
+    flat = high - low <= low * _FLAT_RANGE_RATIO
+    position = (
+        None
+        if flat
+        else PricePosition(
+            low_cents=low,
+            high_cents=high,
+            avg_cents=avg,
+            current_cents=now,
+            position=max(0.0, min(1.0, (now - low) / (high - low))),
+        )
     )
     usual = avg if avg else None
 
-    if high == low:
+    if flat:
         headline = (
-            f"The price has held at {_money(low)} for the last 90 days, "
-            "so there's no dip to wait for."
-            if now <= round(low * 1.02)
-            else f"It's above the {_money(low)} it has held at for the last 90 days."
+            (
+                f"The price has held at {_money(low)} for the last 90 days, "
+                "so there's no dip to wait for."
+                if high == low
+                else f"The price has barely moved in 90 days ({_money(low)} to "
+                f"{_money(high)}), so there's no dip to wait for."
+            )
+            if now <= round(high * 1.02)
+            else f"It's above the {_money(low)}–{_money(high)} it has sold for over the "
+            "last 90 days."
         )
     elif verdict == Verdict.buy:
         headline = (
@@ -123,10 +137,21 @@ def explain_verdict(
         else:
             headline = f"Well above its 90-day low of {_money(low)}."
     else:  # fair
-        if usual and now < usual * 0.98:
+        below = _pct(usual - now, usual) if usual else 0
+        if usual and below >= 10:
+            headline = (
+                f"{below}% below its usual price of {_money(usual)}, though not at "
+                f"its 90-day low of {_money(low)}."
+            )
+        elif usual and now < usual * 0.98:
             headline = (
                 f"A little below its usual price of {_money(usual)}, but not near "
                 f"its 90-day low of {_money(low)}."
+            )
+        elif usual and now > usual * 1.05:
+            headline = (
+                f"About {_pct(now - usual, usual)}% above its usual price of "
+                f"{_money(usual)}, but below its 90-day high of {_money(high)}."
             )
         elif usual:
             headline = (
