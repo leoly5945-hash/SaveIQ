@@ -9,6 +9,7 @@ import { safeJsonLd } from "@/lib/json-ld";
 import {
   fetchCheckByAsin,
   formatMoney,
+  loadCheckByAsin,
   ninetyDayBand,
   VERDICT_COPY,
 } from "@/lib/price-check";
@@ -69,13 +70,19 @@ export default async function CheckAsinPage({ params }: Params) {
   if (!ASIN_RE.test(asin)) {
     notFound();
   }
-  const [result, acquire] = await Promise.all([
-    fetchCheckByAsin(asin),
+  const [load, acquire] = await Promise.all([
+    loadCheckByAsin(asin),
     fetchAcquireByAsin(asin),
   ]);
-  if (!result) {
+  if (load.status === "missing") {
     notFound();
   }
+  if (load.status === "unavailable") {
+    // Rendered by ./error.tsx as a 5xx "try again" page; during a background
+    // revalidation Next keeps serving the last good copy instead.
+    throw new Error("price data temporarily unavailable");
+  }
+  const result = load.result;
   const poorBuy =
     result.assessment.verdict === "WAIT" ||
     result.assessment.verdict === "UNKNOWN";

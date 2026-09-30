@@ -1,7 +1,12 @@
 """Audit prod /check pages across many real products and flag every known bug class.
 
-Run: python3 scripts/audit_check_pages.py [ASIN ...]
-With no ASINs it audits the curated deals + showcase products. Stdlib only.
+Run: python3 scripts/audit_check_pages.py [--all] [ASIN ...]
+With no ASINs it audits a 15-product sample of the curated deals + showcase
+products (--all for every one). Stdlib only.
+
+Every check spends Keepa tokens shared with real shoppers (refill ~20/min), so
+products are audited one at a time with a pause, and the run stops at the first
+Keepa 429 instead of draining the quota.
 Each product is fetched twice: the API JSON (what the engine decided) and the
 rendered page text (what the shopper reads), and the two are checked against
 each other.
@@ -13,8 +18,9 @@ import html
 import json
 import re
 import sys
+import urllib.error
 import urllib.request
-from concurrent.futures import ThreadPoolExecutor
+import time
 from pathlib import Path
 
 API = "https://dealhunter-production-api.onrender.com/check?narrate=1&product_id="
@@ -30,6 +36,7 @@ PHONE_CATEGORIES = {"smartphone", "cellular_tablet", "cellular_watch", "tablet"}
 FIRST_PERSON = re.compile(r"\b(I|I'd|I'm|I've|I would|my)\b")
 SAYS_WAIT = re.compile(r"\b(hold off|wait for|worth waiting|might wait|better to wait|you could wait)\b", re.I)
 SAYS_BUY_NOW = re.compile(r"(?<!only )\b(buy (it )?now|go ahead and buy|grab it|great deal)\b", re.I)
+PAUSE_SECONDS = 30
 MONEY = re.compile(r"\$\s?([\d,]+(?:\.\d{2})?)")
 
 
@@ -67,6 +74,9 @@ def audit(asin: str) -> dict:
     problems: list[str] = []
     try:
         d = json.loads(_get(API + asin))
+    except urllib.error.HTTPError as exc:
+        body = exc.read().decode("utf-8", "replace")
+        return {"asin": asin, "error": f"api: {exc}", "keepa_429": "HTTP 429" in body}
     except Exception as exc:  # noqa: BLE001
         return {"asin": asin, "error": f"api: {exc}"}
     try:
@@ -161,9 +171,19 @@ def default_asins() -> list[str]:
 
 
 def main() -> int:
-    asins = sys.argv[1:] or default_asins()
-    with ThreadPoolExecutor(max_workers=1) as pool:
-        results = list(pool.map(audit, asins))
+    args = [a for a in sys.argv[1:] if a != "--all"]
+    asins = args or default_asins()
+    if not args and "--all" not in sys.argv:
+        asins = asins[:: max(1, len(asins) // 15)][:15]
+    results = []
+    for i, asin in enumerate(asins):
+        if i:
+            time.sleep(PAUSE_SECONDS)
+        r = audit(asin)
+        results.append(r)
+        if r.get("keepa_429"):
+            print(f"Keepa is out of tokens — stopping after {i + 1} products.")
+            break
     bad = 0
     for r in results:
         if r.get("error"):
