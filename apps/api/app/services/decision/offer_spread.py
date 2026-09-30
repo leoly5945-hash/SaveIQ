@@ -18,6 +18,11 @@ from app.providers.base import ProviderOffer
 # Keep an alternate-new offer only if it is at least this far below the buy box —
 # a marketplace echo of the buy box itself isn't news.
 _NEW_MARGIN = 0.01
+# Offers this far under the buy box are almost never the same item in the
+# stated condition (mislisted accessories, bait listings). Leave them out
+# rather than tell shoppers "new from $35" on a $115 product.
+_NEW_FLOOR = 0.5
+_USED_FLOOR = 0.25
 
 
 @dataclass(frozen=True)
@@ -70,7 +75,10 @@ def summarize_amazon_offers(
     new_alts = [
         o
         for o in priced["new"]
-        if not o.is_buy_box and (o.total_cents or 0) <= round(buy_box_cents * (1 - _NEW_MARGIN))
+        if not o.is_buy_box
+        and round(buy_box_cents * _NEW_FLOOR)
+        <= (o.total_cents or 0)
+        <= round(buy_box_cents * (1 - _NEW_MARGIN))
     ]
     if new_alts:
         low = min(o.total_cents or 0 for o in new_alts)
@@ -84,14 +92,15 @@ def summarize_amazon_offers(
         )
         lowest_overall = min(lowest_overall, low)
 
-    if priced["used"]:
-        low = min(o.total_cents or 0 for o in priced["used"])
+    used = [o for o in priced["used"] if (o.total_cents or 0) >= round(buy_box_cents * _USED_FLOOR)]
+    if used:
+        low = min(o.total_cents or 0 for o in used)
         tiers.append(
             SpreadTier(
                 condition="used",
                 lowest_total_cents=low,
-                offer_count=len(priced["used"]),
-                fba_available=any((o.metadata or {}).get("is_fba") for o in priced["used"]),
+                offer_count=len(used),
+                fba_available=any((o.metadata or {}).get("is_fba") for o in used),
             )
         )
         lowest_overall = min(lowest_overall, low)

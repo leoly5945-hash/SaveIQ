@@ -444,3 +444,33 @@ async def test_csv_fallback_ignores_a_series_that_ends_with_no_offer() -> None:
         product["csv"][index] = row + [_keepa_minutes(_ago(0.5)), -1] + ([0] if step == 3 else [])
     provider = _provider(_envelope(product))
     assert await provider.get_price("B09VPHVT9Z") is None
+
+
+@pytest.mark.asyncio
+async def test_get_offers_reads_only_live_offers() -> None:
+    # Keepa's `offers` holds every offer ever seen; liveOffersOrder says which
+    # are live. A long-gone $35 "new" seller must not be reported.
+    product = _product()
+    stale = {
+        "sellerId": "A1GONE",
+        "isAmazon": False,
+        "isFBA": True,
+        "condition": 1,
+        "offerCSV": [_keepa_minutes(_ago(200)), 3500, 0],
+    }
+    product["offers"] = [*product["offers"], stale]
+    product["liveOffersOrder"] = [0, 1, 2]
+    offers = await _provider(_envelope(product)).get_offers("B09VPHVT9Z")
+    assert all(o.metadata["seller_id"] != "A1GONE" for o in offers)
+    assert len(offers) == 3
+
+
+@pytest.mark.asyncio
+async def test_get_offers_without_live_order_drops_offers_not_seen_lately() -> None:
+    product = _product()
+    product["offers"][1]["lastSeen"] = _keepa_minutes(_ago(30))  # gone for a month
+    product["offers"][0]["lastSeen"] = _keepa_minutes(_ago(0.1))
+    offers = await _provider(_envelope(product)).get_offers("B09VPHVT9Z")
+    sellers = {o.metadata["seller_id"] for o in offers}
+    assert "A1THIRDPARTY" not in sellers
+    assert "ATVPDKIKX0DER" in sellers

@@ -1,4 +1,5 @@
 import { formatMoney, type MerchantOffer, type Verdict } from "@/lib/price-check";
+import { isTrustedRetailer } from "@/lib/trusted-retailers";
 
 /**
  * The verdict is anchored to Amazon on purpose — it's the only CA retailer
@@ -17,6 +18,11 @@ import { formatMoney, type MerchantOffer, type Verdict } from "@/lib/price-check
  * that mixed signal, just quieter. WAIT/FAIR/UNKNOWN get a calm, ordinary
  * button (`.verdict-cta-muted`) — still a full, working buy link, never
  * blocked — with no pulse, even at the top position.
+ *
+ * Only a well-known retailer (`isTrustedRetailer`) takes the main button from
+ * Amazon. A cheaper price at a store we haven't vetted is still shown — hiding
+ * it would be dishonest — but as a caveated secondary link under an Amazon
+ * main button, so our loudest button never sends people somewhere unknown.
  */
 export function BuyCta({
   amazonHref,
@@ -41,6 +47,37 @@ export function BuyCta({
   ]
     .filter(Boolean)
     .join(" ");
+
+  if (cheapest?.url && !isTrustedRetailer(cheapest.merchant)) {
+    return (
+      <div className="buy-cta-group">
+        <a
+          className={ctaClass}
+          href={amazonHref}
+          rel="sponsored nofollow noopener noreferrer"
+          target="_blank"
+        >
+          Buy on Amazon.ca
+          <span aria-hidden="true"> →</span>
+        </a>
+        {top ? (
+          <p className="buy-cta-unvetted">
+            Also listed at{" "}
+            <a
+              href={cheapest.url}
+              rel="sponsored nofollow noopener noreferrer"
+              target="_blank"
+            >
+              {cheapest.merchant} for{" "}
+              {formatMoney(cheapest.price_cents, cheapest.currency || currency)}
+            </a>
+            , a smaller store we haven&apos;t vetted. Check it&apos;s the same
+            model, new, and ships in Canada before buying.
+          </p>
+        ) : null}
+      </div>
+    );
+  }
 
   if (cheapest?.url) {
     return (
