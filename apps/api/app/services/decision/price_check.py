@@ -13,7 +13,8 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 
 from app.providers import ProviderCapability, ProviderError, ProviderProductNotFound
-from app.providers.base import ProductDataProvider, ProviderPriceHistory
+from app.providers.base import ProductDataProvider, ProviderOffer, ProviderPriceHistory
+from app.providers.ebay_browse import EbayBrowseClient
 from app.providers.registry import ProviderRegistry
 from app.services.affiliate.ebay_link import ebay_affiliate_url
 from app.services.decision.assess import assess_from_provider
@@ -72,39 +73,52 @@ async def _build_comparison(
     currency: str,
     now: datetime | None = None,
     ebay_campaign_id: str | None = None,
+    ebay: EbayBrowseClient | None = None,
+    gtin: str | None = None,
 ) -> Comparison | None:
     """Cross-merchant offers from the comparison cache. Never raises.
 
     The cache is task-backed (DataForSEO has no live endpoint): the first check of
     a cold product returns ``None`` and primes a task; later checks render the
-    comparison from cached offers. ``db is None`` disables it entirely.
+    comparison from cached offers. ``db is None`` disables that cache; eBay
+    (``ebay``) is a live lookup and works either way.
     """
 
-    if not title or db is None:
+    if not title:
         return None
-    candidates = await resolve_comparison(
-        db,
-        registry,
-        provider=reference_provider,
-        provider_product_id=provider_product_id,
-        market=market,
-        title=title,
-        brand=brand,
-        currency=currency,
-        now=now,
-    )
+    candidates: list[ProviderOffer] = []
+    if db is not None:
+        candidates = await resolve_comparison(
+            db,
+            registry,
+            provider=reference_provider,
+            provider_product_id=provider_product_id,
+            market=market,
+            title=title,
+            brand=brand,
+            currency=currency,
+            now=now,
+        )
+    # Google Shopping's eBay rows carry no condition (a used $11 mouse next to a
+    # new $24 one) and only a Google search link. eBay comes from the Browse API
+    # instead: new, ships from Canada, vetted seller, EPN-tracked link.
+    candidates = [c for c in candidates if not c.merchant.strip().lower().startswith("ebay")]
+    if ebay is not None:
+        candidates += await ebay.new_offers(
+            provider_product_id=provider_product_id, gtin=gtin, title=title
+        )
     if not candidates:
         return None
     if ebay_campaign_id:
-        # An untagged eBay offer earns nothing — tag it before matching so the
-        # affiliate link rides along with whichever offer survives (including
-        # `cheapest`, which is just a reference into `offers`). No-op for any
-        # candidate whose host isn't ebay.* (see `ebay_affiliate_url`).
+        # An untagged eBay link earns nothing. Browse API offers normally carry
+        # eBay's own affiliate URL already; this covers the fallback item URL.
+        # No-op for any candidate whose host isn't ebay.* (see `ebay_affiliate_url`).
         tagged_candidates = []
         for candidate in candidates:
-            tagged_url = ebay_affiliate_url(candidate.url, ebay_campaign_id)
-            if tagged_url is not None:
-                candidate = candidate.model_copy(update={"url": tagged_url})
+            if not (candidate.metadata or {}).get("affiliate"):
+                tagged_url = ebay_affiliate_url(candidate.url, ebay_campaign_id)
+                if tagged_url is not None:
+                    candidate = candidate.model_copy(update={"url": tagged_url})
             tagged_candidates.append(candidate)
         candidates = tagged_candidates
     return build_comparison(
@@ -196,6 +210,7 @@ async def run_price_check(
     db: Session | None = None,
     now: datetime | None = None,
     ebay_campaign_id: str | None = None,
+    ebay: EbayBrowseClient | None = None,
 ) -> PriceCheckResult:
     resolved_id, hint = resolve_target(product_id, url)
     adapter = _pick_provider(registry, name=provider, hint=hint)
@@ -232,6 +247,10 @@ async def run_price_check(
         currency=price.currency,
         now=now,
         ebay_campaign_id=ebay_campaign_id,
+        ebay=ebay,
+        gtin=(product.identifiers.get("upc") or product.identifiers.get("ean"))
+        if product
+        else None,
     )
 
     return PriceCheckResult(

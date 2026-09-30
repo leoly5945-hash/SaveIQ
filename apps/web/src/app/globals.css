@@ -2855,6 +2855,12 @@ h3 {
   font-size: 0.92rem;
 }
 
+.compare-detail {
+  color: var(--muted);
+  display: block;
+  font-size: 0.78rem;
+}
+
 .compare-list .compare-price {
   color: var(--foreground);
   font-size: 0.92rem;

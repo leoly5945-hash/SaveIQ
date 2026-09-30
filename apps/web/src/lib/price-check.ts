@@ -53,6 +53,8 @@ export type MerchantOffer = {
   currency: string;
   url: string | null;
   match_confidence: number;
+  /** e.g. "New · ships from Canada · seller 99.8% positive (1,234 ratings)" */
+  detail?: string | null;
 };
 
 export type Comparison = {

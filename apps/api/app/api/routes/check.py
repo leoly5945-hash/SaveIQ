@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 from app.core.settings import Settings, get_settings
 from app.db.session import get_db
 from app.providers import ProviderError, ProviderProductNotFound, get_provider_registry
+from app.providers.ebay_browse import get_ebay_client
 from app.services.affiliate.amazon_link import amazon_affiliate_url
 from app.services.decision.deal_score import DealAssessment
 from app.services.decision.explain import VerdictExplanation
@@ -36,6 +37,7 @@ class MerchantOfferOut(BaseModel):
     currency: str
     url: str | None
     match_confidence: float
+    detail: str | None = None
 
 
 class ComparisonOut(BaseModel):
@@ -141,6 +143,7 @@ async def check_price(
             days=days,
             db=db,
             ebay_campaign_id=settings.ebay_partner_campaign_id,
+            ebay=get_ebay_client(settings),
         )
     except PriceCheckError as exc:
         db.rollback()
@@ -161,6 +164,7 @@ async def check_price(
                     currency=o.currency,
                     url=o.url,
                     match_confidence=o.match_confidence,
+                    detail=o.detail,
                 )
                 for o in c.offers
             ],
@@ -171,6 +175,7 @@ async def check_price(
                     currency=c.cheapest.currency,
                     url=c.cheapest.url,
                     match_confidence=c.cheapest.match_confidence,
+                    detail=c.cheapest.detail,
                 )
                 if c.cheapest
                 else None
