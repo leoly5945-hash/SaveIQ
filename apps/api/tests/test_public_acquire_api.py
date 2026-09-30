@@ -82,23 +82,17 @@ def test_phone_gets_the_full_option_set(monkeypatch) -> None:
     assert body["recommendation"]["verify_first"]
 
 
-def test_unrecognised_category_degrades_to_outright_and_renewed(monkeypatch) -> None:
+def test_unrecognised_category_gets_no_ownership_comparison(monkeypatch) -> None:
     client = _client(
         monkeypatch,
         FakeKeepa(
-            category="Garden Hand Tools",
-            brand="Fiskars",
-            title="Fiskars Bypass Pruner",
-            price_cents=3200,
+            category="Office Products",
+            brand="Post-it",
+            title="Post-it Notes, 3x3 in, 12 Pads",
+            price_cents=2299,
         ),
     )
-    r = client.get("/acquire", params={"product_id": "B0TOOL00001"})
-    assert r.status_code == 200, r.text
-    body = r.json()
-    assert body["category"] == "general"
-    kinds = {t["kind"] for t in body["recommendation"]["ranked"]}
-    assert kinds <= {"retail", "refurb"}
-    assert "financing" not in kinds
+    assert client.get("/acquire", params={"product_id": "B0NOTES0001"}).status_code == 404
 
 
 def test_no_price_is_404(monkeypatch) -> None:

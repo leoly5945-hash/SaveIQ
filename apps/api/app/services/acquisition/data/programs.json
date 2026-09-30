@@ -10,7 +10,7 @@
       "categories": ["*"],
       "requires_plan": "byod_value",
       "notes": [
-        "Own it day one, resell any time, switch plans any time."
+        "Own it day one and resell it any time."
       ]
     },
     {
@@ -101,7 +101,7 @@
       "requires_plan": "byod_value",
       "notes": [
         "Inspected and tested by a qualified supplier; 90-day 'Renewed Guarantee' return.",
-        "Condition and battery health vary by seller and by grade - read the listing before buying; on current models the renewed discount is often thinner than this estimate.",
+        "Condition (and battery health, where it has a battery) varies by seller and by grade - read the listing before buying; on current models the renewed discount is often thinner than this estimate.",
         "No manufacturer warranty unless the listing states otherwise."
       ]
     }

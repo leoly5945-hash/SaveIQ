@@ -107,6 +107,11 @@ async def acquire(
         brand=product.brand if product else None,
         title=product.title if product else None,
     )
+    if ctx.category == "general":
+        # A 36-month cost-of-ownership comparison only means something for a
+        # durable device we've mapped. For toothpaste or pens it produced
+        # "Amazon Renewed, resale value $4" — say nothing instead.
+        raise HTTPException(status_code=404, detail="no acquisition options for that product")
     ctx.live_used_price_cents = await _lowest_used_offer(adapter, resolved_id, price)
     options = compose_options(ctx, horizon_months=horizon_months)
     if not options:

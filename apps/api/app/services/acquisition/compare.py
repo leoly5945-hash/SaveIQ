@@ -13,8 +13,9 @@ from app.services.acquisition.models import AcquisitionOption, BuyerProfile
 from app.services.acquisition.tco import TCOBreakdown, compute_tco
 
 # Things SaveIQ structurally cannot know and the buyer must check themselves.
-_ALWAYS_VERIFY = (
-    "Current device price at each seller (launch-month and Black Friday move it most).",
+_ALWAYS_VERIFY = ("Current price at each seller (launch month and Black Friday move it most).",)
+# Only when a phone plan is part of the comparison.
+_PLAN_VERIFY = (
     'The real throttle threshold on each "unlimited" plan tier.',
     "Whether your address actually gets full 5G on the carrier you would pick.",
 )
@@ -98,10 +99,15 @@ def _caveats(
     if len(ranked) >= 2:
         gap = ranked[1].effective_total_cents - ranked[0].effective_total_cents
         if gap <= max(15000, ranked[0].effective_total_cents // 20):
+            decide_on = (
+                "lock-in, ownership, and support"
+                if has_plan_choice
+                else "condition, warranty, and return policy"
+            )
             out.append(
                 f'"{ranked[0].option_label}" and "{ranked[1].option_label}" are within '
-                f"${gap / 100:.0f} over {profile.horizon_months} months — pick on lock-in, "
-                "ownership, and support, not price."
+                f"${gap / 100:.0f} over {profile.horizon_months} months — pick on "
+                f"{decide_on}, not price."
             )
     return out
 
@@ -129,5 +135,6 @@ def compare_paths(
         best_label=ranked[0].option_label,
         runner_up_gap_cents=gap,
         caveats=_caveats(options, ranked, profile),
-        verify_first=list(_ALWAYS_VERIFY),
+        verify_first=list(_ALWAYS_VERIFY)
+        + (list(_PLAN_VERIFY) if any(o.plan_monthly_cents > 0 for o in options) else []),
     )
