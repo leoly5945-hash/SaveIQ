@@ -39,6 +39,10 @@ class Settings(BaseSettings):
         default="5339209072",
         validation_alias="EBAY_PARTNER_CAMPAIGN_ID",
     )
+    # eBay Browse API (developer.ebay.com, Production keyset) — new eBay.ca
+    # offers in the comparison block. Unset => no eBay offers at all.
+    ebay_client_id: str | None = Field(default=None, validation_alias="EBAY_CLIENT_ID")
+    ebay_client_secret: str | None = Field(default=None, validation_alias="EBAY_CLIENT_SECRET")
     # CP4 — Keepa product data provider (Amazon price + history). Unset => the
     # provider is not registered and product-data lookups return empty.
     keepa_api_key: str | None = Field(default=None, validation_alias="KEEPA_API_KEY")

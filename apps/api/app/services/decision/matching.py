@@ -18,6 +18,9 @@ _PRICE_LOW_RATIO = 0.45
 _PRICE_HIGH_RATIO = 2.4
 # Keep a candidate at or above this blended confidence.
 _MIN_CONFIDENCE = 0.55
+# Same barcode (GTIN) = same product, as long as nothing else (accessory words,
+# a conflicting variant, the price band, the brand) says otherwise.
+_GTIN_MATCH_CONFIDENCE = 0.9
 # "Cheaper at X" is a strong claim — only flag it when the match is solid, not
 # merely above the inclusion bar.
 _CHEAPEST_MIN_CONFIDENCE = 0.65
@@ -68,6 +71,8 @@ class MerchantOffer:
     currency: str
     url: str | None
     match_confidence: float
+    # Shown under the merchant name, e.g. "New · seller 99.8% positive".
+    detail: str | None = None
 
 
 @dataclass
@@ -196,6 +201,15 @@ def score_candidate(
     return round(0.6 * overlap + 0.25 * brand_ok + 0.15 * price_close, 4)
 
 
+def _offer_detail(offer: ProviderOffer) -> str | None:
+    meta = offer.metadata or {}
+    pct = meta.get("seller_feedback_pct")
+    if offer.provider != "ebay" or pct is None:
+        return None
+    score = meta.get("seller_feedback_score") or 0
+    return f"New · ships from Canada · seller {pct:g}% positive ({score:,} ratings)"
+
+
 def build_comparison(
     *,
     reference_merchant: str,
@@ -225,6 +239,9 @@ def build_comparison(
             candidate_title=(offer.metadata or {}).get("title") or offer.merchant,
             candidate_price_cents=offer.total_cents,
         )
+        meta = offer.metadata or {}
+        if confidence > 0 and meta.get("matched_by") == "gtin":
+            confidence = max(confidence, _GTIN_MATCH_CONFIDENCE)
         if confidence < _MIN_CONFIDENCE:
             continue
         matched = MerchantOffer(
@@ -233,6 +250,7 @@ def build_comparison(
             currency=offer.currency or currency,
             url=offer.url,
             match_confidence=confidence,
+            detail=_offer_detail(offer),
         )
         existing = best_per_merchant.get(merchant)
         if existing is None or matched.price_cents < existing.price_cents:

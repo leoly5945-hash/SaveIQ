@@ -39,7 +39,10 @@ export function ComparisonBlock({ comparison }: { comparison: Comparison | null 
       <ul className="compare-list">
         {offers.map((o) => (
           <li key={o.merchant}>
-            <span className="compare-merchant">{o.merchant}</span>
+            <span className="compare-merchant">
+              {o.merchant}
+              {o.detail ? <span className="compare-detail">{o.detail}</span> : null}
+            </span>
             <span className="compare-price">
               {formatMoney(o.price_cents, o.currency || currency)}
             </span>
@@ -57,8 +60,9 @@ export function ComparisonBlock({ comparison }: { comparison: Comparison | null 
         ))}
       </ul>
       <p className="compare-note">
-        Prices from Google Shopping, matched by product name — confirm the model
-        before you buy.
+        Store prices from Google Shopping, matched by product name — confirm the
+        model before you buy. eBay: new listings only, from Canadian sellers with
+        strong feedback, shipping included.
       </p>
     </section>
   );

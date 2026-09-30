@@ -71,8 +71,18 @@ export function BuyCta({
               {cheapest.merchant} for{" "}
               {formatMoney(cheapest.price_cents, cheapest.currency || currency)}
             </a>
-            , a smaller store we haven&apos;t vetted. Check it&apos;s the same
-            model, new, and ships in Canada before buying.
+            {cheapest.merchant === "eBay" ? (
+              <>
+                {" "}
+                ({cheapest.detail ?? "new"}). Check the listing and the seller&apos;s
+                return policy before buying.
+              </>
+            ) : (
+              <>
+                , a smaller store we haven&apos;t vetted. Check it&apos;s the same
+                model, new, and ships in Canada before buying.
+              </>
+            )}
           </p>
         ) : null}
       </div>
