@@ -1,9 +1,15 @@
 import { type AmazonSpread, formatMoney } from "@/lib/price-check";
 
-const CONDITION_LABEL: Record<string, string> = {
-  new: "other new sellers",
-  used: "used / renewed",
+const CONDITION_LABEL: Record<string, [string, string]> = {
+  new: ["other new seller", "other new sellers"],
+  used: ["used / renewed", "used / renewed"],
 };
+
+function conditionLabel(condition: string, count: number): string {
+  const forms = CONDITION_LABEL[condition];
+  if (!forms) return condition;
+  return count === 1 ? forms[0] : forms[1];
+}
 
 /**
  * The spread of Amazon sellers around the buy box — other new listings and
@@ -35,7 +41,7 @@ export function OfferSpread({ spread }: { spread: AmazonSpread | null }) {
         {tiers.map((t) => (
           <li key={t.condition}>
             <span className="spread-cond">
-              {t.offer_count} {CONDITION_LABEL[t.condition] ?? t.condition}
+              {t.offer_count} {conditionLabel(t.condition, t.offer_count)}
             </span>
             <span className="spread-price">
               from {formatMoney(t.lowest_total_cents, currency)}
