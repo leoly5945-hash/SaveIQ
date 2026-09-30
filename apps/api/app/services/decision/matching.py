@@ -96,6 +96,49 @@ def _title_overlap(reference: set[str], candidate: set[str]) -> float:
     return inter / len(reference)
 
 
+# "600va", "256gb", "45w", "10000mah": a number with a unit. Two listings that
+# both state the same unit but never the same number are different variants.
+_SPEC_RE = re.compile(r"^(\d+(?:\.\d+)?)(gb|tb|va|w|wh|mah|in|inch|ft|mm|cm|oz|ml|kg|lb|hz|mp)$")
+
+
+def _specs(tokens: set[str]) -> dict[str, set[str]]:
+    specs: dict[str, set[str]] = {}
+    for t in tokens:
+        m = _SPEC_RE.match(t)
+        if m:
+            specs.setdefault(m.group(2), set()).add(m.group(1))
+    return specs
+
+
+def _model_codes(tokens: set[str]) -> set[str]:
+    """Letter+digit tokens that look like part numbers ("be600m1", "cp1500pfclcd")."""
+
+    return {
+        t
+        for t in tokens
+        if len(t) >= 5 and re.search(r"[a-z]", t) and re.search(r"\d", t) and not _SPEC_RE.match(t)
+    }
+
+
+def _conflicting_variant(reference: set[str], candidate: set[str]) -> bool:
+    """Both titles name a model number / spec, and they disagree.
+
+    Title overlap alone matched "APC Back-UPS 600VA (BE600M1)" to a cheaper
+    "APC Back-UPS 425VA (BE425M)": same words, different product. When both
+    sides state part numbers, at least one must be shared; when both state the
+    same unit (VA, GB, W…), at least one value must be shared.
+    """
+
+    ref_models, cand_models = _model_codes(reference), _model_codes(candidate)
+    if ref_models and cand_models and not (ref_models & cand_models):
+        return True
+    ref_specs, cand_specs = _specs(reference), _specs(candidate)
+    for unit in ref_specs.keys() & cand_specs.keys():
+        if not (ref_specs[unit] & cand_specs[unit]):
+            return True
+    return False
+
+
 def _looks_like_accessory(candidate_tokens: set[str], reference_tokens: set[str]) -> bool:
     extra = candidate_tokens - reference_tokens
     return bool(extra & _ACCESSORY_TOKENS)
@@ -132,6 +175,8 @@ def score_candidate(
     ref_tokens = _tokens(reference_title)
     cand_tokens = _tokens(candidate_title)
     if _looks_like_accessory(cand_tokens, ref_tokens):
+        return 0.0
+    if _conflicting_variant(ref_tokens, cand_tokens):
         return 0.0
 
     ratio = candidate_price_cents / reference_price_cents
