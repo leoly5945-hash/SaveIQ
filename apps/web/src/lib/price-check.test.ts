@@ -102,6 +102,21 @@ describe("normalizeResult", () => {
       "https://www.amazon.ca/dp/B0TEST00001"
     );
   });
+  it("defaults a missing explanation to null", () => {
+    expect(normalizeResult(base).explanation).toBeNull();
+  });
+
+  it("fills in explanation parts an older API may omit", () => {
+    const withPartial = {
+      ...base,
+      explanation: { headline: "This is the lowest price in the last 90 days." },
+    } as unknown as CheckResult;
+    expect(normalizeResult(withPartial).explanation).toEqual({
+      headline: "This is the lowest price in the last 90 days.",
+      position: null,
+      discount_checks: [],
+    });
+  });
 });
 
 describe("barcode helpers", () => {

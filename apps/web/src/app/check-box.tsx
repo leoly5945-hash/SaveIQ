@@ -22,6 +22,7 @@ import {
 } from "@/lib/price-check";
 
 import { BarcodeScanButton } from "@/components/barcode-scan";
+import { DiscountChecks, PricePositionBar } from "@/components/price-position";
 
 import { AcquireBlock } from "./acquire-block";
 import { AlternativesBlock } from "./alternatives-block";
@@ -218,7 +219,9 @@ function VerdictCard({
         <span className="verdict-badge">{v.label}</span>
         <div className="verdict-headline">
           <p className="verdict-title">{result.title ?? result.provider_product_id}</p>
-          <p className="verdict-blurb">{v.blurb}</p>
+          <p className="verdict-blurb">
+            {result.explanation?.headline ?? v.blurb}
+          </p>
         </div>
       </header>
 
@@ -230,6 +233,12 @@ function VerdictCard({
         <span className="verdict-now">{formatMoney(effective, currency)}</span>
         <span className="verdict-conf">confidence: {assessment.confidence}</span>
       </div>
+
+      {result.explanation?.position ? (
+        <PricePositionBar currency={currency} position={result.explanation.position} />
+      ) : null}
+
+      <DiscountChecks checks={result.explanation?.discount_checks ?? []} />
 
       {result.buy_url ?? result.product_url ? (
         <BuyCta
@@ -262,11 +271,14 @@ function VerdictCard({
       ) : null}
 
       {assessment.reasons.length > 0 ? (
-        <ul className="verdict-reasons">
-          {assessment.reasons.map((reason, i) => (
-            <li key={i}>{reason}</li>
-          ))}
-        </ul>
+        <details className="verdict-details">
+          <summary>How we worked this out</summary>
+          <ul className="verdict-reasons">
+            {assessment.reasons.map((reason, i) => (
+              <li key={i}>{reason}</li>
+            ))}
+          </ul>
+        </details>
       ) : null}
 
       <OfferSpread spread={result.spread} />
