@@ -78,6 +78,29 @@ export type AmazonSpread = {
   tiers: SpreadTier[];
 };
 
+/** Where today's price sits in its 90-day range (from the API). */
+export type PricePosition = {
+  low_cents: number;
+  high_cents: number;
+  avg_cents: number | null;
+  current_cents: number;
+  /** 0 = at the 90-day low, 1 = at the 90-day high. */
+  position: number;
+};
+
+export type DiscountCheck = {
+  kind: "inflated_list_price" | "raise_then_drop" | "list_price_ok";
+  warning: boolean;
+  message: string;
+};
+
+/** Plain-English "why" behind the verdict, plus fake-discount checks. */
+export type VerdictExplanation = {
+  headline: string;
+  position: PricePosition | null;
+  discount_checks: DiscountCheck[];
+};
+
 export type CheckResult = {
   provider: string;
   provider_product_id: string;
@@ -91,6 +114,7 @@ export type CheckResult = {
   comparison: Comparison | null;
   spread: AmazonSpread | null;
   narration: string | null;
+  explanation: VerdictExplanation | null;
 };
 
 export type CheckOutcome =
@@ -262,6 +286,15 @@ export function normalizeResult(r: CheckResult): CheckResult {
     comparison: r.comparison ?? null,
     spread: r.spread ?? null,
     narration: r.narration ?? null,
+    explanation: r.explanation
+      ? {
+          ...r.explanation,
+          position: r.explanation.position ?? null,
+          discount_checks: Array.isArray(r.explanation.discount_checks)
+            ? r.explanation.discount_checks
+            : [],
+        }
+      : null,
     buy_url: r.buy_url ?? r.product_url ?? null,
   };
 }

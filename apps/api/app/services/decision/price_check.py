@@ -19,6 +19,7 @@ from app.services.affiliate.ebay_link import ebay_affiliate_url
 from app.services.decision.assess import assess_from_provider
 from app.services.decision.comparison_cache import resolve_comparison
 from app.services.decision.deal_score import DealAssessment
+from app.services.decision.explain import VerdictExplanation, explain_verdict
 from app.services.decision.matching import Comparison, build_comparison
 from app.services.decision.offer_spread import AmazonOfferSpread, summarize_amazon_offers
 from app.services.product_url import extract_product_ref
@@ -55,6 +56,7 @@ class PriceCheckResult:
     sparkline: list[SparkPoint] = field(default_factory=list)
     comparison: Comparison | None = None
     spread: AmazonOfferSpread | None = None
+    explanation: VerdictExplanation | None = None
 
 
 async def _build_comparison(
@@ -242,4 +244,9 @@ async def run_price_check(
         sparkline=_build_sparkline(history),
         comparison=comparison,
         spread=spread,
+        explanation=explain_verdict(
+            assessment,
+            list_price_cents=price.list_price_cents,
+            history=[(p.observed_at, p.price_cents) for p in history.points],
+        ),
     )

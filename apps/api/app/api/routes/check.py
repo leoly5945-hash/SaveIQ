@@ -17,6 +17,7 @@ from app.db.session import get_db
 from app.providers import ProviderError, ProviderProductNotFound, get_provider_registry
 from app.services.affiliate.amazon_link import amazon_affiliate_url
 from app.services.decision.deal_score import DealAssessment
+from app.services.decision.explain import VerdictExplanation
 from app.services.decision.price_check import PriceCheckError, run_price_check
 from app.services.discovery.narrate import narrate_check
 from app.services.endpoint_limit import allow
@@ -72,6 +73,7 @@ class CheckResponse(BaseModel):
     comparison: ComparisonOut | None = None
     spread: AmazonSpreadOut | None = None
     narration: str | None = None
+    explanation: VerdictExplanation | None = None
 
 
 def _client_ip(request: Request) -> str:
@@ -211,4 +213,5 @@ async def check_price(
         comparison=comparison_out,
         spread=spread_out,
         narration=narration,
+        explanation=result.explanation,
     )
