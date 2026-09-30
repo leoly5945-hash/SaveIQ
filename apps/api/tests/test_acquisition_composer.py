@@ -7,6 +7,7 @@ import pytest
 from app.services.acquisition.catalog import load_demo_products, reset_caches_for_tests
 from app.services.acquisition.composer import ProductContext, compose_options
 from app.services.acquisition.models import AcquisitionKind
+from app.services.acquisition.product_map import infer_product_context
 
 
 @pytest.fixture(autouse=True)
@@ -113,3 +114,56 @@ def test_every_demo_product_composes_and_ranks() -> None:
         rec = compare_paths(opts, BuyerProfile(horizon_months=36), product_slug=product.slug)
         assert rec.best_label
         assert all(any("estimate" in n.lower() for n in t.assumptions) for t in rec.ranked)
+
+
+def _renewed(ctx: ProductContext):
+    refurbs = [o for o in compose_options(ctx) if o.kind == AcquisitionKind.refurb]
+    assert refurbs, "a Samsung phone gets the Amazon Renewed program"
+    return refurbs[0]
+
+
+def test_renewed_uses_the_live_used_offer_when_there_is_one() -> None:
+    # Galaxy S26 on prod: new $872.99 and the cheapest renewed offer is also
+    # $872.99, not the "N% under new" estimate ($742).
+    ctx = ProductContext(
+        retail_price_cents=87299,
+        category="smartphone",
+        brand="samsung",
+        live_used_price_cents=87299,
+    )
+    renewed = _renewed(ctx)
+    assert renewed.upfront_cents == 87299
+    assert renewed.notes[0] == "Lowest used / renewed offer on Amazon.ca right now: $872.99."
+    assert not any("estimate" in n.lower() for n in renewed.notes)
+
+
+def test_renewed_says_when_it_is_only_an_estimate() -> None:
+    ctx = ProductContext(retail_price_cents=87299, category="smartphone", brand="samsung")
+    renewed = _renewed(ctx)
+    assert renewed.upfront_cents < 87299
+    assert "No live renewed offer to check against" in renewed.notes[-1]
+
+
+def test_a_renewed_listing_gets_no_second_renewed_discount() -> None:
+    # Galaxy S26 "... - Black (Renewed)": its price already is the renewed price.
+    ctx = infer_product_context(
+        price_cents=87299,
+        category="Cell Phones",
+        brand="Samsung",
+        title="Samsung Galaxy S26 5G, (256GB) Unlocked - Black (Renewed)",
+    )
+    assert ctx.listing_is_refurbished is True
+    options = compose_options(ctx)
+    assert all(o.kind != AcquisitionKind.refurb for o in options)
+    [retail] = [o for o in options if o.kind == AcquisitionKind.retail]
+    assert retail.notes[0].startswith("This Amazon listing is itself renewed, not new")
+
+
+def test_a_new_listing_is_not_marked_refurbished() -> None:
+    ctx = infer_product_context(
+        price_cents=87299,
+        category="Cell Phones",
+        brand="Samsung",
+        title="Samsung Galaxy S26 5G (256GB) Galaxy AI, Unlocked - Black",
+    )
+    assert ctx.listing_is_refurbished is False

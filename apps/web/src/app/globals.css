@@ -3579,3 +3579,16 @@ form.pill-search:focus-within {
   letter-spacing: normal;
   line-height: 1.3;
 }
+
+/* Acquisition block: say what the totals include, per row. */
+.acq-scope {
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
+.acq-breakdown {
+  color: var(--muted);
+  font-size: 0.82rem;
+  margin-top: 2px;
+}

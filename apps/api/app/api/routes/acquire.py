@@ -15,7 +15,7 @@ from pydantic import BaseModel
 
 from app.core.settings import Settings, get_settings
 from app.providers import ProviderCapability, ProviderError, get_provider_registry
-from app.providers.base import ProductDataProvider
+from app.providers.base import ProductDataProvider, ProviderPrice
 from app.services.acquisition import (
     BuyerProfile,
     PathRecommendation,
@@ -23,6 +23,7 @@ from app.services.acquisition import (
     compose_options,
 )
 from app.services.acquisition.product_map import infer_product_context
+from app.services.decision.offer_spread import summarize_amazon_offers
 from app.services.decision.price_check import PriceCheckError, resolve_target
 from app.services.endpoint_limit import allow
 
@@ -46,6 +47,30 @@ def _keepa() -> ProductDataProvider:
     if adapter is None or ProviderCapability.get_product not in adapter.capabilities:
         raise HTTPException(status_code=503, detail="no product provider configured")
     return adapter
+
+
+async def _lowest_used_offer(
+    adapter: ProductDataProvider, product_id: str, price: ProviderPrice
+) -> int | None:
+    """Lowest live used / renewed Amazon.ca offer, or None. Never raises.
+
+    /check fetched the same offers moments earlier, so this normally hits the
+    provider's short-lived cache rather than spending more Keepa tokens.
+    """
+
+    if ProviderCapability.get_offers not in adapter.capabilities:
+        return None
+    try:
+        offers = await adapter.get_offers(product_id)
+    except Exception:  # noqa: BLE001 - a nice-to-have; fall back to the estimate
+        return None
+    spread = summarize_amazon_offers(
+        offers, buy_box_cents=price.price_cents, currency=price.currency
+    )
+    if spread is None:
+        return None
+    used = [t.lowest_total_cents for t in spread.tiers if t.condition == "used"]
+    return min(used) if used else None
 
 
 @router.get("", response_model=AcquireResponse)
@@ -82,6 +107,7 @@ async def acquire(
         brand=product.brand if product else None,
         title=product.title if product else None,
     )
+    ctx.live_used_price_cents = await _lowest_used_offer(adapter, resolved_id, price)
     options = compose_options(ctx, horizon_months=horizon_months)
     if not options:
         raise HTTPException(status_code=404, detail="no acquisition options for that product")
