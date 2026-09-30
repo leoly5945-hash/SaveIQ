@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { CategoryIcon } from "@/components/category-icon";
+
 import {
   dealPath,
   describeVsAverage,
@@ -17,7 +19,10 @@ function PriceDropCard({ deal }: { deal: FeaturedDeal }) {
   const recorded = formatObservedDate(latest.observed_at);
   return (
     <li className="deal-card price-drop-card">
-      <p className="deal-card-merchant">{deal.merchant}</p>
+      <div className="deal-card-top">
+        <CategoryIcon slug={deal.category_slug} />
+        <p className="deal-card-merchant">{deal.merchant}</p>
+      </div>
       <h3 className="deal-card-title">
         <Link href={dealPath(deal)}>{deal.title}</Link>
       </h3>
