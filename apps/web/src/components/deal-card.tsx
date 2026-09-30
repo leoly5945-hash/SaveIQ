@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { CategoryIcon } from "@/components/category-icon";
+
 import {
   categoryPath,
   dealPath,
@@ -13,7 +15,10 @@ export function DealCard({ deal }: { deal: FeaturedDeal }) {
   const now = dealPriceNow(deal);
   return (
     <li className="deal-card">
-      <p className="deal-card-merchant">{deal.merchant}</p>
+      <div className="deal-card-top">
+        <CategoryIcon slug={deal.category_slug} />
+        <p className="deal-card-merchant">{deal.merchant}</p>
+      </div>
       <h3 className="deal-card-title">
         <Link href={dealPath(deal)}>{deal.title}</Link>
       </h3>

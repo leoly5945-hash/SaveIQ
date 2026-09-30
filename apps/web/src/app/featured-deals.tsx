@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import { CategoryIcon } from "@/components/category-icon";
+
 import {
   AMAZON_ASSOCIATE_DISCLOSURE,
   categoryPath,
@@ -70,7 +72,10 @@ export function FeaturedDeals() {
           const now = dealPriceNow(deal);
           return (
             <li className="home-featured-card" key={deal.offer_id}>
-              <p className="merchant-name">{deal.merchant}</p>
+              <div className="deal-card-top">
+                <CategoryIcon slug={deal.category_slug} />
+                <p className="merchant-name">{deal.merchant}</p>
+              </div>
               <h3>
                 <Link href={dealPath(deal)}>{deal.title}</Link>
               </h3>
