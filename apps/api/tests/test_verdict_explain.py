@@ -196,3 +196,22 @@ def test_list_price_at_a_brief_peak_is_not_called_genuine() -> None:
     assert check.warning is True
     assert "usually sells for about $606.19" in check.message
     assert "−11%" in check.message
+
+
+def test_buy_under_one_percent_gives_the_dollar_gap() -> None:
+    # CyberPower UPS on prod: $289.99 vs a $288.98 low read "Within 0%".
+    e = explain_verdict(_assessment(Verdict.buy, 28999, low=28898, high=30699, avg=29555))
+    assert e.headline == "Within $1.01 of its lowest price in the last 90 days ($288.98)."
+
+
+def test_list_price_above_the_high_is_not_said_to_match_it() -> None:
+    # Same UPS: list $337.43 vs a 90-day high of $306.99 (9.9% above) was told it
+    # "matches its highest price". Anything >2% above the high is inflated.
+    e = explain_verdict(
+        _assessment(Verdict.buy, 28999, low=28898, high=30699, avg=29555),
+        list_price_cents=33743,
+    )
+    [check] = e.discount_checks
+    assert check.kind == "inflated_list_price"
+    assert "highest: $306.99" in check.message
+    assert "matches" not in check.message
