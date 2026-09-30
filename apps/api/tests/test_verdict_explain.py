@@ -153,3 +153,33 @@ def test_normal_swings_are_not_called_a_hike() -> None:
 def test_no_history_skips_the_hike_check() -> None:
     e = explain_verdict(_assessment(Verdict.fair, 5000, high=6500, median90=5000, max30=6500))
     assert all(c.kind != "raise_then_drop" for c in e.discount_checks)
+
+
+def test_fair_well_below_usual_gives_the_real_gap() -> None:
+    # Nalgene on prod: $16.87 vs a (skewed) usual $28.82 is not "a little" below.
+    e = explain_verdict(_assessment(Verdict.fair, 1687, low=1568, high=4794, avg=2882))
+    assert e.headline.startswith("41% below its usual price of $28.82")
+    assert "90-day low of $15.68" in e.headline
+
+
+def test_fair_slightly_below_usual_says_a_little() -> None:
+    e = explain_verdict(_assessment(Verdict.fair, 4850))
+    assert e.headline.startswith("A little below its usual price of $50.00")
+
+
+def test_fair_above_usual() -> None:
+    e = explain_verdict(_assessment(Verdict.fair, 5500))
+    assert e.headline.startswith("About 10% above its usual price of $50.00")
+
+
+def test_near_flat_range_hides_the_bar() -> None:
+    # Energizer on prod: $14.97-$14.98 for 90 days; one cent must not read as "highest".
+    e = explain_verdict(_assessment(Verdict.fair, 1498, low=1497, high=1498, avg=1497))
+    assert e.position is None
+    assert e.headline.startswith("The price has barely moved in 90 days ($14.97 to $14.98)")
+
+
+def test_exactly_flat_range() -> None:
+    e = explain_verdict(_assessment(Verdict.fair, 2000, low=2000, high=2000, avg=2000))
+    assert e.position is None
+    assert e.headline.startswith("The price has held at $20.00 for the last 90 days")
