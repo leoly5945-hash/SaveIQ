@@ -21,7 +21,7 @@ services:
     numInstances: 1
     autoDeployTrigger: "off"
     image:
-      url: "ghcr.io/leoly5945-hash/saveiq-engine@sha256:0aa5a775e9f7d4222c3d11cfc144a0787200eba32680fb0e703e087ff2798e75"
+      url: "ghcr.io/leoly5945-hash/saveiq-engine@sha256:147e3cf2613cb91393a863f9210df13ce3d4939dd08c3f6e8bbecc4f1a75202f"
       creds:
         fromRegistryCreds:
           name: ghcr-saveiq
