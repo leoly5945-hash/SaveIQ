@@ -13,9 +13,7 @@ from app.services.acquisition.models import AcquisitionOption, BuyerProfile
 from app.services.acquisition.tco import TCOBreakdown, compute_tco
 
 # Things SaveIQ structurally cannot know and the buyer must check themselves.
-_ALWAYS_VERIFY = (
-    "Current price at each seller (launch month and Black Friday move it most).",
-)
+_ALWAYS_VERIFY = ("Current price at each seller (launch month and Black Friday move it most).",)
 # Only when a phone plan is part of the comparison.
 _PLAN_VERIFY = (
     'The real throttle threshold on each "unlimited" plan tier.',
