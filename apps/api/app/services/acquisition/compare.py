@@ -100,7 +100,7 @@ def _caveats(
         if gap <= max(15000, ranked[0].effective_total_cents // 20):
             out.append(
                 f'"{ranked[0].option_label}" and "{ranked[1].option_label}" are within '
-                f"{gap / 100:.0f} over {profile.horizon_months} months — pick on lock-in, "
+                f"${gap / 100:.0f} over {profile.horizon_months} months — pick on lock-in, "
                 "ownership, and support, not price."
             )
     return out
