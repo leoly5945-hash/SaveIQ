@@ -102,7 +102,7 @@ def test_inflated_list_price_is_flagged() -> None:
 
 
 def test_realistic_list_price_is_confirmed() -> None:
-    e = explain_verdict(_assessment(Verdict.buy, 4000), list_price_cents=5900)
+    e = explain_verdict(_assessment(Verdict.buy, 4000), list_price_cents=5400)
     [check] = e.discount_checks
     assert check.kind == "list_price_ok" and check.warning is False
 
@@ -183,3 +183,16 @@ def test_exactly_flat_range() -> None:
     e = explain_verdict(_assessment(Verdict.fair, 2000, low=2000, high=2000, avg=2000))
     assert e.position is None
     assert e.headline.startswith("The price has held at $20.00 for the last 90 days")
+
+
+def test_list_price_at_a_brief_peak_is_not_called_genuine() -> None:
+    # iPhone 16e (renewed) on prod: usual ~$606, one spike to $673.93, list $673.99.
+    e = explain_verdict(
+        _assessment(Verdict.fair, 60299, low=58752, high=67393, avg=60619),
+        list_price_cents=67399,
+    )
+    [check] = e.discount_checks
+    assert check.kind == "list_price_at_peak"
+    assert check.warning is True
+    assert "usually sells for about $606.19" in check.message
+    assert "−11%" in check.message
