@@ -371,7 +371,18 @@ function detailText(body: unknown): string {
 
 // --- server (SEO pages) — direct to the API ----------------------------
 
-export async function fetchCheckByAsin(asin: string): Promise<CheckResult | null> {
+/**
+ * "missing" = the API says there's no such product / no price (a real 404);
+ * "unavailable" = anything transient (Keepa out of tokens, 5xx, timeout), which
+ * must not be served as a 404 — that would replace a good cached page and tell
+ * Google the page is gone.
+ */
+export type CheckLoad =
+  | { status: "ok"; result: CheckResult }
+  | { status: "missing" }
+  | { status: "unavailable" };
+
+export async function loadCheckByAsin(asin: string): Promise<CheckLoad> {
   try {
     const url = new URL("/check", getApiBaseUrl());
     url.searchParams.set("product_id", asin.toUpperCase());
@@ -381,9 +392,15 @@ export async function fetchCheckByAsin(asin: string): Promise<CheckResult | null
       // Keep in sync with `revalidate` on check/[asin]/page.tsx.
       next: { revalidate: 300 },
     });
-    if (!res.ok) return null;
-    return normalizeResult((await res.json()) as CheckResult);
+    if (res.status === 404 || res.status === 422) return { status: "missing" };
+    if (!res.ok) return { status: "unavailable" };
+    return { status: "ok", result: normalizeResult((await res.json()) as CheckResult) };
   } catch {
-    return null;
+    return { status: "unavailable" };
   }
+}
+
+export async function fetchCheckByAsin(asin: string): Promise<CheckResult | null> {
+  const load = await loadCheckByAsin(asin);
+  return load.status === "ok" ? load.result : null;
 }
