@@ -3570,3 +3570,12 @@ form.pill-search:focus-within {
 .verdict-details .verdict-reasons {
   margin-top: 8px;
 }
+
+/* /check/<ASIN> uses an <h1> for the product name; Amazon titles run to 150+
+   characters, so it must read as a card title, not a page headline. */
+.verdict h1.verdict-title {
+  font-family: inherit;
+  font-size: 1.15rem;
+  letter-spacing: normal;
+  line-height: 1.3;
+}

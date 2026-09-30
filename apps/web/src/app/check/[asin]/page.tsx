@@ -13,6 +13,8 @@ import {
   VERDICT_COPY,
 } from "@/lib/price-check";
 
+import { DiscountChecks, PricePositionBar } from "@/components/price-position";
+
 import { AcquireBlock } from "../../acquire-block";
 import { AlternativesBlock } from "../../alternatives-block";
 import { BuyCta } from "../../buy-cta";
@@ -47,7 +49,8 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
     result.assessment.effective_price.effective_cents,
     result.assessment.effective_price.currency
   );
-  const description = `${brand} price check for ${name}: ${v.label} at ${price}. ${v.blurb}`;
+  const why = result.explanation?.headline ?? v.blurb;
+  const description = `${brand} price check for ${name}: ${v.label} at ${price}. ${why}`;
   return {
     title: `${name} — ${v.label} at ${price} | ${brand}`,
     description,
@@ -137,7 +140,9 @@ export default async function CheckAsinPage({ params }: Params) {
           <span className="verdict-badge">{v.label}</span>
           <div className="verdict-headline">
             <h1 className="verdict-title">{name}</h1>
-            <p className="verdict-blurb">{v.blurb}</p>
+            <p className="verdict-blurb">
+              {result.explanation?.headline ?? v.blurb}
+            </p>
           </div>
         </header>
 
@@ -149,6 +154,12 @@ export default async function CheckAsinPage({ params }: Params) {
           <span className="verdict-now">{formatMoney(effective, currency)}</span>
           <span className="verdict-conf">confidence: {assessment.confidence}</span>
         </div>
+
+        {result.explanation?.position ? (
+          <PricePositionBar currency={currency} position={result.explanation.position} />
+        ) : null}
+
+        <DiscountChecks checks={result.explanation?.discount_checks ?? []} />
 
         {result.buy_url ?? result.product_url ? (
           <BuyCta
@@ -181,11 +192,14 @@ export default async function CheckAsinPage({ params }: Params) {
         ) : null}
 
         {assessment.reasons.length > 0 ? (
-          <ul className="verdict-reasons">
-            {assessment.reasons.map((reason, i) => (
-              <li key={i}>{reason}</li>
-            ))}
-          </ul>
+          <details className="verdict-details">
+            <summary>How we worked this out</summary>
+            <ul className="verdict-reasons">
+              {assessment.reasons.map((reason, i) => (
+                <li key={i}>{reason}</li>
+              ))}
+            </ul>
+          </details>
         ) : null}
 
         <OfferSpread spread={result.spread} />
