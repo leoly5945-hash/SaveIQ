@@ -152,19 +152,19 @@ def _parse_item(
     if price.get("currency") != "CAD":
         return None
     price_cents = _cents(price)
-    shipping = [
-        _cents(o.get("shippingCost"))
-        for o in item.get("shippingOptions") or []
-        if (o.get("shippingCost") or {}).get("currency", "CAD") == "CAD"
-    ]
-    shipping = [s for s in shipping if s is not None]
+    shipping: list[int] = []
+    for option in item.get("shippingOptions") or []:
+        cost = option.get("shippingCost") or {}
+        cents = _cents(cost) if cost.get("currency", "CAD") == "CAD" else None
+        if cents is not None:
+            shipping.append(cents)
     if price_cents is None or not shipping:
         return None  # can't state a real total
     seller = item.get("seller") or {}
     try:
-        pct = float(seller.get("feedbackPercentage"))
-        score = int(seller.get("feedbackScore"))
-    except (TypeError, ValueError):
+        pct = float(seller["feedbackPercentage"])
+        score = int(seller["feedbackScore"])
+    except (KeyError, TypeError, ValueError):
         return None
     if pct < _MIN_FEEDBACK_PCT or score < _MIN_FEEDBACK_SCORE:
         return None

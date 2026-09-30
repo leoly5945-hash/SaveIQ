@@ -88,16 +88,19 @@ async def _build_comparison(
         return None
     candidates: list[ProviderOffer] = []
     if db is not None:
-        candidates = await resolve_comparison(
-            db,
-            registry,
-            provider=reference_provider,
-            provider_product_id=provider_product_id,
-            market=market,
-            title=title,
-            brand=brand,
-            currency=currency,
-            now=now,
+        candidates = list(
+            await resolve_comparison(
+                db,
+                registry,
+                provider=reference_provider,
+                provider_product_id=provider_product_id,
+                market=market,
+                title=title,
+                brand=brand,
+                currency=currency,
+                now=now,
+            )
+            or []
         )
     # Google Shopping's eBay rows carry no condition (a used $11 mouse next to a
     # new $24 one) and only a Google search link. eBay comes from the Browse API
