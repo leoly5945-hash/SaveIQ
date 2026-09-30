@@ -102,8 +102,10 @@ export function AcquireBlock({ data }: { data: AcquireResult | null }) {
       </details>
 
       <p className="acq-note">
-        Category read as <em>{category}</em>. Costs use estimated Canadian plan
-        and financing terms — confirm current numbers before acting.
+        Category read as <em>{category}</em>.{" "}
+        {includesPlan
+          ? "Costs use estimated Canadian plan and financing terms — confirm current numbers before acting."
+          : "Costs are estimates — confirm current prices before acting."}
       </p>
     </section>
   );

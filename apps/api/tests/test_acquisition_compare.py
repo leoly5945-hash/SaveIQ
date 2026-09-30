@@ -110,3 +110,12 @@ def test_ranked_entries_all_carry_a_verify_caveat() -> None:
         [CHEAP_RETAIL.model_copy(update={"verify": True, "as_of": "2026-09-09"})], P24
     )
     assert all(any("estimate" in n.lower() for n in t.assumptions) for t in rec.ranked)
+
+
+def test_no_plan_means_no_carrier_checks_or_lock_in_talk() -> None:
+    a = CHEAP_RETAIL.model_copy(update={"label": "A", "plan_monthly_cents": 0})
+    b = a.model_copy(update={"label": "B", "upfront_cents": a.upfront_cents + 500})
+    rec = compare_paths([a, b], P24)
+    assert not any("5g" in v.lower() or "unlimited" in v.lower() for v in rec.verify_first)
+    assert not any("lock-in" in c.lower() for c in rec.caveats)
+    assert any("warranty" in c.lower() for c in rec.caveats)
