@@ -89,7 +89,7 @@ export type PricePosition = {
 };
 
 export type DiscountCheck = {
-  kind: "inflated_list_price" | "raise_then_drop" | "list_price_ok";
+  kind: "inflated_list_price" | "list_price_at_peak" | "raise_then_drop" | "list_price_ok";
   warning: boolean;
   message: string;
 };

@@ -8,6 +8,10 @@ is:
 * **Inflated list price** — the struck-through "List Price" a "-N%" badge is
   measured from is higher than anything the product has actually sold for
   lately, so the percentage overstates the saving.
+* **List price at the peak** — the list price matches a brief 90-day high but
+  sits well above what it usually sells for, so the "-N%" looks bigger than
+  the everyday saving. Only a list price near the usual price is called
+  genuine.
 * **Raise-then-drop** — the price was pushed to a *new* high in the last 30
   days (above anything in the 60 days before), so today's "drop" mostly undoes
   that rise and the price is still around its usual level. A product that just
@@ -32,6 +36,8 @@ from app.services.decision.deal_score import DealAssessment, Verdict, _resolve_b
 _FLAT_RANGE_RATIO = 0.02
 # A list price this far above the 90-day high is not a price it really sells at.
 _INFLATED_LIST_RATIO = 1.10
+# A list price within this of the usual price is a fair baseline for a discount.
+_USUAL_LIST_RATIO = 1.10
 # A 30-day peak this far above the 90-day median counts as a price hike...
 _HIKE_RATIO = 1.20
 # ...but only if it is also this far above the peak of the 60 days before it.
@@ -48,7 +54,7 @@ class PricePosition(BaseModel):
 
 
 class DiscountCheck(BaseModel):
-    kind: Literal["inflated_list_price", "raise_then_drop", "list_price_ok"]
+    kind: Literal["inflated_list_price", "list_price_at_peak", "raise_then_drop", "list_price_ok"]
     warning: bool
     message: str
 
@@ -200,6 +206,19 @@ def _discount_checks(
                         "any price we've seen it sell for on Amazon.ca in the last 90 "
                         f"days (highest: {_money(high)}), so a “−{off}%” deal measured "
                         f"from it overstates the saving.{compare}"
+                    ),
+                )
+            )
+        elif usual and list_price_cents > usual * _USUAL_LIST_RATIO:
+            checks.append(
+                DiscountCheck(
+                    kind="list_price_at_peak",
+                    warning=True,
+                    message=(
+                        f"The “List Price” of {_money(list_price_cents)} matches its "
+                        f"highest price in the last 90 days, but it usually sells for "
+                        f"about {_money(usual)}, so a “−{off}%” measured from it looks "
+                        "bigger than the everyday saving."
                     ),
                 )
             )
