@@ -34,8 +34,8 @@ PHONE_ONLY = re.compile(
 )
 PHONE_CATEGORIES = {"smartphone", "cellular_tablet", "cellular_watch", "tablet"}
 FIRST_PERSON = re.compile(r"\b(I|I'd|I'm|I've|I would|my)\b")
-SAYS_WAIT = re.compile(r"\b(hold off|wait for|worth waiting|might wait|better to wait|you could wait)\b", re.I)
-SAYS_BUY_NOW = re.compile(r"(?<!only )\b(buy (it )?now|go ahead and buy|grab it|great deal)\b", re.I)
+SAYS_WAIT = re.compile(r"(?<!rather than )\b(hold off|wait for|worth waiting|might wait|better to wait|you could wait)\b", re.I)
+SAYS_BUY_NOW = re.compile(r"(?<!only )(?<!rather than )\b(buy (it )?now|go ahead and buy|grab it|great deal)\b", re.I)
 PAUSE_SECONDS = 30
 MONEY = re.compile(r"\$\s?([\d,]+(?:\.\d{2})?)")
 
@@ -76,6 +76,9 @@ def audit(asin: str) -> dict:
         d = json.loads(_get(API + asin))
     except urllib.error.HTTPError as exc:
         body = exc.read().decode("utf-8", "replace")
+        if exc.code == 404 and "no current price" in body:
+            return {"asin": asin, "verdict": "-", "title": "(no Amazon.ca offer right now)",
+                    "narration": "", "problems": []}
         return {"asin": asin, "error": f"api: {exc}", "keepa_429": "HTTP 429" in body}
     except Exception as exc:  # noqa: BLE001
         return {"asin": asin, "error": f"api: {exc}"}
