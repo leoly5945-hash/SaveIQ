@@ -132,6 +132,12 @@ _SPEC_RE = re.compile(rf"^(\d+(?:\.\d+)?)({_SPEC_UNITS})$")
 # "70 Ml" / "539 g": glue the number to its unit so it reads as one spec token.
 _SPLIT_SPEC_RE = re.compile(rf"\b(\d+) ({_SPEC_UNITS})\b")
 
+# The reference names a weight/volume ("539g") and the candidate doesn't state
+# the same one (no size, or only in another unit). Much cheaper + unconfirmed
+# size = almost certainly the smaller jar, so it needs to be within this ratio.
+_SIZE_UNITS = frozenset({"g", "kg", "ml", "l", "oz", "lb"})
+_UNCONFIRMED_SIZE_MIN_RATIO = 0.7
+
 # How many units the listing sells: "Pack of 4", "12 Count", "2-Pack", "20ct".
 _PACK_OF_RE = re.compile(r"\b(?:pack|box|set|case|lot) of (\d+)\b")
 _COUNT_RE = re.compile(r"\b(\d+) ?(?:count|ct|packs?|pk|pads|rolls|pcs|pieces|pc)\b")
@@ -144,6 +150,14 @@ def _specs(tokens: set[str]) -> dict[str, set[str]]:
         if m:
             specs.setdefault(m.group(2), set()).add(m.group(1))
     return specs
+
+
+def _size_unconfirmed(reference: set[str], candidate: set[str]) -> bool:
+    ref_specs, cand_specs = _specs(reference), _specs(candidate)
+    ref_sizes = {u: v for u, v in ref_specs.items() if u in _SIZE_UNITS}
+    if not ref_sizes:
+        return False
+    return not any(v & cand_specs.get(u, set()) for u, v in ref_sizes.items())
 
 
 def _model_codes(tokens: set[str]) -> set[str]:
@@ -219,6 +233,8 @@ def score_candidate(
 
     ratio = candidate_price_cents / reference_price_cents
     if not (_PRICE_LOW_RATIO <= ratio <= _PRICE_HIGH_RATIO):
+        return 0.0
+    if ratio < _UNCONFIRMED_SIZE_MIN_RATIO and _size_unconfirmed(ref_tokens, cand_tokens):
         return 0.0
 
     overlap = _title_overlap(ref_tokens, cand_tokens)

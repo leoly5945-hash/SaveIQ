@@ -280,3 +280,13 @@ def test_rejects_a_different_weight_even_when_written_with_a_space() -> None:
     small = "CeraVe Moisturizing Cream for Dry to Very Dry Skin Face & Body 250 g"
     assert _score(ref, small, 2797, 1500, "CeraVe") == 0.0
     assert _score(ref, small.replace("250 g", "539 g"), 2797, 2500, "CeraVe") > 0.55
+
+
+def test_rejects_a_much_cheaper_candidate_that_does_not_confirm_the_size() -> None:
+    ref = "CeraVe Moisturizing Cream for Dry-Very Dry Skin on the Face & Body, 539g"
+    no_size = "CeraVe Moisturizing Cream for Dry to Very Dry Skin Face & Body"
+    assert _score(ref, no_size, 2797, 1300, "CeraVe") == 0.0
+    other_unit = no_size + " 8 oz"
+    assert _score(ref, other_unit, 2797, 1300, "CeraVe") == 0.0
+    # Close in price: an unstated size is tolerated.
+    assert _score(ref, no_size, 2797, 2229, "CeraVe") > 0.55
