@@ -3797,3 +3797,37 @@ form.pill-search:focus-within {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* Amazon product photos (Creators API). Card: a small square thumbnail in the
+   icon's place. Hero: beside the verdict on a price check. White background
+   because Amazon's packshots are on white. */
+.product-image-link {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.product-image {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  object-fit: contain;
+}
+
+.product-image-card {
+  height: 64px;
+  padding: 4px;
+  width: 64px;
+}
+
+.product-image-hero {
+  height: 96px;
+  padding: 6px;
+  width: 96px;
+}
+
+@media (max-width: 520px) {
+  .product-image-hero {
+    height: 72px;
+    width: 72px;
+  }
+}

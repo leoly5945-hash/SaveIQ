@@ -117,6 +117,8 @@ export type CheckResult = {
   spread: AmazonSpread | null;
   narration: string | null;
   explanation: VerdictExplanation | null;
+  /** Amazon's own product image (Creators API), when we hold one. */
+  image_url?: string | null;
 };
 
 export type CheckOutcome =

@@ -21,7 +21,8 @@ const SECURITY_HEADERS = [
       // static.cloudflareinsights.com serves the cookie-free Web Analytics beacon.
       "script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com",
       "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' data:",
+      // Product photos come straight from Amazon's CDN (Creators API URLs).
+      "img-src 'self' data: https://m.media-amazon.com https://images-na.ssl-images-amazon.com",
       // All API calls go through this app's own /api/* proxy routes (same-origin).
       "connect-src 'self' https://cloudflareinsights.com",
       "frame-ancestors 'none'",

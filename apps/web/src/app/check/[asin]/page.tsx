@@ -15,6 +15,7 @@ import {
 } from "@/lib/price-check";
 
 import { DiscountChecks, PricePositionBar } from "@/components/price-position";
+import { ProductImage } from "@/components/product-image";
 
 import { AcquireBlock } from "../../acquire-block";
 import { AlternativesBlock } from "../../alternatives-block";
@@ -145,6 +146,12 @@ export default async function CheckAsinPage({ params }: Params) {
       <article className={`verdict verdict-${v.tone}`}>
         <header className="verdict-head">
           <span className="verdict-badge">{v.label}</span>
+          <ProductImage
+            href={result.buy_url}
+            size="hero"
+            src={result.image_url}
+            title={name}
+          />
           <div className="verdict-headline">
             <h1 className="verdict-title">{name}</h1>
             <p className="verdict-blurb">

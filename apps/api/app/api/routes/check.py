@@ -6,6 +6,7 @@ spends a provider token. Returns the same shape as the admin surface.
 
 from __future__ import annotations
 
+import asyncio
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
@@ -15,6 +16,7 @@ from sqlalchemy.orm import Session
 from app.core.settings import Settings, get_settings
 from app.db.session import get_db
 from app.providers import ProviderError, ProviderProductNotFound, get_provider_registry
+from app.providers.amazon_creators import get_creators_client
 from app.providers.ebay_browse import get_ebay_client
 from app.services.affiliate.amazon_link import amazon_affiliate_url
 from app.services.decision.deal_score import DealAssessment
@@ -76,6 +78,8 @@ class CheckResponse(BaseModel):
     spread: AmazonSpreadOut | None = None
     narration: str | None = None
     explanation: VerdictExplanation | None = None
+    # Amazon's own product image (Creators API), when we hold one.
+    image_url: str | None = None
 
 
 def _client_ip(request: Request) -> str:
@@ -206,6 +210,16 @@ async def check_price(
         result.product_url, settings.amazon_associate_tag, subtag="check"
     )
 
+    image_url: str | None = None
+    creators = get_creators_client(settings)
+    if creators is not None:
+        try:  # an image must never slow a verdict down by more than a moment
+            image_url = await asyncio.wait_for(
+                asyncio.to_thread(creators.image_for, result.provider_product_id), timeout=3
+            )
+        except TimeoutError:
+            image_url = None
+
     return CheckResponse(
         provider=result.provider,
         provider_product_id=result.provider_product_id,
@@ -219,4 +233,5 @@ async def check_price(
         spread=spread_out,
         narration=narration,
         explanation=result.explanation,
+        image_url=image_url,
     )

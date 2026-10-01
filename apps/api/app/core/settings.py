@@ -39,6 +39,14 @@ class Settings(BaseSettings):
         default="5339209072",
         validation_alias="EBAY_PARTNER_CAMPAIGN_ID",
     )
+    # Amazon Creators API (Associates Central -> Tools -> Creators API) — product
+    # images. Unset, or the account not yet eligible => category icons.
+    amazon_creators_client_id: str | None = Field(
+        default=None, validation_alias="AMAZON_CREATORS_CLIENT_ID"
+    )
+    amazon_creators_client_secret: str | None = Field(
+        default=None, validation_alias="AMAZON_CREATORS_CLIENT_SECRET"
+    )
     # eBay Browse API (developer.ebay.com, Production keyset) — new eBay.ca
     # offers in the comparison block. Unset => no eBay offers at all.
     ebay_client_id: str | None = Field(default=None, validation_alias="EBAY_CLIENT_ID")

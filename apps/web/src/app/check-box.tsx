@@ -23,6 +23,7 @@ import {
 
 import { BarcodeScanButton } from "@/components/barcode-scan";
 import { DiscountChecks, PricePositionBar } from "@/components/price-position";
+import { ProductImage } from "@/components/product-image";
 
 import { AcquireBlock } from "./acquire-block";
 import { AlternativesBlock } from "./alternatives-block";
@@ -217,6 +218,12 @@ function VerdictCard({
     <article className={`verdict verdict-${v.tone}`}>
       <header className="verdict-head">
         <span className="verdict-badge">{v.label}</span>
+        <ProductImage
+          href={result.buy_url}
+          size="hero"
+          src={result.image_url}
+          title={(result.title ?? result.provider_product_id)}
+        />
         <div className="verdict-headline">
           <p className="verdict-title">{result.title ?? result.provider_product_id}</p>
           <p className="verdict-blurb">
