@@ -89,7 +89,31 @@ def _norm(text: str) -> str:
 
 
 def _tokens(text: str) -> set[str]:
-    return {t for t in _norm(text).split() if t and t not in _STOPWORDS}
+    glued = _SPLIT_SPEC_RE.sub(r"\1\2", _norm(text))
+    return {t for t in glued.split() if t and t not in _STOPWORDS}
+
+
+def _pack_counts(title: str) -> set[int]:
+    text = _norm(title)
+    return {int(n) for n in _PACK_OF_RE.findall(text) + _COUNT_RE.findall(text)}
+
+
+def _different_quantity(reference_title: str, candidate_title: str) -> bool:
+    """The two listings sell a different number of units.
+
+    A "Pack of 4" toothpaste at $12.99 was "beaten" by a single tube at $5.99,
+    and a 20-count battery pack by an 8-count. When the reference is a
+    multi-pack the candidate must state the same count — a title with no count
+    is almost always the single item. A single-item reference never matches a
+    multi-pack either.
+    """
+
+    ref, cand = _pack_counts(reference_title), _pack_counts(candidate_title)
+    ref_multi = {n for n in ref if n > 1}
+    cand_multi = {n for n in cand if n > 1}
+    if ref_multi:
+        return not (ref_multi & cand)
+    return bool(cand_multi)
 
 
 def _title_overlap(reference: set[str], candidate: set[str]) -> float:
@@ -103,7 +127,14 @@ def _title_overlap(reference: set[str], candidate: set[str]) -> float:
 
 # "600va", "256gb", "45w", "10000mah": a number with a unit. Two listings that
 # both state the same unit but never the same number are different variants.
-_SPEC_RE = re.compile(r"^(\d+(?:\.\d+)?)(gb|tb|va|w|wh|mah|in|inch|ft|mm|cm|oz|ml|kg|lb|hz|mp)$")
+_SPEC_UNITS = "gb|tb|va|w|wh|mah|in|inch|ft|mm|cm|oz|ml|kg|lb|hz|mp|g|l"
+_SPEC_RE = re.compile(rf"^(\d+(?:\.\d+)?)({_SPEC_UNITS})$")
+# "70 Ml" / "539 g": glue the number to its unit so it reads as one spec token.
+_SPLIT_SPEC_RE = re.compile(rf"\b(\d+) ({_SPEC_UNITS})\b")
+
+# How many units the listing sells: "Pack of 4", "12 Count", "2-Pack", "20ct".
+_PACK_OF_RE = re.compile(r"\b(?:pack|box|set|case|lot) of (\d+)\b")
+_COUNT_RE = re.compile(r"\b(\d+) ?(?:count|ct|packs?|pk|pads|rolls|pcs|pieces|pc)\b")
 
 
 def _specs(tokens: set[str]) -> dict[str, set[str]]:
@@ -182,6 +213,8 @@ def score_candidate(
     if _looks_like_accessory(cand_tokens, ref_tokens):
         return 0.0
     if _conflicting_variant(ref_tokens, cand_tokens):
+        return 0.0
+    if _different_quantity(reference_title, candidate_title):
         return 0.0
 
     ratio = candidate_price_cents / reference_price_cents

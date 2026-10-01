@@ -244,3 +244,39 @@ def test_candidate_without_a_model_number_is_not_rejected_for_it() -> None:
         candidate_price_cents=10999,
     )
     assert s > 0.0
+
+
+def _score(reference: str, candidate: str, ref_cents: int, cand_cents: int, brand: str) -> float:
+    return score_candidate(
+        reference_title=reference,
+        reference_brand=brand,
+        reference_price_cents=ref_cents,
+        candidate_title=candidate,
+        candidate_price_cents=cand_cents,
+    )
+
+
+def test_rejects_a_single_item_against_a_multi_pack() -> None:
+    ref = "Crest 3D White Advanced Teeth Whitening Toothpaste, Radiant Mint, 70 Ml (Pack of 4)"
+    single = "Crest 3D White Advanced Whitening Toothpaste Radiant Mint 70 mL"
+    assert _score(ref, single, 1299, 599, "Crest") == 0.0
+    same = "Crest 3D White Advanced Teeth Whitening Toothpaste Radiant Mint 70 mL, 4 Pack"
+    assert _score(ref, same, 1299, 1199, "Crest") > 0.55
+
+
+def test_rejects_a_different_pack_count() -> None:
+    ref = "Energizer AA Batteries, Max Double A Battery Alkaline, 20 Count"
+    assert _score(ref, "Energizer MAX AA Alkaline Batteries, 8 Pack", 1999, 982, "Energizer") == 0.0
+    assert _score(ref, "Energizer MAX AA Alkaline Batteries 20-Pack", 1999, 1799, "Energizer") > 0.0
+
+
+def test_rejects_a_multi_pack_against_a_single_item() -> None:
+    ref = "Logitech M185 Wireless Mouse Grey"
+    assert _score(ref, "Logitech M185 Wireless Mouse Grey (2 Pack)", 2399, 2299, "Logitech") == 0.0
+
+
+def test_rejects_a_different_weight_even_when_written_with_a_space() -> None:
+    ref = "CeraVe Moisturizing Cream for Dry-Very Dry Skin on the Face & Body, 539g"
+    small = "CeraVe Moisturizing Cream for Dry to Very Dry Skin Face & Body 250 g"
+    assert _score(ref, small, 2797, 1500, "CeraVe") == 0.0
+    assert _score(ref, small.replace("250 g", "539 g"), 2797, 2500, "CeraVe") > 0.55
