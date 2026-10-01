@@ -49,13 +49,15 @@ def _describe_failure(exc: Exception) -> str:
         code = ""
         try:
             body = exc.response.json()
-            errors = body.get("errors") if isinstance(body, dict) else None
-            if isinstance(errors, list) and errors and isinstance(errors[0], dict):
-                code = str(errors[0].get("code") or "")
-            elif isinstance(body, dict):
-                code = str(body.get("error") or body.get("code") or body.get("__type") or "")
         except ValueError:
-            code = ""
+            body = None
+        if isinstance(body, dict):
+            # Creators API errors: {"type": "AccessDeniedException", "reason":
+            # "AssociateNotEligible", "message": ...}; "__type" on some paths;
+            # the LwA token endpoint uses {"error": "invalid_client"}.
+            kind = str(body.get("type") or body.get("__type") or "").rsplit("#", 1)[-1]
+            reason = str(body.get("reason") or body.get("error") or "")
+            code = " ".join(part for part in (kind, reason) if part)
         return f"{step} HTTP {exc.response.status_code} {code}".strip()[:120]
     return type(exc).__name__
 
@@ -168,7 +170,9 @@ class AmazonCreatorsClient:
             },
         )
         resp.raise_for_status()
-        items = ((resp.json().get("itemsResult") or {}).get("items")) or []
+        body = resp.json()
+        # The docs show both {"itemsResult": {"items": [...]}} and {"items": [...]}.
+        items = ((body.get("itemsResult") or {}).get("items")) or body.get("items") or []
         now = self._clock()
         urls: dict[str, str | None] = {}
         for item in items:
