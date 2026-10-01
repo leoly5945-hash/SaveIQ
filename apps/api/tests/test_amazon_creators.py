@@ -87,14 +87,18 @@ def test_not_eligible_backs_off_instead_of_hammering_amazon() -> None:
     clock = _Clock()
     client = _client(fake, clock)
 
+    assert client.status() == "untried"
     assert client.image_for("B004VBC0FM") is None
     assert client.image_for("B0052EH8OA") is None
     assert len(fake.item_calls) == 1  # the second lookup never left the building
+    # The reason is kept for /health/integrations: status + Amazon's code, no secrets.
+    assert client.status() == "error: getItems HTTP 403 AssociateNotEligible"
 
     clock.now += 3601
     fake.eligible = True
     fake.images = {"B004VBC0FM": IMG}
     assert client.image_for("B004VBC0FM") == IMG
+    assert client.status() == "ok"
 
 
 def test_only_amazon_cdn_urls_are_kept_and_misses_are_remembered() -> None:
@@ -105,3 +109,20 @@ def test_only_amazon_cdn_urls_are_kept_and_misses_are_remembered() -> None:
     client.warm(["B000000001", "B000000002", "B000000003"])
     assert client.cached(["B000000001", "B000000002", "B000000003"]) == {"B000000002": IMG}
     assert client.missing(["B000000001", "B000000003"]) == []  # not asked again for hours
+
+
+def test_bad_credentials_are_reported_as_a_token_failure() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(401, json={"error": "invalid_client"})
+
+    clock = _Clock()
+    client = AmazonCreatorsClient(
+        "id",
+        "wrong",
+        partner_tag="saveiq-20",
+        transport=httpx.MockTransport(handler),
+        clock=clock,
+        sleep=clock.sleep,
+    )
+    assert client.image_for("B004VBC0FM") is None
+    assert client.status() == "error: token HTTP 401 invalid_client"
