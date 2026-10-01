@@ -290,3 +290,29 @@ def test_rejects_a_much_cheaper_candidate_that_does_not_confirm_the_size() -> No
     assert _score(ref, other_unit, 2797, 1300, "CeraVe") == 0.0
     # Close in price: an unstated size is tolerated.
     assert _score(ref, no_size, 2797, 2229, "CeraVe") > 0.55
+
+
+def _dyson(merchant: str, cents: int, title: str) -> ProviderOffer:
+    return _offer(merchant, cents, title)
+
+
+def test_weak_match_far_below_the_90_day_low_is_dropped_and_cheapest_is_confident() -> None:
+    ref = "Dyson V8 Plus Cordless Vacuum"
+    comp = build_comparison(
+        reference_merchant="Amazon.ca",
+        reference_title=ref,
+        reference_brand="Dyson",
+        reference_price_cents=59999,
+        currency="CAD",
+        low_90d_cents=44999,
+        candidates=[
+            _dyson("Walmart.ca", 27999, "Dyson V8 Stick Vac"),
+            _dyson("Best Buy", 44000, "Dyson V8 Stick Vac"),
+            _dyson("Dyson Canada", 54999, "Dyson V8 Plus Cordless Vacuum"),
+        ],
+    )
+    merchants = [o.merchant for o in comp.offers]
+    assert "Walmart.ca" not in merchants  # weak match, 38% under the 90-day low
+    assert "Best Buy" in merchants  # weak match but a believable price: still listed
+    # The weak Best Buy row sorts first, yet the confident match is the one named.
+    assert comp.cheapest is not None and comp.cheapest.merchant == "Dyson Canada"

@@ -75,6 +75,7 @@ async def _build_comparison(
     ebay_campaign_id: str | None = None,
     ebay: EbayBrowseClient | None = None,
     gtin: str | None = None,
+    low_90d_cents: int | None = None,
 ) -> Comparison | None:
     """Cross-merchant offers from the comparison cache. Never raises.
 
@@ -131,6 +132,7 @@ async def _build_comparison(
         reference_price_cents=reference_price_cents,
         currency=currency,
         candidates=candidates,
+        low_90d_cents=low_90d_cents,
     )
 
 
@@ -238,6 +240,7 @@ async def run_price_check(
     spread = await _build_offer_spread(adapter, resolved_id, price.currency, price.price_cents)
 
     title = product.title if product else None
+    window_90 = assessment.intelligence.window(90) if assessment.intelligence else None
     comparison = await _build_comparison(
         registry,
         db,
@@ -254,6 +257,7 @@ async def run_price_check(
         gtin=(product.identifiers.get("upc") or product.identifiers.get("ean"))
         if product
         else None,
+        low_90d_cents=window_90.min_cents if window_90 else None,
     )
 
     return PriceCheckResult(
