@@ -100,7 +100,9 @@ def audit(asin: str) -> dict:
 
     # 1. narration must agree with the badge, no first person, no invented numbers
     if narr:
-        if verdict in ("FAIR", "BUY") and SAYS_WAIT.search(narr):
+        # "fine to buy … set an alert and wait for a dip" is the FAIR advice, not a contradiction
+        fine_to_buy = re.search(r"\b(fine|okay|ok|reasonable) to buy\b", narr, re.I)
+        if verdict in ("FAIR", "BUY") and SAYS_WAIT.search(narr) and not fine_to_buy:
             problems.append(f"narration says wait but verdict is {verdict}")
         if verdict == "WAIT" and SAYS_BUY_NOW.search(narr):
             problems.append("narration says buy now but verdict is WAIT")
