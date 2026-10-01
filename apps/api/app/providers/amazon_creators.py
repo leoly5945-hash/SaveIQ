@@ -16,6 +16,7 @@ Limits (Creators API docs, 2026-10): 1 request per second, 8,640 per day, up to
 
 from __future__ import annotations
 
+import logging
 import threading
 import time
 from collections.abc import Callable, Iterable
@@ -36,6 +37,27 @@ _BACKOFF_SECONDS = 3600  # after any failure (not eligible yet, throttled, down)
 _TIMEOUT_SECONDS = 8.0
 # Only Amazon's own image CDN may end up in an <img> on our pages.
 _IMAGE_HOSTS = frozenset({"m.media-amazon.com", "images-na.ssl-images-amazon.com"})
+
+logger = logging.getLogger(__name__)
+
+
+def _describe_failure(exc: Exception) -> str:
+    """A short reason safe to log and show: status + Amazon's error code, never a credential."""
+
+    if isinstance(exc, httpx.HTTPStatusError):
+        step = "token" if exc.request.url.host.startswith("api.") else "getItems"
+        code = ""
+        try:
+            body = exc.response.json()
+            errors = body.get("errors") if isinstance(body, dict) else None
+            if isinstance(errors, list) and errors and isinstance(errors[0], dict):
+                code = str(errors[0].get("code") or "")
+            elif isinstance(body, dict):
+                code = str(body.get("error") or body.get("code") or body.get("__type") or "")
+        except ValueError:
+            code = ""
+        return f"{step} HTTP {exc.response.status_code} {code}".strip()[:120]
+    return type(exc).__name__
 
 
 def _safe_image_url(url: Any) -> str | None:
@@ -71,6 +93,8 @@ class AmazonCreatorsClient:
         self._token_expires_at = 0.0
         self._last_call_at: float | None = None
         self._blocked_until = 0.0
+        self.last_error: str | None = None
+        self.images_fetched = 0
         # asin -> (expires_at, url or None when Amazon has no image for it)
         self._images: dict[str, tuple[float, str | None]] = {}
 
@@ -106,8 +130,18 @@ class AmazonCreatorsClient:
                 with httpx.Client(transport=self._transport, timeout=_TIMEOUT_SECONDS) as client:
                     for start in range(0, len(todo), _BATCH):
                         self._fetch_batch(client, todo[start : start + _BATCH])
-            except Exception:  # noqa: BLE001 - not eligible yet, throttled, or down
+                self.last_error = None
+            except Exception as exc:  # noqa: BLE001 - not eligible yet, throttled, or down
                 self._blocked_until = self._clock() + _BACKOFF_SECONDS
+                self.last_error = _describe_failure(exc)
+                logger.warning("Amazon Creators API unavailable: %s", self.last_error)
+
+    def status(self) -> str:
+        """``ok`` once images have come back, ``untried``, or the last failure."""
+
+        if self.last_error:
+            return f"error: {self.last_error}"
+        return "ok" if self.images_fetched else "untried"
 
     def image_for(self, asin: str) -> str | None:
         """One product's image, fetching it if needed. Blocking; never raises."""
@@ -144,6 +178,7 @@ class AmazonCreatorsClient:
         for asin in batch:
             url = urls.get(asin)
             self._images[asin] = (now + (_IMAGE_TTL_SECONDS if url else _MISS_TTL_SECONDS), url)
+            self.images_fetched += 1 if url else 0
 
     def _app_token(self, client: httpx.Client) -> str:
         if self._token and self._clock() < self._token_expires_at:
