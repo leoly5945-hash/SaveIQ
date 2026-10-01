@@ -24,9 +24,22 @@ _GTIN_MATCH_CONFIDENCE = 0.9
 # "Cheaper at X" is a strong claim — only flag it when the match is solid, not
 # merely above the inclusion bar.
 _CHEAPEST_MIN_CONFIDENCE = 0.65
-# A weak match priced under this share of the reference's own 90-day low is
-# dropped (see build_comparison).
-_BELOW_LOW_MIN_RATIO = 0.7
+# A title-matched offer priced under this share of the reference's own 90-day
+# low is dropped (see build_comparison).
+_BELOW_LOW_MIN_RATIO = 0.75
+# Peer-to-peer resale marketplaces: second-hand goods from individuals, not a
+# store price for a new item. (eBay comes from its own API, new-only.)
+_RESALE_MARKETPLACES = (
+    "poshmark",
+    "kijiji",
+    "mercari",
+    "depop",
+    "vinted",
+    "facebook marketplace",
+    "craigslist",
+    "varagesale",
+    "thredup",
+)
 # Only call another merchant "cheaper" if it beats the reference by this much.
 _CHEAPER_MARGIN = 0.02
 # The block answers "can I pay less elsewhere?" — an offer above the reference
@@ -284,6 +297,8 @@ def build_comparison(
         merchant = offer.merchant.strip()
         if not merchant or offer.total_cents is None:
             continue
+        if any(name in _norm(merchant) for name in _RESALE_MARKETPLACES):
+            continue
         # Skip a marketplace echo of the same retailer we already have.
         if _is_reference_echo(merchant, reference_merchant):
             continue
@@ -304,9 +319,12 @@ def build_comparison(
             continue
         # A Dyson V8 Plus never under $449.99 on Amazon in 90 days, "matched" at
         # 0.58 to a $279.99 listing: a different variant or a refurb, not a deal.
+        # The same went for a V15 Detect Plus (never under $799.99) "matched" at
+        # 0.85 to a $499 listing: titles alone can't tell a refurb from new, so
+        # only a barcode match may sit that far under the 90-day low.
         if (
             low_90d_cents
-            and confidence < _CHEAPEST_MIN_CONFIDENCE
+            and meta.get("matched_by") != "gtin"
             and offer.total_cents < round(low_90d_cents * _BELOW_LOW_MIN_RATIO)
         ):
             continue

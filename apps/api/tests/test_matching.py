@@ -316,3 +316,42 @@ def test_weak_match_far_below_the_90_day_low_is_dropped_and_cheapest_is_confiden
     assert "Best Buy" in merchants  # weak match but a believable price: still listed
     # The weak Best Buy row sorts first, yet the confident match is the one named.
     assert comp.cheapest is not None and comp.cheapest.merchant == "Dyson Canada"
+
+
+def test_only_a_barcode_match_may_sit_far_under_the_90_day_low() -> None:
+    ref = "Dyson V15 Detect Plus Cordless Vacuum"
+
+    def build(candidates: list[ProviderOffer]):
+        return build_comparison(
+            reference_merchant="Amazon.ca",
+            reference_title=ref,
+            reference_brand="Dyson",
+            reference_price_cents=99999,
+            currency="CAD",
+            low_90d_cents=79999,
+            candidates=candidates,
+        )
+
+    # Same words, $499 against a $799.99 low: a refurb the title doesn't admit to.
+    title_only = _offer("Mobile Vacuum", 49900, "Dyson V15 Detect Plus Cordless Vacuum")
+    assert build([title_only]).offers == []
+
+    by_barcode = title_only.model_copy(
+        update={"metadata": {**title_only.metadata, "matched_by": "gtin"}}
+    )
+    assert [o.merchant for o in build([by_barcode]).offers] == ["Mobile Vacuum"]
+
+
+def test_resale_marketplaces_are_not_store_prices() -> None:
+    comp = build_comparison(
+        reference_merchant="Amazon.ca",
+        reference_title="Dyson V15 Detect Plus Cordless Vacuum",
+        reference_brand="Dyson",
+        reference_price_cents=99999,
+        currency="CAD",
+        candidates=[
+            _offer("Poshmark Canada", 90000, "Dyson V15 Detect Plus Cordless Vacuum"),
+            _offer("Dyson Canada", 94999, "Dyson V15 Detect Plus Cordless Vacuum"),
+        ],
+    )
+    assert [o.merchant for o in comp.offers] == ["Dyson Canada"]
