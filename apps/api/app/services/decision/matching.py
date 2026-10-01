@@ -24,6 +24,9 @@ _GTIN_MATCH_CONFIDENCE = 0.9
 # "Cheaper at X" is a strong claim — only flag it when the match is solid, not
 # merely above the inclusion bar.
 _CHEAPEST_MIN_CONFIDENCE = 0.65
+# A weak match priced under this share of the reference's own 90-day low is
+# dropped (see build_comparison).
+_BELOW_LOW_MIN_RATIO = 0.7
 # Only call another merchant "cheaper" if it beats the reference by this much.
 _CHEAPER_MARGIN = 0.02
 # The block answers "can I pay less elsewhere?" — an offer above the reference
@@ -267,8 +270,14 @@ def build_comparison(
     reference_price_cents: int,
     currency: str,
     candidates: list[ProviderOffer],
+    low_90d_cents: int | None = None,
 ) -> Comparison:
-    """Match ``candidates`` to the reference product and rank the survivors."""
+    """Match ``candidates`` to the reference product and rank the survivors.
+
+    ``low_90d_cents`` is the reference retailer's own lowest price in 90 days,
+    used to drop weakly-matched offers far below anything the product has
+    actually sold for.
+    """
 
     best_per_merchant: dict[str, MerchantOffer] = {}
     for offer in candidates:
@@ -293,6 +302,14 @@ def build_comparison(
             confidence = max(confidence, _GTIN_MATCH_CONFIDENCE)
         if confidence < _MIN_CONFIDENCE:
             continue
+        # A Dyson V8 Plus never under $449.99 on Amazon in 90 days, "matched" at
+        # 0.58 to a $279.99 listing: a different variant or a refurb, not a deal.
+        if (
+            low_90d_cents
+            and confidence < _CHEAPEST_MIN_CONFIDENCE
+            and offer.total_cents < round(low_90d_cents * _BELOW_LOW_MIN_RATIO)
+        ):
+            continue
         matched = MerchantOffer(
             merchant=merchant,
             price_cents=offer.total_cents,
@@ -306,13 +323,17 @@ def build_comparison(
             best_per_merchant[merchant] = matched
 
     offers = sorted(best_per_merchant.values(), key=lambda o: o.price_cents)
-    cheapest: MerchantOffer | None = None
-    if (
-        offers
-        and offers[0].price_cents <= round(reference_price_cents * (1 - _CHEAPER_MARGIN))
-        and offers[0].match_confidence >= _CHEAPEST_MIN_CONFIDENCE
-    ):
-        cheapest = offers[0]
+    # The cheapest offer we are confident about — a weak match sorted above it
+    # must not stop a solid, genuinely cheaper one from being named.
+    cheapest = next(
+        (
+            o
+            for o in offers
+            if o.match_confidence >= _CHEAPEST_MIN_CONFIDENCE
+            and o.price_cents <= round(reference_price_cents * (1 - _CHEAPER_MARGIN))
+        ),
+        None,
+    )
 
     return Comparison(
         reference_merchant=reference_merchant,
