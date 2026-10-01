@@ -71,6 +71,18 @@ jobs:
           python ../../scripts/validate_render_blueprint.py ../../render.yaml
           python ../../scripts/validate_render_blueprint.py ../../render-production.yaml --profile production --allow-neural-bandit --allow-rlhf-router --allow-rlhf-after-neural --allow-kill-switch --allow-auto-tuning
 
+  # The api job installs dev extras, so an import that only a dev dependency
+  # satisfies passes there and then crashes the production image at startup
+  # (2026-09-30: httpx). Build the real image and import the app in it.
+  engine-image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the engine image
+        run: docker build -f apps/api/Dockerfile -t saveiq-engine-ci .
+      - name: The app imports inside the production image
+        run: docker run --rm saveiq-engine-ci python -c "import app.main, app.server"
+
   security:
     runs-on: ubuntu-latest
     steps:
