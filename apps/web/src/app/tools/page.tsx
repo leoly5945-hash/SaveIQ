@@ -50,6 +50,9 @@ export default function ToolsPage() {
             Get it on the Chrome Web Store
           </a>
         </p>
+        <p>
+          <Link href="/extension">See what the extension does →</Link>
+        </p>
       </section>
 
       <section className="privacy-section">

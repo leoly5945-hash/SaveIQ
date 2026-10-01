@@ -800,6 +800,9 @@ class KeepaProvider:
         ]
 
         stats = self._current_stats(raw)
+        stats_index = {"amazon": _CSV_AMAZON, "new": _CSV_NEW, "buy_box": _CSV_BUY_BOX}.get(
+            base_kind, _CSV_AMAZON
+        )
         return ProviderPriceHistory(
             provider=self.name,
             provider_product_id=asin,
@@ -814,18 +817,19 @@ class KeepaProvider:
                 # points) and over the product's whole tracked life.
                 "source_observations": changes_in_window,
                 "lifetime_observations": len(base),
+                # Stats must describe the SAME series as `points`. They used to
+                # come from the AMAZON series always, so a product whose history
+                # is the buy box (usually a $15.85 third-party offer) was judged
+                # against Amazon's own $10.98 average: "around its usual price"
+                # on what was really a 30% drop. A series Keepa has no stat for
+                # yields None and the scorer falls back to the window's own average.
                 "keepa_stats": {
-                    "avg30_cents": _stat_value(stats, "avg30", _CSV_AMAZON)
-                    or _stat_value(stats, "avg30", _CSV_NEW),
-                    "avg90_cents": _stat_value(stats, "avg90", _CSV_AMAZON)
-                    or _stat_value(stats, "avg90", _CSV_NEW),
-                    "avg180_cents": _stat_value(stats, "avg180", _CSV_AMAZON)
-                    or _stat_value(stats, "avg180", _CSV_NEW),
-                    "min_cents": _stat_pair(stats, "min", _CSV_AMAZON)
-                    or _stat_pair(stats, "min", _CSV_NEW),
-                    "max_cents": _stat_pair(stats, "max", _CSV_AMAZON)
-                    or _stat_pair(stats, "max", _CSV_NEW),
-                    "is_lowest_90d": _stat_value(stats, "isLowest90", _CSV_AMAZON),
+                    "avg30_cents": _stat_value(stats, "avg30", stats_index),
+                    "avg90_cents": _stat_value(stats, "avg90", stats_index),
+                    "avg180_cents": _stat_value(stats, "avg180", stats_index),
+                    "min_cents": _stat_pair(stats, "min", stats_index),
+                    "max_cents": _stat_pair(stats, "max", stats_index),
+                    "is_lowest_90d": _stat_value(stats, "isLowest90", stats_index),
                 },
             },
         )

@@ -3612,3 +3612,188 @@ form.pill-search:focus-within {
   color: var(--foreground);
   font-weight: 700;
 }
+
+/* /extension — install column next to a drawn preview of the in-page card.
+   Card colours mirror apps/extension/overlay.css. */
+.ext-layout {
+  align-items: start;
+  display: grid;
+  gap: 32px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.privacy-page a.ext-cta {
+  background: var(--accent);
+  border-radius: 999px;
+  color: #ffffff;
+  display: inline-block;
+  font-weight: 800;
+  padding: 12px 22px;
+  text-decoration: none;
+}
+
+.privacy-page a.ext-cta:hover {
+  background: var(--accent-strong);
+}
+
+.ext-preview h2 {
+  margin-top: 0;
+}
+
+.ext-browser {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.ext-browser-bar {
+  align-items: center;
+  background: #f1f5f9;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 6px;
+  padding: 8px 12px;
+}
+
+.ext-dot {
+  background: #cbd5e1;
+  border-radius: 50%;
+  height: 9px;
+  width: 9px;
+}
+
+.ext-url {
+  background: #ffffff;
+  border-radius: 999px;
+  color: #64748b;
+  flex: 1;
+  font-size: 0.75rem;
+  margin-left: 8px;
+  overflow: hidden;
+  padding: 3px 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ext-page {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 96px minmax(0, 1fr);
+  min-height: 320px;
+  padding: 20px;
+  position: relative;
+}
+
+.ext-ph {
+  background: #e2e8f0;
+  border-radius: 6px;
+}
+
+.ext-ph-img {
+  height: 96px;
+}
+
+.ext-ph-col {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+}
+
+.ext-ph-line {
+  height: 12px;
+}
+
+.ext-ph-short {
+  width: 60%;
+}
+
+.ext-ph-price {
+  height: 20px;
+  width: 35%;
+}
+
+.ext-card {
+  background: #ffffff;
+  border-left: 6px solid #9aa3af;
+  border-radius: 12px;
+  bottom: 16px;
+  box-shadow: 0 8px 28px rgba(15, 23, 42, 0.22);
+  color: #0f172a;
+  max-width: calc(100% - 32px);
+  padding: 16px;
+  position: absolute;
+  right: 16px;
+  width: 260px;
+}
+
+.ext-card p {
+  margin: 0;
+}
+
+.ext-card-good {
+  border-left-color: #15803d;
+}
+
+.ext-card-warn {
+  border-left-color: #ea580c;
+}
+
+.ext-card-neutral {
+  border-left-color: #64748b;
+}
+
+.ext-card .ext-card-brand {
+  color: #0f766e;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+
+.ext-card .ext-card-verdict {
+  color: #475569;
+  font-size: 1.05rem;
+  font-weight: 800;
+  margin-bottom: 2px;
+}
+
+.ext-card-good .ext-card-verdict {
+  color: #15803d;
+}
+
+.ext-card-warn .ext-card-verdict {
+  color: #c2410c;
+}
+
+.ext-card .ext-card-price {
+  font-size: 1.3rem;
+  font-weight: 900;
+  margin-bottom: 6px;
+}
+
+.ext-card .ext-card-reason {
+  color: #475569;
+  font-size: 0.85rem;
+  line-height: 1.35;
+  margin-bottom: 8px;
+}
+
+.ext-card .ext-card-link {
+  color: #0f766e;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.ext-caption {
+  color: var(--muted);
+  font-size: 0.82rem;
+  margin-top: 10px;
+}
+
+@media (max-width: 760px) {
+  .ext-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

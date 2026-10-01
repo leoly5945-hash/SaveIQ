@@ -55,6 +55,7 @@ export default function Home() {
             <a href="#price-check">Price Check</a>
             <Link href="/deals">Price Watch</Link>
             <Link href="/watchlist">Watchlist</Link>
+            <Link href="/extension">Extension</Link>
             <Link href="/about">About</Link>
             <a href="#how-we-evaluate">How we evaluate</a>
           </nav>
@@ -102,13 +103,7 @@ export default function Home() {
             <CheckBox />
             <p className="home-bookmarklet-hint">
               Or see the verdict right on the Amazon page —{" "}
-              <a
-                href="https://chromewebstore.google.com/detail/epcfmakpbfdeonhppndolmadnbakjoie"
-                rel="noreferrer"
-                target="_blank"
-              >
-                get the Chrome extension
-              </a>
+              <Link href="/extension">get the Chrome extension</Link>
               , or <Link href="/tools">add the 1-click bookmarklet</Link>.
             </p>
           </div>
