@@ -28,7 +28,14 @@ class _Amazon:
         assert request.headers["x-marketplace"] == "www.amazon.ca"
         assert request.headers["Authorization"] == "Bearer Atc|t"
         if not self.eligible:
-            return httpx.Response(403, json={"errors": [{"code": "AssociateNotEligible"}]})
+            return httpx.Response(
+                403,
+                json={
+                    "type": "AccessDeniedException",
+                    "message": "Your account does not currently meet the eligibility requirements.",
+                    "reason": "AssociateNotEligible",
+                },
+            )
         items = [
             {"asin": a, "images": {"primary": {"large": {"url": self.images[a]}}}}
             for a in payload["itemIds"]
@@ -92,7 +99,9 @@ def test_not_eligible_backs_off_instead_of_hammering_amazon() -> None:
     assert client.image_for("B0052EH8OA") is None
     assert len(fake.item_calls) == 1  # the second lookup never left the building
     # The reason is kept for /health/integrations: status + Amazon's code, no secrets.
-    assert client.status() == "error: getItems HTTP 403 AssociateNotEligible"
+    assert client.status() == (
+        "error: getItems HTTP 403 AccessDeniedException AssociateNotEligible"
+    )
 
     clock.now += 3601
     fake.eligible = True
@@ -126,3 +135,22 @@ def test_bad_credentials_are_reported_as_a_token_failure() -> None:
     )
     assert client.image_for("B004VBC0FM") is None
     assert client.status() == "error: token HTTP 401 invalid_client"
+
+
+def test_accepts_items_at_the_top_level_of_the_response() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.host == "api.amazon.com":
+            return httpx.Response(200, json={"access_token": "Atc|t", "expires_in": 3600})
+        item = {"asin": "B004VBC0FM", "images": {"primary": {"large": {"url": IMG}}}}
+        return httpx.Response(200, json={"items": [item]})
+
+    clock = _Clock()
+    client = AmazonCreatorsClient(
+        "id",
+        "secret",
+        partner_tag="saveiq-20",
+        transport=httpx.MockTransport(handler),
+        clock=clock,
+        sleep=clock.sleep,
+    )
+    assert client.image_for("B004VBC0FM") == IMG
