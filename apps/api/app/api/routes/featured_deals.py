@@ -1,12 +1,16 @@
 from __future__ import annotations
 
-from typing import Annotated
+import re
+from collections.abc import Mapping, Sequence
+from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, HTTPException, Path, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Path, Query
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
+from app.core.settings import get_settings
 from app.db.session import get_db
+from app.providers.amazon_creators import get_creators_client
 from app.services.featured_deals import (
     get_featured_deal,
     list_deal_categories,
@@ -43,6 +47,8 @@ class FeaturedDealResponse(BaseModel):
     blurb: str | None
     latest_price: LatestPriceResponse | None = None
     no_offer_checked_at: str | None = None
+    # Amazon's own product image (Creators API), when we hold one.
+    image_url: str | None = None
 
 
 class FeaturedDealsResponse(BaseModel):
@@ -61,16 +67,47 @@ class DealCategoriesResponse(BaseModel):
     categories: list[DealCategoryResponse] = Field(default_factory=list)
 
 
+_ASIN_IN_URL = re.compile(r"/dp/([A-Z0-9]{10})(?:[/?]|$)")
+
+
+def _with_images(
+    deals: Sequence[Mapping[str, Any]], background: BackgroundTasks
+) -> list[FeaturedDealResponse]:
+    """Attach the product images we already hold; fetch the rest after responding.
+
+    A page never waits on Amazon: the first view of a product shows the category
+    icon, and the image is there from the next view on.
+    """
+
+    client = get_creators_client(get_settings())
+    asin_of: dict[int, str] = {}
+    for deal in deals:
+        match = _ASIN_IN_URL.search(str(deal.get("product_url") or ""))
+        if match:
+            asin_of[int(deal["offer_id"])] = match.group(1)
+    images: dict[str, str] = {}
+    if client is not None and asin_of:
+        images = client.cached(asin_of.values())
+        missing = client.missing(asin_of.values())
+        if missing:
+            background.add_task(client.warm, missing)
+    return [
+        FeaturedDealResponse(**deal, image_url=images.get(asin_of.get(int(deal["offer_id"]), "")))
+        for deal in deals
+    ]
+
+
 @router.get("", response_model=FeaturedDealsResponse)
 def get_featured_deals(
     db: DbSession,
+    background: BackgroundTasks,
     limit: Annotated[int, Query(ge=1, le=200)] = 100,
     category: Annotated[str | None, Query(max_length=80)] = None,
 ) -> FeaturedDealsResponse:
     deals = list_featured_deals(db, limit=limit, category_slug=category)
     return FeaturedDealsResponse(
         count=len(deals),
-        deals=[FeaturedDealResponse(**deal) for deal in deals],
+        deals=_with_images(deals, background),
     )
 
 
@@ -86,6 +123,7 @@ def get_deal_categories(db: DbSession) -> DealCategoriesResponse:
 @router.get("/price-drops", response_model=FeaturedDealsResponse)
 def get_price_drops(
     db: DbSession,
+    background: BackgroundTasks,
     limit: Annotated[int, Query(ge=1, le=50)] = 12,
 ) -> FeaturedDealsResponse:
     """Price Watch products recorded under their 90-day average and near their
@@ -94,16 +132,17 @@ def get_price_drops(
     deals = list_price_drops(db, limit=limit)
     return FeaturedDealsResponse(
         count=len(deals),
-        deals=[FeaturedDealResponse(**deal) for deal in deals],
+        deals=_with_images(deals, background),
     )
 
 
 @router.get("/{slug}", response_model=FeaturedDealResponse)
 def get_featured_deal_by_slug(
     db: DbSession,
+    background: BackgroundTasks,
     slug: Annotated[str, Path(max_length=200)],
 ) -> FeaturedDealResponse:
     deal = get_featured_deal(db, slug)
     if deal is None:
         raise HTTPException(status_code=404, detail="Deal not found")
-    return FeaturedDealResponse(**deal)
+    return _with_images([deal], background)[0]

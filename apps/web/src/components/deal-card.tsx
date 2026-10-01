@@ -1,10 +1,11 @@
 import Link from "next/link";
 
-import { CategoryIcon } from "@/components/category-icon";
+import { ProductImage } from "@/components/product-image";
 
 import {
   categoryPath,
   dealPath,
+  featuredDealHref,
   dealPriceNow,
   formatMoney,
   UNAVAILABLE_LABEL,
@@ -16,7 +17,12 @@ export function DealCard({ deal }: { deal: FeaturedDeal }) {
   return (
     <li className="deal-card">
       <div className="deal-card-top">
-        <CategoryIcon slug={deal.category_slug} />
+        <ProductImage
+          categorySlug={deal.category_slug}
+          href={featuredDealHref(deal)}
+          src={deal.image_url}
+          title={deal.title}
+        />
         <p className="deal-card-merchant">{deal.merchant}</p>
       </div>
       <h3 className="deal-card-title">

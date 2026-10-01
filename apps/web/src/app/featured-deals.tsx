@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-import { CategoryIcon } from "@/components/category-icon";
+import { ProductImage } from "@/components/product-image";
 
 import {
   AMAZON_ASSOCIATE_DISCLOSURE,
   categoryPath,
   dealPath,
+  featuredDealHref,
   dealPriceNow,
   FEATURED_DEALS_BLURB,
   FEATURED_DEALS_HEADING,
@@ -73,7 +74,12 @@ export function FeaturedDeals() {
           return (
             <li className="home-featured-card" key={deal.offer_id}>
               <div className="deal-card-top">
-                <CategoryIcon slug={deal.category_slug} />
+                <ProductImage
+          categorySlug={deal.category_slug}
+          href={featuredDealHref(deal)}
+          src={deal.image_url}
+          title={deal.title}
+        />
                 <p className="merchant-name">{deal.merchant}</p>
               </div>
               <h3>

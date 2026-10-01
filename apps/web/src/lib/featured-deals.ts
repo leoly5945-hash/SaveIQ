@@ -39,7 +39,8 @@ export type FeaturedDeal = {
   blurb: string | null;
   latest_price?: LatestPrice | null;
   /** Set when our latest daily check found nobody selling it on Amazon.ca. */
-  no_offer_checked_at?: string | null;
+  no_offer_checked_at?: string | null;  /** Amazon's own product image (Creators API), when we hold one. */
+  image_url?: string | null;
 };
 
 export type DealCategory = {
