@@ -53,6 +53,7 @@ export default function Home() {
           <nav className="home-nav">
             <Link href="/guides">Guides</Link>
             <a href="#price-check">Price Check</a>
+            <Link href="/amazon-price-history">Price History</Link>
             <Link href="/deals">Price Watch</Link>
             <Link href="/watchlist">Watchlist</Link>
             <Link href="/extension">Extension</Link>
