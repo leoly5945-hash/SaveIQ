@@ -515,6 +515,76 @@ export const GUIDES: Guide[] = [
     relatedCategories: ["electronics"],
   },
   {
+    slug: "amazon-ca-price-drop-alerts",
+    title: "How to set a price-drop alert for an Amazon.ca product",
+    description:
+      "Amazon.ca will not tell you when a product you are watching gets cheaper. Here are three free price trackers that will, how their alerts differ, and how to pick a target price that actually triggers.",
+    updated: "2026-10-01",
+    checked: "2026-10-01",
+    readMinutes: 5,
+    intro: [
+      "If today’s price on Amazon.ca is higher than usual, the sensible move is to wait. Checking the page every morning is the tedious way to do that. A price-drop alert does the checking for you and sends an email when the price comes down.",
+      "This guide covers three free trackers that work on Amazon.ca, what each one’s alert does, and how to choose a target price. SaveIQ is one of the three; we say so where it comes up, and we list what our own alert does not do.",
+    ],
+    sections: [
+      {
+        heading: "What a price tracker does",
+        body: [
+          "A tracker records the price of an Amazon.ca product over time. It needs two things from you: the product, usually as a link, and an email address or account to send the alert to.",
+          "Alerts come in two kinds. A target-price alert fires when the price reaches a number you chose. An any-drop alert fires when the price falls below what it was on the day you set it. The first needs you to know what a good price is; the second does not, but it can fire on a small drop.",
+        ],
+      },
+      {
+        heading: "Three free trackers that work on Amazon.ca",
+        body: [
+          "SaveIQ (this site): check a product in the Price Check box on the homepage, then leave your email under the result. There is no account to create. Our price data comes from Keepa.",
+          "Keepa: shows detailed price-history charts without an account. A free account adds price watches and alerts. It has extensions for Chrome, Edge, Firefox and Opera, and a mobile app.",
+          "camelcamelcamel: a free tracker with a Canadian site at ca.camelcamelcamel.com. You set a desired price for a product and it emails you when the price reaches it. Its browser extension, the Camelizer, lets you create a price watch from the Amazon page.",
+        ],
+        table: {
+          caption: "How the alerts compare (checked October 1, 2026)",
+          headers: ["Tracker", "Alert type", "Account needed", "Browser extension"],
+          rows: [
+            ["SaveIQ", "Any drop from the price on the day you set it", "No, only an email address", "Chrome"],
+            ["Keepa", "Price watches on a free account", "Yes, for alerts", "Chrome, Edge, Firefox, Opera"],
+            ["camelcamelcamel", "Your own desired price", "Optional", "Chrome, Edge, Firefox, Opera, Safari"],
+          ],
+        },
+      },
+      {
+        heading: "What the SaveIQ alert does, and what it does not",
+        body: [
+          "We re-check the price of every watched product once a day. If it is at least 1% below the price on the day you set the alert, we send one email. The alert is then finished; it does not keep emailing you.",
+          "Because the check is daily, a sale that lasts only a few hours can come and go between checks. If you are waiting for a short lightning deal, a tracker that checks more often suits you better.",
+          "You cannot set your own target price on SaveIQ yet. If you want an email only at a specific number, use the desired-price field on camelcamelcamel or a price watch on Keepa.",
+          "Every alert email has an unsubscribe link, and your watched products are listed on the Watchlist page.",
+        ],
+      },
+      {
+        heading: "How to pick a target price",
+        body: [
+          "Look at the last 90 days of price history first. Our guide to checking Amazon.ca price history explains how. You want three numbers: the lowest price, the average price and today’s price.",
+          "A target just under the 90-day average will usually trigger within a few weeks, because most products return to their average. A target at the 90-day low is a better price but may take months, or may not come back at all.",
+          "Do not set the target from the struck-through “List Price”. That number is often well above what the product normally sells for, so a discount measured from it looks larger than the real saving.",
+        ],
+      },
+      {
+        heading: "When an alert arrives",
+        body: [
+          "1. Open the product page and confirm the price yourself. Prices can change again between the check and the email.",
+          "2. Check who the seller is. A low price from a third-party seller can come with a shipping charge or a different return policy.",
+          "3. Check that it is the same model and pack size you were watching. Listings sometimes change the variant that a link opens.",
+          "4. If the price is right, buy it. Short drops on Amazon.ca often last less than a day.",
+        ],
+      },
+    ],
+    sources: [
+      { label: "Keepa — Features", url: "https://keepa.com/#!features" },
+      { label: "camelcamelcamel — Amazon.ca price tracker", url: "https://ca.camelcamelcamel.com/" },
+    ],
+    relatedCategories: ["electronics", "home", "kitchen"],
+  },
+  {
     slug: "how-to-check-amazon-ca-price-history",
     title: "How to check Amazon.ca price history before you buy",
     description:

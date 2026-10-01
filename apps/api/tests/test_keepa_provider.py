@@ -474,3 +474,27 @@ async def test_get_offers_without_live_order_drops_offers_not_seen_lately() -> N
     sellers = {o.metadata["seller_id"] for o in offers}
     assert "A1THIRDPARTY" not in sellers
     assert "ATVPDKIKX0DER" in sellers
+
+
+@pytest.mark.asyncio
+async def test_history_stats_come_from_the_same_series_as_the_points() -> None:
+    # KONG B004VBC0FM: the buy box (deepest series) usually sat at $15.85 while
+    # Keepa's AMAZON average was $10.98 — mixing them called a 30% drop "usual".
+    product = _product()
+    product["csv"][18] = [
+        v
+        for day, cents in ((80, 1585), (60, 1594), (40, 1585), (20, 1639), (1, 1099))
+        for v in (_keepa_minutes(_ago(day)), cents, 0)
+    ]
+    product["stats"]["avg90"][0] = 1098
+    product["stats"]["avg90"][18] = 1570
+    history = await _provider(_envelope(product)).get_price_history("B004VBC0FM", days=90)
+    assert history is not None
+    assert history.metadata["base_kind"] == "buy_box"
+    assert history.metadata["keepa_stats"]["avg90_cents"] == 1570
+
+    # No Keepa stat for that series -> None, so the scorer uses the window average.
+    product["stats"]["avg90"][18] = -1
+    history = await _provider(_envelope(product)).get_price_history("B004VBC0FM", days=90)
+    assert history is not None
+    assert history.metadata["keepa_stats"]["avg90_cents"] is None
