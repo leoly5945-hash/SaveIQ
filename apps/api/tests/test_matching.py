@@ -428,7 +428,7 @@ def test_a_part_number_split_by_a_hyphen_is_the_same_model() -> None:
 
 
 def test_a_barcode_match_does_not_depend_on_how_the_seller_words_the_title() -> None:
-    odd_title = "ZX Series stereo headphones black NEW sealed"  # no brand, no model code
+    odd_title = "ZX Series over ear headphones black NEW sealed"  # no brand, no model code
     comp = _sony([_ebay(2699, odd_title)])
     assert comp.also_on_ebay is not None and comp.also_on_ebay.match_confidence == 0.9
 
@@ -451,3 +451,31 @@ def test_ebay_more_than_25_percent_under_amazon_is_never_shown() -> None:
     # The rule is eBay's alone: a confident store match at the same price stays.
     store = _offer("Best Buy Canada", 1700, "Sony MDRZX110 Over-Ear Headphones Black")
     assert [o.merchant for o in _sony([store]).offers] == ["Best Buy Canada"]
+
+
+def test_an_unrelated_item_filed_under_the_products_catalogue_id_is_rejected() -> None:
+    comp = build_comparison(
+        reference_merchant="Amazon.ca",
+        reference_title="LEGO Classic Medium Creative Brick Box 10696 Building Toy Set",
+        reference_brand="LEGO",
+        reference_price_cents=4193,
+        currency="CAD",
+        candidates=[
+            ProviderOffer(
+                provider="ebay",
+                provider_product_id="B00NHQFA1I",
+                merchant="eBay",
+                price_cents=3999,  # inside the allowed price window on purpose
+                currency="CAD",
+                url="https://www.ebay.ca/itm/1",
+                observed_at=datetime(2026, 10, 2, tzinfo=UTC),
+                metadata={
+                    "title": "New Lego 4x Black Arch 1 x 3 x 3 13965",
+                    "matched_by": "epid",
+                    "seller_feedback_pct": 99.9,
+                    "seller_feedback_score": 5000,
+                },
+            )
+        ],
+    )
+    assert comp.offers == [] and comp.also_on_ebay is None
