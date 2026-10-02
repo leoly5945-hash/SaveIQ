@@ -68,6 +68,9 @@ _CSV_NEW = 1
 _CSV_USED = 2
 _CSV_LIST_PRICE = 4
 _CSV_BUY_BOX = 18
+# Lowest matching eBay listing on the locale's eBay site, incl. shipping (triplets).
+_CSV_EBAY_NEW = 28
+_CSV_EBAY_USED = 29
 # Indices whose csv rows are [time, price, shipping] triplets rather than pairs.
 _TRIPLET_INDICES = frozenset({_CSV_BUY_BOX})
 
@@ -202,6 +205,57 @@ def _decode_series(row: Sequence[Any] | None, *, triplet: bool) -> list[tuple[da
             continue
         out.append((observed_at, price))
     return out
+
+
+def _latest_triplet(row: Sequence[Any] | None) -> tuple[datetime, int] | None:
+    """The last ``[time, price, shipping]`` entry as (when, total cents).
+
+    ``None`` when the row is empty or its last entry is ``-1`` — Keepa's "no
+    such listing right now". Unlike :func:`_decode_series` this must not fall
+    back to an older positive price.
+    """
+
+    if not row or len(row) < 3:
+        return None
+    minutes, price, shipping = (_as_int(v) for v in row[-3:])
+    if minutes is None or price is None or price < 0:
+        return None
+    when = _keepa_minutes_to_datetime(minutes)
+    if when is None:
+        return None
+    return when, price + (shipping if shipping and shipping > 0 else 0)
+
+
+def _parse_ebay(raw: Mapping[str, Any]) -> dict[str, Any] | None:
+    """Keepa's matched eBay listings for the product, or ``None`` when it has none.
+
+    Keepa matches each Amazon product to listings on the same locale's eBay site
+    and records the lowest new and used price (csv 28 / 29) plus the listing ids.
+    """
+
+    csv = raw.get("csv")
+    rows: Sequence[Any] = csv if isinstance(csv, list) else []
+    new = _latest_triplet(rows[_CSV_EBAY_NEW]) if len(rows) > _CSV_EBAY_NEW else None
+    used = _latest_triplet(rows[_CSV_EBAY_USED]) if len(rows) > _CSV_EBAY_USED else None
+    ids = raw.get("ebayListingIds")
+    new_id, used_id = (
+        (_as_int(ids[0]) or None, _as_int(ids[1]) or None)
+        if isinstance(ids, list) and len(ids) >= 2
+        else (None, None)
+    )
+    updated = _as_int(raw.get("lastEbayUpdate"))
+    if new is None and used is None and not new_id and not used_id:
+        return None
+    updated_at = _keepa_minutes_to_datetime(updated) if updated and updated > 0 else None
+    return {
+        "new_cents": new[1] if new else None,
+        "new_since": new[0].date().isoformat() if new else None,
+        "new_listing_id": new_id,
+        "used_cents": used[1] if used else None,
+        "used_since": used[0].date().isoformat() if used else None,
+        "used_listing_id": used_id,
+        "updated_at": updated_at.isoformat() if updated_at else None,
+    }
 
 
 def _densify_daily(
@@ -584,6 +638,7 @@ class KeepaProvider:
             metadata={
                 "keepa_domain": self._domain,
                 "product_group": _clean_str(raw.get("productGroup")),
+                "ebay": _parse_ebay(raw),
             },
         )
 

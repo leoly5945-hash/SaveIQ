@@ -9,6 +9,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime
+from typing import Any
 
 from sqlalchemy.orm import Session
 
@@ -58,6 +59,8 @@ class PriceCheckResult:
     comparison: Comparison | None = None
     spread: AmazonOfferSpread | None = None
     explanation: VerdictExplanation | None = None
+    # Keepa's own matched eBay listings (lowest new / used incl. shipping), raw.
+    keepa_ebay: dict[str, Any] | None = None
 
 
 async def _build_comparison(
@@ -275,4 +278,5 @@ async def run_price_check(
             list_price_cents=price.list_price_cents,
             history=[(p.observed_at, p.price_cents) for p in history.points],
         ),
+        keepa_ebay=(product.metadata or {}).get("ebay") if product else None,
     )
