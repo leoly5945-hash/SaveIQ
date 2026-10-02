@@ -45,6 +45,8 @@ _MIN_FEEDBACK_PCT = 98.0
 _MIN_FEEDBACK_SCORE = 50
 _CACHE_SECONDS = 3600
 _TIMEOUT_SECONDS = 6.0
+# eBay ANDs the words of `q`; a full Amazon title rarely matches anything.
+_TITLE_QUERY_WORDS = 6
 
 logger = logging.getLogger(__name__)
 
@@ -105,18 +107,39 @@ class EbayBrowseClient:
         title: str | None,
         limit: int = 10,
     ) -> list[ProviderOffer]:
-        """New eBay.ca offers for the product, cheapest first. Never raises."""
+        """New eBay.ca offers for the product, cheapest first. Never raises.
 
+        Barcode first. Most eBay.ca sellers don't enter one, so when that finds
+        nothing we search by the product's name and let the title matcher decide.
+        """
+
+        keys: list[tuple[str, str]] = []
         if gtin:
-            key = ("gtin", gtin)
-        elif title:
-            key = ("q", " ".join(title.split()[:12]))
-        else:
-            return []
+            keys.append(("gtin", gtin))
+        if title:
+            keys.append(("q", " ".join(title.replace(",", " ").split()[:_TITLE_QUERY_WORDS])))
+        summaries: list[str] = []
+        for key in keys:
+            offers, summary = await self._search(key, provider_product_id, limit)
+            if summary is None:
+                return []  # the API failed; last_error says why
+            summaries.append(summary)
+            if offers:
+                self.last_search = "; ".join(summaries)
+                return offers
+        if summaries:
+            self.last_search = "; ".join(summaries)
+        return []
+
+    async def _search(
+        self, key: tuple[str, str], provider_product_id: str, limit: int
+    ) -> tuple[list[ProviderOffer], str | None]:
+        """Offers for one query plus a one-line summary; summary ``None`` on failure."""
+
         now = self._clock()
         hit = self._cache.get(key)
         if hit and hit[0] > now:
-            return hit[1]
+            return hit[1], f"by {key[0]}: {len(hit[1])} kept (cached)"
         try:
             async with httpx.AsyncClient(
                 transport=self._transport, timeout=_TIMEOUT_SECONDS
@@ -140,7 +163,7 @@ class EbayBrowseClient:
         except Exception as exc:  # noqa: BLE001 - never let eBay break a price check
             self.last_error = _describe_failure(exc)
             logger.warning("eBay Browse API unavailable: %s", self.last_error)
-            return []
+            return [], None
         raw_items = payload.get("itemSummaries") or []
         dropped: Counter[str] = Counter()
         offers = []
@@ -153,11 +176,10 @@ class EbayBrowseClient:
         offers = offers[:limit]
         self.last_error = None
         drops = ", ".join(f"{n} {why}" for why, n in sorted(dropped.items())) or "none"
-        self.last_search = (
+        self._cache[key] = (now + _CACHE_SECONDS, offers)
+        return offers, (
             f"by {key[0]}: {len(raw_items)} returned, {len(offers)} kept (dropped: {drops})"
         )
-        self._cache[key] = (now + _CACHE_SECONDS, offers)
-        return offers
 
     async def _app_token(self, client: httpx.AsyncClient) -> str:
         if self._token and self._clock() < self._token_expires_at:
