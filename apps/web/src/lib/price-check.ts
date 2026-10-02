@@ -410,3 +410,21 @@ export async function fetchCheckByAsin(asin: string): Promise<CheckResult | null
   const load = await loadCheckByAsin(asin);
   return load.status === "ok" ? load.result : null;
 }
+
+/**
+ * The Amazon button on a price-check result: a first-party hop that logs the
+ * click (and the page it came from) before redirecting to the tagged product
+ * page. `source` says which button: "check" (the /check page), "checkbox" (the
+ * paste-a-link box) or "image" (the product photo). Falls back to the plain
+ * tagged link if the id isn't an ASIN.
+ */
+export function amazonButtonHref(
+  result: Pick<CheckResult, "provider_product_id" | "buy_url" | "product_url">,
+  source: "check" | "checkbox" | "image"
+): string {
+  const id = result.provider_product_id;
+  if (/^[A-Za-z0-9]{10}$/.test(id)) {
+    return `/go/amazon/${id.toUpperCase()}?src=${source}`;
+  }
+  return result.buy_url ?? result.product_url ?? "";
+}

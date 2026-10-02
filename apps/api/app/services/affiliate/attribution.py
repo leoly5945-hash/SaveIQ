@@ -277,6 +277,164 @@ def resolve_redirect(
     )
 
 
+# --- Amazon clicks from price-check pages ------------------------------------------
+
+AMAZON_CLICK_SOURCES = frozenset({"check", "checkbox", "image", "extension", "guide", "other"})
+_AMAZON_PROVIDER = "amazon_ca"
+
+
+def record_amazon_click(
+    db: Session,
+    *,
+    asin: str,
+    source: str,
+    tag: str,
+    user_agent: str | None,
+    referrer: str | None,
+    client_ip: str | None,
+    salt: str,
+    dedup_seconds: int = 10,
+    is_bot: bool = False,
+) -> RedirectResolution:
+    """Log a click on a price-check page's Amazon button and return the buy URL.
+
+    Price-check pages are not ``Offer`` rows, so their buy button used to link
+    straight to Amazon and left no trace: most outbound clicks were never
+    logged. The event has no ``offer_id``; the ASIN is ``source_record_id`` and
+    the page type (``check``, ``checkbox`` …) is the ``subid``, which also rides
+    to Amazon as ``ascsubtag``.
+    """
+
+    asin = asin.strip().upper()
+    if source not in AMAZON_CLICK_SOURCES:
+        source = "other"
+    base_url = f"https://www.amazon.ca/dp/{asin}"
+    landing_url = f"{base_url}?{urlencode({'tag': tag, 'ascsubtag': source})}"
+    network = network_for_provider(_AMAZON_PROVIDER)
+    ip_hash = hash_ip(client_ip, salt)
+
+    if dedup_seconds > 0 and ip_hash:
+        cutoff = datetime.now(UTC) - timedelta(seconds=dedup_seconds)
+        prior = db.execute(
+            select(AffiliateClickEvent)
+            .where(
+                AffiliateClickEvent.offer_id.is_(None),
+                AffiliateClickEvent.source_record_id == asin,
+                AffiliateClickEvent.ip_hash == ip_hash,
+                AffiliateClickEvent.created_at >= cutoff,
+            )
+            .order_by(AffiliateClickEvent.id.desc())
+            .limit(1)
+        ).scalar_one_or_none()
+        if prior is not None:
+            return RedirectResolution(
+                target_url=landing_url,
+                click_id=prior.click_id or "",
+                network=network,
+                is_bot=prior.is_bot,
+                reused=True,
+            )
+
+    click_id = uuid.uuid4().hex
+    db.add(
+        AffiliateClickEvent(
+            offer_id=None,
+            target_type=ClickTargetType.affiliate.value,
+            target_url=base_url,
+            provider_source=_AMAZON_PROVIDER,
+            source_record_id=asin,
+            market="CA",
+            user_agent=_clip(user_agent, 512),
+            referrer=_clip(referrer, 2048),
+            click_id=click_id,
+            subid=source,
+            network=network,
+            landing_url=landing_url,
+            ip_hash=ip_hash,
+            is_bot=is_bot,
+        )
+    )
+    db.commit()
+    return RedirectResolution(
+        target_url=landing_url, click_id=click_id, network=network, is_bot=is_bot, reused=False
+    )
+
+
+# --- click report ---------------------------------------------------------------------
+
+
+def _page_of(referrer: str | None) -> str:
+    """The SaveIQ page a click came from, as a path ("/check/B0…", "/deal/slug")."""
+
+    if not referrer:
+        return "(unknown)"
+    path = urlsplit(referrer).path or "/"
+    return path if len(path) == 1 else path.rstrip("/")
+
+
+_PAGE_TYPES = frozenset(
+    {"check", "deal", "deals", "guide", "category", "watchlist", "amazon-price-history"}
+)
+
+
+def _page_type(page: str) -> str:
+    if page == "/":
+        return "home"
+    first = page.strip("/").split("/", 1)[0]
+    return first if first in _PAGE_TYPES else "other"
+
+
+def click_report(db: Session, *, days: int = 30, top: int = 15) -> dict[str, Any]:
+    """Real (non-bot) outbound clicks by day, by the page they came from, and by product."""
+
+    since = datetime.now(UTC) - timedelta(days=days)
+    rows = db.execute(
+        select(AffiliateClickEvent, Offer.title)
+        .outerjoin(Offer, AffiliateClickEvent.offer_id == Offer.id)
+        .where(AffiliateClickEvent.created_at >= since)
+        .order_by(AffiliateClickEvent.created_at)
+    ).all()
+
+    by_day: dict[str, int] = {}
+    by_type: dict[str, int] = {}
+    by_page: dict[str, int] = {}
+    by_product: dict[str, int] = {}
+    by_network: dict[str, int] = {}
+    bots = 0
+    for event, title in rows:
+        if event.is_bot:
+            bots += 1
+            continue
+        created = (
+            event.created_at if event.created_at.tzinfo else event.created_at.replace(tzinfo=UTC)
+        )
+        day = created.astimezone(UTC).date().isoformat()
+        page = _page_of(event.referrer)
+        product = title or event.source_record_id or "(unknown)"
+        by_day[day] = by_day.get(day, 0) + 1
+        by_type[_page_type(page)] = by_type.get(_page_type(page), 0) + 1
+        by_page[page] = by_page.get(page, 0) + 1
+        by_product[product] = by_product.get(product, 0) + 1
+        net = event.network or "unknown"
+        by_network[net] = by_network.get(net, 0) + 1
+
+    def ranked(counts: dict[str, int], limit: int | None = None) -> list[dict[str, Any]]:
+        items = sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))
+        return [{"name": k, "clicks": v} for k, v in (items[:limit] if limit else items)]
+
+    return {
+        "window_days": days,
+        "since": since.isoformat(),
+        "clicks": sum(by_day.values()),
+        "bot_clicks": bots,
+        "by_day": [{"day": d, "clicks": c} for d, c in sorted(by_day.items())],
+        "by_page_type": ranked(by_type),
+        "by_page": ranked(by_page, top),
+        "by_product": ranked(by_product, top),
+        "by_network": ranked(by_network),
+    }
+
+
 # --- conversion ingestion -------------------------------------------------------
 
 # network -> where its postback/report payload carries each field. First hit wins.

@@ -515,6 +515,79 @@ export const GUIDES: Guide[] = [
     relatedCategories: ["electronics"],
   },
   {
+    slug: "prime-day-price-history",
+    title: "Is that Prime Day price a real deal? Check the price history",
+    description:
+      "A sale badge on Amazon.ca tells you the discount from a list price, not from what the product usually sells for. Here is how to use price history to tell a real Prime Day or Black Friday deal from a normal price with a banner on it.",
+    updated: "2026-10-02",
+    readMinutes: 5,
+    intro: [
+      "During Prime Day, Black Friday and Boxing Day, almost every Amazon.ca listing shows a percentage off. The percentage is measured from a struck-through price, and that price is often not what the product sold for last week. The only way to know whether the sale price is good is to compare it with what the product has actually sold for.",
+      "This guide gives you three checks that take about a minute per product, and the patterns that make a discount look bigger than it is. The checks use price history, which you can see free on SaveIQ, Keepa or camelcamelcamel. SaveIQ is this site; we say so where it comes up.",
+    ],
+    sections: [
+      {
+        heading: "Why the sale percentage is not enough",
+        body: [
+          "Amazon.ca’s help page on strike-through pricing, as we read it on September 28, 2026, says the “List Price” is the suggested retail price from the manufacturer, supplier or seller. It is shown when at least half of the product’s Amazon.ca sales in the past 180 days were at or above it, or when other retailers offered it at or above that price in that period.",
+          "That rule allows a list price that the product has not sold at for months. A “−40%” badge measured from it can sit on a price that is exactly what the product cost a month ago.",
+          "A price history removes the guesswork. It shows the lowest, usual and highest price over a period, so you compare the sale price with real past prices and not with a label.",
+        ],
+      },
+      {
+        heading: "Three checks before you buy on a sale day",
+        body: [
+          "1. Compare the sale price with the usual price. Find the average price over the last 90 days. If the sale price is within a few percent of it, the product is at its normal price and the banner changes nothing.",
+          "2. Compare it with the 90-day low. A sale price at or near the lowest price of the last 90 days is a good price. A sale price well above that low means the product was cheaper recently and may be again.",
+          "3. Look at the weeks just before the sale. If the price rose shortly before the event and the sale brings it back to where it was, the discount is the rise being undone.",
+        ],
+        table: {
+          caption: "How to read a sale price against the last 90 days",
+          headers: ["What the history shows", "What it means"],
+          rows: [
+            ["Sale price is at or near the 90-day low", "A real deal. Buying now is reasonable."],
+            ["Sale price is about the 90-day average", "The normal price with a sale banner. No urgency."],
+            ["Sale price is above the 90-day average", "Not a deal. It has been cheaper and probably will be again."],
+            ["Price rose in the last 30 days, then dropped to the old level", "The discount undoes a recent increase. Treat it as the normal price."],
+            ["List price is above anything it sold for in 90 days", "The percentage off overstates the saving. Ignore the badge and use the average."],
+          ],
+        },
+      },
+      {
+        heading: "How SaveIQ shows this",
+        body: [
+          "Paste an Amazon.ca link into the price history checker on this site. The result shows the 90-day low, usual price and high, with today’s price marked on that range, and one call: Buy, Fair or Wait.",
+          "Under the price, a section called “Is the discount real?” appears when one of these patterns applies. It flags a list price that is higher than any price the product sold for in the last 90 days, a list price that matches a brief peak but sits well above the usual price, and a price that was raised to a new high in the last 30 days before it dropped.",
+          "A Buy verdict requires the price to be within 5% of the 90-day low. That rule is the same on a sale day as on any other day, so a banner cannot produce a Buy.",
+        ],
+      },
+      {
+        heading: "What a 90-day window misses",
+        body: [
+          "Ninety days tells you whether a price is good right now. It does not tell you how this sale compares with last year’s. For that, open a multi-year chart on Keepa or camelcamelcamel and look at the same event a year earlier.",
+          "If a previous sale event falls inside the 90-day window, the low you see may be that event’s price. A price that matches it is still a good price; it just is not a new record.",
+          "A product that launched a few weeks ago has too little history for any of these checks. In that case compare the price at one or two other Canadian retailers instead.",
+        ],
+      },
+      {
+        heading: "If the price is not good today",
+        body: [
+          "Set a price-drop alert and leave it. Our guide to price-drop alerts on Amazon.ca explains the options, including which trackers let you choose your own target price.",
+          "Sale events are not the only time prices fall. Many products dip for a few days at a time during ordinary weeks, and an alert catches those as well.",
+        ],
+      },
+    ],
+    sources: [
+      {
+        label: "Amazon.ca — Strike-Through Pricing and Savings (help page, read September 28, 2026)",
+        url: "https://www.amazon.ca/gp/help/customer/display.html?nodeId=GQ6B6RH72AX8D2TD",
+      },
+      { label: "Keepa — Features", url: "https://keepa.com/#!features" },
+      { label: "camelcamelcamel — Amazon.ca price tracker", url: "https://ca.camelcamelcamel.com/" },
+    ],
+    relatedCategories: ["electronics", "home", "kitchen"],
+  },
+  {
     slug: "amazon-ca-price-drop-alerts",
     title: "How to set a price-drop alert for an Amazon.ca product",
     description:

@@ -9,6 +9,7 @@ import {
   requestAlternatives,
 } from "@/lib/alternatives";
 import {
+  amazonButtonHref,
   type CheckResult,
   CHECK_REQUEST_EVENT,
   formatMoney,
@@ -219,7 +220,7 @@ function VerdictCard({
       <header className="verdict-head">
         <span className="verdict-badge">{v.label}</span>
         <ProductImage
-          href={result.buy_url}
+          href={amazonButtonHref(result, "image")}
           size="hero"
           src={result.image_url}
           title={(result.title ?? result.provider_product_id)}
@@ -249,7 +250,7 @@ function VerdictCard({
 
       {result.buy_url ?? result.product_url ? (
         <BuyCta
-          amazonHref={result.buy_url ?? result.product_url ?? ""}
+          amazonHref={amazonButtonHref(result, "checkbox")}
           amazonPriceCents={effective}
           cheapest={result.comparison?.cheapest ?? null}
           currency={currency}
@@ -298,7 +299,7 @@ function VerdictCard({
 
       {result.buy_url ?? result.product_url ? (
         <BuyCta
-          amazonHref={result.buy_url ?? result.product_url ?? ""}
+          amazonHref={amazonButtonHref(result, "checkbox")}
           amazonPriceCents={effective}
           cheapest={result.comparison?.cheapest ?? null}
           currency={currency}

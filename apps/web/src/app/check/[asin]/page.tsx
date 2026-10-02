@@ -7,6 +7,7 @@ import { fetchAlternativesByAsin } from "@/lib/alternatives";
 import { getBrandName, getSiteUrl } from "@/lib/config";
 import { safeJsonLd } from "@/lib/json-ld";
 import {
+  amazonButtonHref,
   fetchCheckByAsin,
   formatMoney,
   loadCheckByAsin,
@@ -147,7 +148,7 @@ export default async function CheckAsinPage({ params }: Params) {
         <header className="verdict-head">
           <span className="verdict-badge">{v.label}</span>
           <ProductImage
-            href={result.buy_url}
+            href={amazonButtonHref(result, "image")}
             size="hero"
             src={result.image_url}
             title={name}
@@ -177,7 +178,7 @@ export default async function CheckAsinPage({ params }: Params) {
 
         {result.buy_url ?? result.product_url ? (
           <BuyCta
-            amazonHref={result.buy_url ?? result.product_url ?? ""}
+            amazonHref={amazonButtonHref(result, "check")}
             amazonPriceCents={effective}
             cheapest={result.comparison?.cheapest ?? null}
             currency={currency}
@@ -226,7 +227,7 @@ export default async function CheckAsinPage({ params }: Params) {
 
         {result.buy_url ?? result.product_url ? (
           <BuyCta
-            amazonHref={result.buy_url ?? result.product_url ?? ""}
+            amazonHref={amazonButtonHref(result, "check")}
             amazonPriceCents={effective}
             cheapest={result.comparison?.cheapest ?? null}
             currency={currency}

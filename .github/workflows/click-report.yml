@@ -1,0 +1,65 @@
+name: Click report
+
+# Where SaveIQ's outbound clicks come from: real (non-bot) clicks by day, by the
+# page they came from and by product, read from the production API's admin
+# endpoint. The report is written to this run's summary page, so it can be read
+# on GitHub without handling the admin token.
+#
+# Uses the same configuration as the price poll:
+#   Repo Variable: PRODUCTION_API_URL
+#   Repo Secret:   PRODUCTION_ADMIN_API_TOKEN
+
+on:
+  schedule:
+    - cron: "30 13 * * *" # daily, after the price poll
+  workflow_dispatch:
+    inputs:
+      days:
+        description: "How many days back"
+        default: "30"
+
+concurrency:
+  group: click-report
+  cancel-in-progress: true
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch and format the click report
+        env:
+          URL: ${{ vars.PRODUCTION_API_URL }}
+          TOKEN: ${{ secrets.PRODUCTION_ADMIN_API_TOKEN }}
+          DAYS: ${{ inputs.days || '30' }}
+        run: |
+          if [ -z "$URL" ] || [ -z "$TOKEN" ]; then
+            echo "::notice::production not configured — skipping"
+            exit 0
+          fi
+          case "$DAYS" in ''|*[!0-9]*) DAYS=30 ;; esac
+          curl -sS --fail-with-body -m 60 \
+            -H "X-Admin-Token: $TOKEN" \
+            "$URL/admin/affiliate/click-report?days=$DAYS" > report.json
+          python3 - <<'PY' | tee -a "$GITHUB_STEP_SUMMARY"
+          import json
+
+          r = json.load(open("report.json"))
+
+          def table(title, rows, key="name"):
+              print(f"\n### {title}\n")
+              if not rows:
+                  print("_none_")
+                  return
+              print("| | clicks |\n|---|---:|")
+              for row in rows:
+                  name = str(row[key]).replace("|", "/")[:90]
+                  print(f"| {name} | {row['clicks']} |")
+
+          print(f"## SaveIQ click report — last {r['window_days']} days")
+          print(f"\n**{r['clicks']} real clicks** ({r['bot_clicks']} bot clicks excluded)")
+          table("By day (UTC)", r["by_day"], key="day")
+          table("By page type", r["by_page_type"])
+          table("Top pages", r["by_page"])
+          table("Top products", r["by_product"])
+          table("By network", r["by_network"])
+          PY

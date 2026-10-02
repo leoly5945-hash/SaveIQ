@@ -22,3 +22,8 @@ export const CONTACT_EMAIL = "info@saveiq.ca";
  * Leave empty to disable the beacon entirely.
  */
 export const CLOUDFLARE_ANALYTICS_TOKEN = "a1a5b06db6e3439298bb8030b4189f18";
+
+/** Amazon Associates tag, used only when the click-logging API can't answer. */
+export function getAmazonTag() {
+  return process.env.NEXT_PUBLIC_AMAZON_TAG ?? "saveiq-20";
+}
