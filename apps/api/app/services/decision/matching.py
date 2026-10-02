@@ -29,6 +29,8 @@ _CHEAPEST_MIN_CONFIDENCE = 0.65
 _BELOW_LOW_MIN_RATIO = 0.75
 # Peer-to-peer resale marketplaces: second-hand goods from individuals, not a
 # store price for a new item. (eBay comes from its own API, new-only.)
+# eBay offers below this share of the reference price are not shown at all.
+_EBAY_MIN_RATIO = 0.75
 # eBay as a second place to buy: shown up to this much above the reference.
 _EBAY_ALSO_MAX_RATIO = 1.15
 # Stores whose name says second-hand, returns or liquidation stock: not a store
@@ -401,7 +403,8 @@ def build_comparison(
             candidate_price_cents=offer.total_cents,
         )
         meta = offer.metadata or {}
-        if meta.get("matched_by") == "gtin":
+        catalogue_match = meta.get("matched_by") in ("gtin", "epid")
+        if catalogue_match:
             confidence = max(
                 confidence,
                 gtin_confidence(
@@ -420,8 +423,16 @@ def build_comparison(
         # only a barcode match may sit that far under the 90-day low.
         if (
             low_90d_cents
-            and meta.get("matched_by") != "gtin"
+            and not catalogue_match
             and offer.total_cents < round(low_90d_cents * _BELOW_LOW_MIN_RATIO)
+        ):
+            continue
+        # Owner's rule for eBay (2026-10-02): new, sold from Canada, and never more
+        # than 25% under the Amazon price. About 20% cheaper happens; past 30% it
+        # is usually a counterfeit or a mis-listed item, and a barcode proves only
+        # what the seller typed — so this applies to barcode matches too.
+        if offer.provider == "ebay" and offer.total_cents < round(
+            reference_price_cents * _EBAY_MIN_RATIO
         ):
             continue
         matched = MerchantOffer(

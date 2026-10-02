@@ -233,3 +233,34 @@ async def test_falls_back_to_a_title_search_when_the_barcode_finds_nothing() -> 
         "by q: 1 returned, 1 kept (dropped: none); "
         "cheapest 21.99 'Logitech M185 Wireless Mouse Grey'"
     )
+
+
+@pytest.mark.asyncio
+async def test_searches_by_keepas_ebay_product_id_after_the_barcode() -> None:
+    class _OnlyEpid(_Ebay):
+        def handler(self, request: httpx.Request) -> httpx.Response:
+            if "gtin" in request.url.params:
+                self.search_calls.append(request)
+                return httpx.Response(200, json={"itemSummaries": []})
+            return super().handler(request)
+
+    fake = _OnlyEpid([_item("21.99")])
+    offers = await fake.client().new_offers(
+        provider_product_id="B00NJ2M33I", gtin="027242869226", title="Sony", epid="2254537364"
+    )
+    assert [o.price_cents for o in offers] == [2199]
+    assert offers[0].metadata["matched_by"] == "epid"
+    assert fake.search_calls[1].url.params["epid"] == "2254537364"
+    assert "q" not in fake.search_calls[1].url.params
+    assert "itemLocationCountry:CA" in fake.search_calls[1].url.params["filter"]
+
+
+def test_keepa_product_id_is_used_only_when_it_is_a_catalogue_id() -> None:
+    same = {"new_listing_id": 2254537364, "used_listing_id": 2254537364}
+    assert price_check._ebay_product_id(same) == "2254537364"
+    # Two different 12-digit ids are individual listings, not a product.
+    assert (
+        price_check._ebay_product_id({"new_listing_id": 365264526406, "used_listing_id": None})
+        is None
+    )
+    assert price_check._ebay_product_id(None) is None
