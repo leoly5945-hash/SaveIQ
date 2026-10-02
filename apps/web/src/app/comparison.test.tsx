@@ -70,3 +70,31 @@ describe("ComparisonBlock", () => {
     expect(text).toContain("Amazon.ca has the best price");
   });
 });
+
+describe("ComparisonBlock — also on eBay", () => {
+  const ebay: MerchantOffer = {
+    merchant: "eBay",
+    price_cents: 2699,
+    currency: "CAD",
+    url: "https://www.ebay.ca/itm/1?campid=5339209072",
+    match_confidence: 0.9,
+    detail: "New · ships from Canada · seller 99.6% positive (1,200 ratings)",
+  };
+
+  it("shows eBay as another place to buy without calling it cheaper", () => {
+    const text = collectText(
+      ComparisonBlock({
+        comparison: { ...BASE, reference_price_cents: 2498, also_on_ebay: ebay },
+      })
+    );
+    expect(text).toContain("Also new on eBay.ca");
+    expect(text).toContain("$26.99");
+    expect(text).toContain("not cheaper than Amazon.ca");
+    expect(text).toContain("seller 99.6% positive");
+    expect(text).not.toContain("Cheaper at");
+  });
+
+  it("still renders nothing when there is neither an offer nor an eBay listing", () => {
+    expect(ComparisonBlock({ comparison: { ...BASE, also_on_ebay: null } })).toBeNull();
+  });
+});
