@@ -239,3 +239,78 @@ def test_resolve_client_ip_ignores_a_malformed_web_route_header() -> None:
         x_saveiq_client_ip="not-an-ip; DROP TABLE",
     )
     assert got == "198.51.100.7"
+
+
+def test_amazon_click_is_logged_with_its_page_and_redirects_to_the_tagged_product() -> None:
+    client, session = make_client()
+    try:
+        resp = client.get(
+            "/go/amazon/b004vbc0fm?src=check",
+            headers={
+                "user-agent": "Mozilla/5.0",
+                "referer": "https://www.saveiq.ca/check/B004VBC0FM",
+                "x-saveiq-client-ip": "203.0.113.7",
+            },
+        )
+        assert resp.status_code == 302
+        location = urlsplit(resp.headers["location"])
+        assert f"{location.scheme}://{location.netloc}{location.path}" == (
+            "https://www.amazon.ca/dp/B004VBC0FM"
+        )
+        query = parse_qs(location.query)
+        assert query["tag"] == ["saveiq-20"] and query["ascsubtag"] == ["check"]
+
+        event = session.query(AffiliateClickEvent).one()
+        assert event.offer_id is None
+        assert event.source_record_id == "B004VBC0FM"
+        assert event.subid == "check" and event.network == "amazon"
+        assert event.referrer == "https://www.saveiq.ca/check/B004VBC0FM"
+        assert event.is_bot is False
+
+        # A double click from the same visitor is one click.
+        again = client.get(
+            "/go/amazon/B004VBC0FM?src=check",
+            headers={"user-agent": "Mozilla/5.0", "x-saveiq-client-ip": "203.0.113.7"},
+        )
+        assert again.status_code == 302
+        assert session.query(AffiliateClickEvent).count() == 1
+
+        assert client.get("/go/amazon/not-an-asin").status_code == 404
+    finally:
+        app.dependency_overrides.clear()
+        session.close()
+
+
+def test_click_report_groups_real_clicks_by_day_page_and_product() -> None:
+    client, session = make_client(affiliate_redirect_dedup_seconds=0)
+    try:
+        offer_id = _seed_offer(client)
+        human = {"user-agent": "Mozilla/5.0"}
+        client.get(
+            "/go/amazon/B004VBC0FM?src=check",
+            headers={**human, "referer": "https://www.saveiq.ca/check/B004VBC0FM"},
+        )
+        client.get(
+            "/go/amazon/B004VBC0FM?src=check",
+            headers={**human, "referer": "https://www.saveiq.ca/check/B004VBC0FM?x=1"},
+        )
+        client.get(
+            f"/go/{offer_id}",
+            headers={**human, "referer": "https://www.saveiq.ca/deal/some-deal"},
+        )
+        client.get(
+            "/go/amazon/B00NJ2M33I",
+            headers={"user-agent": "python-requests/2.31", "referer": "https://www.saveiq.ca/"},
+        )
+
+        report = client.get("/admin/affiliate/click-report?days=7", headers=ADMIN).json()
+        assert report["clicks"] == 3 and report["bot_clicks"] == 1
+        assert sum(d["clicks"] for d in report["by_day"]) == 3
+        assert {r["name"]: r["clicks"] for r in report["by_page_type"]} == {"check": 2, "deal": 1}
+        assert report["by_page"][0] == {"name": "/check/B004VBC0FM", "clicks": 2}
+        assert report["by_product"][0] == {"name": "B004VBC0FM", "clicks": 2}
+
+        assert client.get("/admin/affiliate/click-report").status_code in (401, 403)
+    finally:
+        app.dependency_overrides.clear()
+        session.close()

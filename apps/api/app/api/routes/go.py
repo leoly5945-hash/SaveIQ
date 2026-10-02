@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ipaddress
+import re
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
@@ -9,7 +10,11 @@ from sqlalchemy.orm import Session
 
 from app.core.settings import Settings, get_settings
 from app.db.session import get_db
-from app.services.affiliate.attribution import looks_like_bot, resolve_redirect
+from app.services.affiliate.attribution import (
+    looks_like_bot,
+    record_amazon_click,
+    resolve_redirect,
+)
 
 DbSession = Annotated[Session, Depends(get_db)]
 AppSettings = Annotated[Settings, Depends(get_settings)]
@@ -65,6 +70,57 @@ def _resolve_client_ip(
         if last_hop:
             return last_hop
     return request.client.host if request.client else None
+
+
+_ASIN_RE = re.compile(r"^[A-Za-z0-9]{10}$")
+
+
+def _redirect(url: str) -> RedirectResponse:
+    response = RedirectResponse(url=url, status_code=302)
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    response.headers["X-Robots-Tag"] = "noindex, nofollow"
+    return response
+
+
+@router.get("/amazon/{asin}")
+def redirect_to_amazon(
+    asin: str,
+    request: Request,
+    db: DbSession,
+    settings: AppSettings,
+    src: str = Query(default="check", max_length=20),
+    user_agent: Annotated[str | None, Header(alias="user-agent")] = None,
+    referer: Annotated[str | None, Header(alias="referer")] = None,
+    x_forwarded_for: Annotated[str | None, Header(alias="x-forwarded-for")] = None,
+    cf_connecting_ip: Annotated[str | None, Header(alias="cf-connecting-ip")] = None,
+    x_saveiq_client_ip: Annotated[str | None, Header(alias="x-saveiq-client-ip")] = None,
+    sec_purpose: Annotated[str | None, Header(alias="sec-purpose")] = None,
+    x_purpose: Annotated[str | None, Header(alias="x-purpose")] = None,
+    purpose: Annotated[str | None, Header(alias="purpose")] = None,
+) -> RedirectResponse:
+    """Log a price-check page's Amazon click, then 302 to the tagged product page."""
+
+    if not _ASIN_RE.match(asin):
+        raise HTTPException(status_code=404, detail="Not an Amazon product id")
+    resolution = record_amazon_click(
+        db,
+        asin=asin,
+        source=src,
+        tag=settings.amazon_associate_tag,
+        user_agent=user_agent,
+        referrer=referer,
+        client_ip=_resolve_client_ip(
+            cf_connecting_ip=cf_connecting_ip,
+            x_forwarded_for=x_forwarded_for,
+            request=request,
+            x_saveiq_client_ip=x_saveiq_client_ip,
+        ),
+        salt=settings.affiliate_postback_secret or settings.admin_api_token,
+        dedup_seconds=settings.affiliate_redirect_dedup_seconds,
+        is_bot=looks_like_bot(user_agent, sec_purpose=sec_purpose, purpose=x_purpose or purpose),
+    )
+    return _redirect(resolution.target_url)
 
 
 @router.get("/{offer_id}")

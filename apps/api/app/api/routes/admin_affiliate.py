@@ -25,7 +25,7 @@ from app.models import (
     RecommendationFeedbackEvent,
     RecommendationTraceEvent,
 )
-from app.services.affiliate.attribution import reconciliation_report
+from app.services.affiliate.attribution import click_report, reconciliation_report
 from app.services.affiliate.ingestion import AffiliateIngestionService
 from app.services.affiliate.registry import registry
 from app.services.llm_intent_contract import LLM_INTENT_GUARDRAILS
@@ -605,6 +605,12 @@ def get_affiliate_reconciliation(db: DbSession, days: int = 30) -> dict[str, Any
     """
     days = max(1, min(days, 365))
     return reconciliation_report(db, days=days)
+
+
+@router.get("/click-report")
+def get_click_report(db: DbSession, days: int = 30) -> dict[str, Any]:
+    """Real (non-bot) outbound clicks by day, by originating page and by product."""
+    return click_report(db, days=max(1, min(days, 365)))
 
 
 @router.get("/recommendation-traces")
