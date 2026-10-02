@@ -27,3 +27,17 @@ export const CLOUDFLARE_ANALYTICS_TOKEN = "a1a5b06db6e3439298bb8030b4189f18";
 export function getAmazonTag() {
   return process.env.NEXT_PUBLIC_AMAZON_TAG ?? "saveiq-20";
 }
+
+/**
+ * `rel` for a buy link. Links to our own `/go/…` hop must NOT carry
+ * `noreferrer`: the hop reads the Referer header to record which SaveIQ page
+ * the click came from, and with `noreferrer` the browser sends none (19 of 22
+ * logged clicks had no page). The hop itself answers with
+ * `Referrer-Policy: no-referrer`, so the retailer still never sees our URL.
+ * A link that goes straight to another site keeps `noreferrer`.
+ */
+export function buyLinkRel(href: string | null | undefined): string {
+  return href && href.startsWith("/go/")
+    ? "sponsored nofollow noopener"
+    : "sponsored nofollow noopener noreferrer";
+}
