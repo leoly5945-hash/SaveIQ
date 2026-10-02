@@ -201,3 +201,33 @@ async def test_google_shopping_ebay_rows_are_replaced_by_browse_offers(monkeypat
     merchants = {o.merchant: o.price_cents for o in comp.offers}
     assert "eBay - starbasec3" not in merchants
     assert merchants == {"eBay": 2199, "Walmart.ca": 2299}
+
+
+@pytest.mark.asyncio
+async def test_falls_back_to_a_title_search_when_the_barcode_finds_nothing() -> None:
+    class _GtinEmpty(_Ebay):
+        def handler(self, request: httpx.Request) -> httpx.Response:
+            if "gtin" in request.url.params:
+                self.search_calls.append(request)
+                return httpx.Response(200, json={"itemSummaries": []})
+            return super().handler(request)
+
+    fake = _GtinEmpty([_item("21.99")])
+    client = fake.client()
+    offers = await client.new_offers(
+        provider_product_id="B0052EH8OA",
+        gtin="097855066701",
+        title="Logitech M185 Wireless Mouse, 2.4GHz with USB Mini Receiver, Grey",
+    )
+    assert [o.price_cents for o in offers] == [2199]
+    assert (
+        offers[0].metadata["matched_by"] == "q"
+    )  # judged by the title matcher, not as a barcode hit
+    assert [("gtin" in c.url.params, "q" in c.url.params) for c in fake.search_calls] == [
+        (True, False),
+        (False, True),
+    ]
+    assert fake.search_calls[1].url.params["q"] == "Logitech M185 Wireless Mouse 2.4GHz with"
+    assert client.status() == (
+        "ok: by gtin: 0 returned, 0 kept (dropped: none); by q: 1 returned, 1 kept (dropped: none)"
+    )
