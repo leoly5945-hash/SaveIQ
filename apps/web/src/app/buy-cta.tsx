@@ -1,4 +1,5 @@
 import { formatMoney, type MerchantOffer, type Verdict } from "@/lib/price-check";
+import { buyLinkRel } from "@/lib/config";
 import { isTrustedRetailer } from "@/lib/trusted-retailers";
 
 /**
@@ -54,7 +55,7 @@ export function BuyCta({
         <a
           className={ctaClass}
           href={amazonHref}
-          rel="sponsored nofollow noopener noreferrer"
+          rel={buyLinkRel(amazonHref)}
           target="_blank"
         >
           Buy on Amazon.ca
@@ -65,7 +66,7 @@ export function BuyCta({
             Also listed at{" "}
             <a
               href={cheapest.url}
-              rel="sponsored nofollow noopener noreferrer"
+              rel={buyLinkRel(cheapest.url)}
               target="_blank"
             >
               {cheapest.merchant} for{" "}
@@ -95,7 +96,7 @@ export function BuyCta({
         <a
           className={ctaClass}
           href={cheapest.url}
-          rel="sponsored nofollow noopener noreferrer"
+          rel={buyLinkRel(cheapest.url)}
           target="_blank"
         >
           Buy at {cheapest.merchant} —{" "}
@@ -105,7 +106,7 @@ export function BuyCta({
         <a
           className="buy-cta-secondary"
           href={amazonHref}
-          rel="sponsored nofollow noopener noreferrer"
+          rel={buyLinkRel(amazonHref)}
           target="_blank"
         >
           or on Amazon.ca — {formatMoney(amazonPriceCents, currency)}
@@ -118,7 +119,7 @@ export function BuyCta({
     <a
       className={ctaClass}
       href={amazonHref}
-      rel="sponsored nofollow noopener noreferrer"
+      rel={buyLinkRel(amazonHref)}
       target="_blank"
     >
       Buy on Amazon.ca

@@ -310,6 +310,27 @@ def test_click_report_groups_real_clicks_by_day_page_and_product() -> None:
         assert report["by_page"][0] == {"name": "/check/B004VBC0FM", "clicks": 2}
         assert report["by_product"][0] == {"name": "B004VBC0FM", "clicks": 2}
 
+        # No referrer: the button type and ASIN still name the page. A click
+        # arriving from another site is named by that site, not as "home".
+        client.get("/go/amazon/B00NJ2M33I?src=check", headers=human)
+        client.get(
+            f"/go/{offer_id}",
+            headers={
+                **human,
+                "referer": "https://l.facebook.com/",
+                "x-saveiq-client-ip": "198.51.100.9",
+            },
+        )
+        pages = {
+            r["name"]: r["clicks"]
+            for r in client.get("/admin/affiliate/click-report?days=7", headers=ADMIN).json()[
+                "by_page"
+            ]
+        }
+        assert pages["/check/B00NJ2M33I"] == 1
+        assert pages["(external: l.facebook.com)"] == 1
+        assert "/" not in pages
+
         assert client.get("/admin/affiliate/click-report").status_code in (401, 403)
     finally:
         app.dependency_overrides.clear()

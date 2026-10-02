@@ -363,13 +363,30 @@ def record_amazon_click(
 # --- click report ---------------------------------------------------------------------
 
 
-def _page_of(referrer: str | None) -> str:
-    """The SaveIQ page a click came from, as a path ("/check/B0…", "/deal/slug")."""
+_OWN_HOST_SUFFIXES = ("saveiq.ca", "onrender.com", "localhost")
 
-    if not referrer:
-        return "(unknown)"
-    path = urlsplit(referrer).path or "/"
-    return path if len(path) == 1 else path.rstrip("/")
+
+def _page_of(event: AffiliateClickEvent) -> str:
+    """Where a click came from: a SaveIQ path, "(external: host)", or "(unknown)".
+
+    Our own pages show up as a path ("/check/B0…", "/deal/slug"). A click that
+    arrives from another site — e.g. a Facebook post linking straight to the
+    hop — is named by that site instead of being mistaken for the homepage.
+    Without a referrer, a price-check button still tells us its page through
+    the ASIN and the button type it was logged with.
+    """
+
+    referrer = event.referrer
+    if referrer:
+        parts = urlsplit(referrer)
+        host = (parts.hostname or "").lower()
+        if host and not host.endswith(_OWN_HOST_SUFFIXES):
+            return f"(external: {host.removeprefix('www.')})"
+        path = parts.path or "/"
+        return path if len(path) == 1 else path.rstrip("/")
+    if event.offer_id is None and event.subid in ("check", "image"):
+        return f"/check/{event.source_record_id}"
+    return "(unknown)"
 
 
 _PAGE_TYPES = frozenset(
@@ -380,6 +397,10 @@ _PAGE_TYPES = frozenset(
 def _page_type(page: str) -> str:
     if page == "/":
         return "home"
+    if page.startswith("(external"):
+        return "external site"
+    if page == "(unknown)":
+        return "unknown"
     first = page.strip("/").split("/", 1)[0]
     return first if first in _PAGE_TYPES else "other"
 
@@ -409,7 +430,7 @@ def click_report(db: Session, *, days: int = 30, top: int = 15) -> dict[str, Any
             event.created_at if event.created_at.tzinfo else event.created_at.replace(tzinfo=UTC)
         )
         day = created.astimezone(UTC).date().isoformat()
-        page = _page_of(event.referrer)
+        page = _page_of(event)
         product = title or event.source_record_id or "(unknown)"
         by_day[day] = by_day.get(day, 0) + 1
         by_type[_page_type(page)] = by_type.get(_page_type(page), 0) + 1

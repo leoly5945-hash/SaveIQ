@@ -1,4 +1,5 @@
 import { CategoryIcon } from "@/components/category-icon";
+import { buyLinkRel } from "@/lib/config";
 
 /**
  * Amazon's own product image when we hold one (Creators API), otherwise the
@@ -37,7 +38,7 @@ export function ProductImage({
       aria-label={`${title} on Amazon.ca`}
       className="product-image-link"
       href={href}
-      rel="sponsored nofollow noopener noreferrer"
+      rel={buyLinkRel(href)}
       target="_blank"
     >
       {img}

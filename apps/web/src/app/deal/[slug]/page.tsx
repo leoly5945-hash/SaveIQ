@@ -14,7 +14,7 @@ import {
   formatMoney,
   UNAVAILABLE_LABEL,
 } from "@/lib/featured-deals";
-import { getSiteUrl } from "@/lib/config";
+import { buyLinkRel, getSiteUrl } from "@/lib/config";
 
 export const revalidate = 3600;
 
@@ -156,7 +156,7 @@ export default async function DealPage({ params }: Params) {
           <a
             className="deal-page-cta"
             href={featuredDealHref(deal)}
-            rel="sponsored noreferrer"
+            rel={buyLinkRel(featuredDealHref(deal))}
             target="_blank"
           >
             View deal at {deal.merchant}
