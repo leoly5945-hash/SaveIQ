@@ -63,6 +63,22 @@ class PriceCheckResult:
     keepa_ebay: dict[str, Any] | None = None
 
 
+def _ebay_product_id(keepa_ebay: dict[str, Any] | None) -> str | None:
+    """Keepa's eBay catalogue product id (ePID) for the product, when it has one.
+
+    Keepa's ``ebayListingIds`` holds either a product id — the same value in the
+    new and the used slot, e.g. ebay.ca/p/2254537364 — or two different 12-digit
+    item ids. Only the first kind is a product we can search listings for.
+    """
+
+    if not keepa_ebay:
+        return None
+    new_id, used_id = keepa_ebay.get("new_listing_id"), keepa_ebay.get("used_listing_id")
+    if new_id and new_id == used_id:
+        return str(new_id)
+    return None
+
+
 async def _build_comparison(
     registry: ProviderRegistry,
     db: Session | None,
@@ -79,6 +95,7 @@ async def _build_comparison(
     ebay: EbayBrowseClient | None = None,
     gtin: str | None = None,
     low_90d_cents: int | None = None,
+    ebay_epid: str | None = None,
 ) -> Comparison | None:
     """Cross-merchant offers from the comparison cache. Never raises.
 
@@ -112,7 +129,7 @@ async def _build_comparison(
     candidates = [c for c in candidates if not c.merchant.strip().lower().startswith("ebay")]
     if ebay is not None:
         candidates += await ebay.new_offers(
-            provider_product_id=provider_product_id, gtin=gtin, title=title
+            provider_product_id=provider_product_id, gtin=gtin, title=title, epid=ebay_epid
         )
     if not candidates:
         return None
@@ -261,6 +278,7 @@ async def run_price_check(
         if product
         else None,
         low_90d_cents=window_90.min_cents if window_90 else None,
+        ebay_epid=_ebay_product_id((product.metadata or {}).get("ebay") if product else None),
     )
 
     return PriceCheckResult(

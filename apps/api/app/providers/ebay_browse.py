@@ -105,17 +105,21 @@ class EbayBrowseClient:
         provider_product_id: str,
         gtin: str | None,
         title: str | None,
+        epid: str | None = None,
         limit: int = 10,
     ) -> list[ProviderOffer]:
         """New eBay.ca offers for the product, cheapest first. Never raises.
 
-        Barcode first. Most eBay.ca sellers don't enter one, so when that finds
-        nothing we search by the product's name and let the title matcher decide.
+        Barcode first, then eBay's own catalogue product id when Keepa knows it
+        (``epid``). Most eBay.ca sellers enter neither, so when both find nothing
+        we search by the product's name and let the title matcher decide.
         """
 
         keys: list[tuple[str, str]] = []
         if gtin:
             keys.append(("gtin", gtin))
+        if epid:
+            keys.append(("epid", epid))
         if title:
             keys.append(("q", " ".join(title.replace(",", " ").split()[:_TITLE_QUERY_WORDS])))
         summaries: list[str] = []
@@ -150,7 +154,7 @@ class EbayBrowseClient:
                     "sort": "price",
                     "limit": max(1, min(limit * 3, 50)),
                 }
-                params["gtin" if key[0] == "gtin" else "q"] = key[1]
+                params[key[0]] = key[1]  # one of: gtin, epid, q
                 headers = {
                     "Authorization": f"Bearer {token}",
                     "X-EBAY-C-MARKETPLACE-ID": _MARKETPLACE,

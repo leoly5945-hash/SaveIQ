@@ -435,3 +435,19 @@ def test_a_barcode_match_does_not_depend_on_how_the_seller_words_the_title() -> 
     # ...but a used unit or a multi-pack under the same barcode is not the product.
     assert _sony([_ebay(2699, "Sony MDR-ZX110 headphones used")]).also_on_ebay is None
     assert _sony([_ebay(2699, "Sony MDR-ZX110 headphones 2 Pack")]).also_on_ebay is None
+
+
+def test_ebay_more_than_25_percent_under_amazon_is_never_shown() -> None:
+    # $14.23 against Amazon's $24.98 (-43%): too cheap to be a genuine new unit,
+    # and the barcode only proves what the seller typed.
+    assert _sony([_ebay(1423)]).offers == []
+    assert _sony([_ebay(1423)]).also_on_ebay is None
+    # 25% under is the limit; 20% under is a normal, cheaper offer.
+    assert _sony([_ebay(1873)]).offers == []
+    comp = _sony([_ebay(1999)])
+    assert [o.price_cents for o in comp.offers] == [1999]
+    assert comp.cheapest is not None and comp.cheapest.merchant == "eBay"
+
+    # The rule is eBay's alone: a confident store match at the same price stays.
+    store = _offer("Best Buy Canada", 1700, "Sony MDRZX110 Over-Ear Headphones Black")
+    assert [o.merchant for o in _sony([store]).offers] == ["Best Buy Canada"]
