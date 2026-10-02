@@ -75,10 +75,16 @@ async def test_keeps_only_new_cad_shipped_well_rated_offers() -> None:
             _item("5.99", score=3),  # too few ratings
         ]
     )
-    offers = await fake.client().new_offers(
+    client = fake.client()
+    assert client.status() == "untried"
+    offers = await client.new_offers(
         provider_product_id="B0052EH8OA", gtin="097855066701", title="x"
     )
     assert [(o.price_cents, o.shipping_cents, o.total_cents) for o in offers] == [(1999, 250, 2249)]
+    assert client.status() == (
+        "ok: by gtin: 6 returned, 1 kept (dropped: 1 no shipping cost, 1 not CAD, "
+        "1 not new, 2 weak seller)"
+    )
     o = offers[0]
     assert o.condition == "new"
     assert o.url and "campid=5339209072" in o.url
@@ -107,12 +113,10 @@ async def test_title_search_when_no_gtin_and_results_are_cached() -> None:
 
 @pytest.mark.asyncio
 async def test_errors_mean_no_offers_not_a_crash() -> None:
-    offers = (
-        await _Ebay([], fail=True)
-        .client()
-        .new_offers(provider_product_id="B1", gtin="1", title="x")
-    )
+    client = _Ebay([], fail=True).client()
+    offers = await client.new_offers(provider_product_id="B1", gtin="1", title="x")
     assert offers == []
+    assert client.status() == "error: search HTTP 500"
 
 
 def _offer(provider: str, merchant: str, cents: int, title: str, **meta) -> ProviderOffer:
