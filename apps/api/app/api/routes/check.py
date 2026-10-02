@@ -7,7 +7,7 @@ spends a provider token. Returns the same shape as the admin surface.
 from __future__ import annotations
 
 import asyncio
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel
@@ -81,6 +81,9 @@ class CheckResponse(BaseModel):
     explanation: VerdictExplanation | None = None
     # Amazon's own product image (Creators API), when we hold one.
     image_url: str | None = None
+    # Keepa's matched eBay listings (lowest new / used incl. shipping + listing
+    # ids). Raw probe data: not shown on the site yet.
+    keepa_ebay: dict[str, Any] | None = None
 
 
 def _client_ip(request: Request) -> str:
@@ -247,4 +250,5 @@ async def check_price(
         narration=narration,
         explanation=result.explanation,
         image_url=image_url,
+        keepa_ebay=result.keepa_ebay,
     )

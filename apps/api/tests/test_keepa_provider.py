@@ -498,3 +498,23 @@ async def test_history_stats_come_from_the_same_series_as_the_points() -> None:
     history = await _provider(_envelope(product)).get_price_history("B004VBC0FM", days=90)
     assert history is not None
     assert history.metadata["keepa_stats"]["avg90_cents"] is None
+
+
+@pytest.mark.asyncio
+async def test_product_carries_keepas_matched_ebay_listings() -> None:
+    product = _product()
+    product["csv"] = product["csv"] + [None] * 15  # room for indices 28 / 29
+    product["csv"][28] = [_keepa_minutes(_ago(9)), 3999, 500, _keepa_minutes(_ago(3)), 3549, 0]
+    product["csv"][29] = [_keepa_minutes(_ago(9)), 1999, 0, _keepa_minutes(_ago(1)), -1, -1]
+    product["ebayListingIds"] = [273344490183, 0]
+    product["lastEbayUpdate"] = _keepa_minutes(_ago(1))
+    parsed = await _provider(_envelope(product)).get_product("B09VPHVT9Z")
+    assert parsed is not None
+    ebay = parsed.metadata["ebay"]
+    assert ebay["new_cents"] == 3549 and ebay["new_listing_id"] == 273344490183
+    # The used listing ended (-1): no current used price, not the stale $19.99.
+    assert ebay["used_cents"] is None and ebay["used_listing_id"] is None
+    assert ebay["updated_at"]
+
+    plain = await _provider(_envelope(_product())).get_product("B09VPHVT9Z")
+    assert plain is not None and plain.metadata["ebay"] is None
