@@ -48,6 +48,7 @@ class ComparisonOut(BaseModel):
     currency: str
     offers: list[MerchantOfferOut]
     cheapest: MerchantOfferOut | None
+    also_on_ebay: MerchantOfferOut | None = None
 
 
 class SpreadTierOut(BaseModel):
@@ -182,6 +183,18 @@ async def check_price(
                     detail=c.cheapest.detail,
                 )
                 if c.cheapest
+                else None
+            ),
+            also_on_ebay=(
+                MerchantOfferOut(
+                    merchant=c.also_on_ebay.merchant,
+                    price_cents=c.also_on_ebay.price_cents,
+                    currency=c.also_on_ebay.currency,
+                    url=c.also_on_ebay.url,
+                    match_confidence=c.also_on_ebay.match_confidence,
+                    detail=c.also_on_ebay.detail,
+                )
+                if c.also_on_ebay
                 else None
             ),
         )

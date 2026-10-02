@@ -355,3 +355,66 @@ def test_resale_marketplaces_are_not_store_prices() -> None:
         ],
     )
     assert [o.merchant for o in comp.offers] == ["Dyson Canada"]
+
+
+def _ebay(cents: int, title: str = "Sony MDRZX110 Over-Ear Headphones Black") -> ProviderOffer:
+    return ProviderOffer(
+        provider="ebay",
+        provider_product_id="B00NJ2M33I",
+        merchant="eBay",
+        price_cents=cents,
+        currency="CAD",
+        url="https://www.ebay.ca/itm/1?campid=5339209072",
+        observed_at=datetime(2026, 10, 1, tzinfo=UTC),
+        metadata={
+            "title": title,
+            "matched_by": "gtin",
+            "seller_feedback_pct": 99.6,
+            "seller_feedback_score": 1200,
+        },
+    )
+
+
+def _sony(candidates: list[ProviderOffer]):
+    return build_comparison(
+        reference_merchant="Amazon.ca",
+        reference_title="Sony MDRZX110 Over-Ear Headphones (Black)",
+        reference_brand="Sony",
+        reference_price_cents=2498,
+        currency="CAD",
+        candidates=candidates,
+    )
+
+
+def test_ebay_not_cheaper_is_offered_as_also_available_never_as_cheaper() -> None:
+    comp = _sony([_ebay(2699), _ebay(2799)])
+    assert comp.offers == [] and comp.cheapest is None
+    assert comp.also_on_ebay is not None
+    assert comp.also_on_ebay.price_cents == 2699  # the lower of the two
+    assert comp.also_on_ebay.detail.startswith("New · ships from Canada")
+
+    # Far above Amazon: not worth a line.
+    assert _sony([_ebay(3500)]).also_on_ebay is None
+    # Another store above Amazon is still dropped; this is an eBay-only allowance.
+    walmart = _offer("Walmart.ca", 2699, "Sony MDRZX110 Over-Ear Headphones Black")
+    assert _sony([walmart]).also_on_ebay is None and _sony([walmart]).offers == []
+
+
+def test_cheaper_ebay_is_a_normal_offer_and_not_repeated() -> None:
+    comp = _sony([_ebay(2199), _ebay(2599)])
+    assert [o.merchant for o in comp.offers] == ["eBay"]
+    assert comp.cheapest is not None and comp.cheapest.price_cents == 2199
+    assert comp.also_on_ebay is None
+
+
+def test_secondhand_and_liquidation_stores_are_not_store_prices() -> None:
+    title = "Sony MDRZX110 Over-Ear Headphones Black"
+    comp = _sony(
+        [
+            _offer("Liquidation125Plus", 1500, title),
+            _offer("PayMore St Albert", 1600, title),
+            _offer("K-W Surplus", 1700, title),
+            _offer("Best Buy Canada", 2299, title),
+        ]
+    )
+    assert [o.merchant for o in comp.offers] == ["Best Buy Canada"]

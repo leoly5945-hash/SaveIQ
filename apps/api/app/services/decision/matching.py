@@ -29,6 +29,22 @@ _CHEAPEST_MIN_CONFIDENCE = 0.65
 _BELOW_LOW_MIN_RATIO = 0.75
 # Peer-to-peer resale marketplaces: second-hand goods from individuals, not a
 # store price for a new item. (eBay comes from its own API, new-only.)
+# eBay as a second place to buy: shown up to this much above the reference.
+_EBAY_ALSO_MAX_RATIO = 1.15
+# Stores whose name says second-hand, returns or liquidation stock: not a store
+# price for a new item ("Liquidation125Plus", "PayMore", "K-W Surplus").
+_SECONDHAND_STORE_WORDS = (
+    "liquidation",
+    "surplus",
+    "paymore",
+    "pawn",
+    "refurb",
+    "secondhand",
+    "second hand",
+    "thrift",
+    "preowned",
+    "pre owned",
+)
 _RESALE_MARKETPLACES = (
     "poshmark",
     "kijiji",
@@ -98,6 +114,9 @@ class Comparison:
     currency: str
     offers: list[MerchantOffer] = field(default_factory=list)
     cheapest: MerchantOffer | None = None  # only set when it beats the reference
+    # A new eBay.ca listing that is NOT cheaper than the reference (within
+    # _EBAY_ALSO_MAX_RATIO): another place to buy, never a "cheaper at" claim.
+    also_on_ebay: MerchantOffer | None = None
 
 
 def _norm(text: str) -> str:
@@ -293,17 +312,25 @@ def build_comparison(
     """
 
     best_per_merchant: dict[str, MerchantOffer] = {}
+    also_on_ebay: MerchantOffer | None = None
     for offer in candidates:
         merchant = offer.merchant.strip()
         if not merchant or offer.total_cents is None:
             continue
         if any(name in _norm(merchant) for name in _RESALE_MARKETPLACES):
             continue
+        if any(word in _norm(merchant) for word in _SECONDHAND_STORE_WORDS):
+            continue
         # Skip a marketplace echo of the same retailer we already have.
         if _is_reference_echo(merchant, reference_merchant):
             continue
-        # An offer that isn't cheaper than the reference can't help the shopper.
-        if offer.total_cents > round(reference_price_cents * _DISPLAY_MAX_RATIO):
+        # An offer that isn't cheaper than the reference can't help the shopper —
+        # except eBay, kept aside as "also available" when it is close in price.
+        not_cheaper = offer.total_cents > round(reference_price_cents * _DISPLAY_MAX_RATIO)
+        if not_cheaper and not (
+            offer.provider == "ebay"
+            and offer.total_cents <= round(reference_price_cents * _EBAY_ALSO_MAX_RATIO)
+        ):
             continue
         confidence = score_candidate(
             reference_title=reference_title,
@@ -336,6 +363,10 @@ def build_comparison(
             match_confidence=confidence,
             detail=_offer_detail(offer),
         )
+        if not_cheaper:
+            if also_on_ebay is None or matched.price_cents < also_on_ebay.price_cents:
+                also_on_ebay = matched
+            continue
         existing = best_per_merchant.get(merchant)
         if existing is None or matched.price_cents < existing.price_cents:
             best_per_merchant[merchant] = matched
@@ -359,4 +390,6 @@ def build_comparison(
         currency=currency,
         offers=offers,
         cheapest=cheapest,
+        # A cheaper eBay listing is already in `offers`; don't show eBay twice.
+        also_on_ebay=None if "eBay" in best_per_merchant else also_on_ebay,
     )

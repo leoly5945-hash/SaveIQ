@@ -63,6 +63,8 @@ export type Comparison = {
   currency: string;
   offers: MerchantOffer[];
   cheapest: MerchantOffer | null;
+  /** A new eBay.ca listing that is not cheaper than Amazon: another place to buy. */
+  also_on_ebay?: MerchantOffer | null;
 };
 
 export type SpreadTier = {
