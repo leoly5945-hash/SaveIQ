@@ -83,7 +83,7 @@ async def test_keeps_only_new_cad_shipped_well_rated_offers() -> None:
     assert [(o.price_cents, o.shipping_cents, o.total_cents) for o in offers] == [(1999, 250, 2249)]
     assert client.status() == (
         "ok: by gtin: 6 returned, 1 kept (dropped: 1 no shipping cost, 1 not CAD, "
-        "1 not new, 2 weak seller)"
+        "1 not new, 2 weak seller); cheapest 22.49 'Logitech M185 Wireless Mouse Grey'"
     )
     o = offers[0]
     assert o.condition == "new"
@@ -229,5 +229,7 @@ async def test_falls_back_to_a_title_search_when_the_barcode_finds_nothing() -> 
     ]
     assert fake.search_calls[1].url.params["q"] == "Logitech M185 Wireless Mouse 2.4GHz with"
     assert client.status() == (
-        "ok: by gtin: 0 returned, 0 kept (dropped: none); by q: 1 returned, 1 kept (dropped: none)"
+        "ok: by gtin: 0 returned, 0 kept (dropped: none); "
+        "by q: 1 returned, 1 kept (dropped: none); "
+        "cheapest 21.99 'Logitech M185 Wireless Mouse Grey'"
     )

@@ -177,8 +177,16 @@ class EbayBrowseClient:
         self.last_error = None
         drops = ", ".join(f"{n} {why}" for why, n in sorted(dropped.items())) or "none"
         self._cache[key] = (now + _CACHE_SECONDS, offers)
+        best = min(offers, key=lambda o: o.total_cents or 0, default=None)
+        cheapest = (
+            f"; cheapest {(best.total_cents or 0) / 100:.2f} "
+            f"'{str(best.metadata.get('title') or '')[:60]}'"
+            if best is not None
+            else ""
+        )
         return offers, (
-            f"by {key[0]}: {len(raw_items)} returned, {len(offers)} kept (dropped: {drops})"
+            f"by {key[0]}: {len(raw_items)} returned, {len(offers)} kept "
+            f"(dropped: {drops}){cheapest}"
         )
 
     async def _app_token(self, client: httpx.AsyncClient) -> str:
