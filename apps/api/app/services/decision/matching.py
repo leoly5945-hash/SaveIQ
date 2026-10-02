@@ -315,6 +315,9 @@ def score_candidate(
     return round(0.6 * overlap + 0.25 * brand_ok + 0.15 * price_close, 4)
 
 
+# A barcode / catalogue match must share at least this share of the
+# reference title's words.
+_CATALOGUE_MIN_OVERLAP = 0.25
 _SECONDHAND_TITLE_WORDS = frozenset(
     {"refurbished", "renewed", "used", "open", "preowned", "refurb", "parts", "damaged"}
 )
@@ -330,9 +333,10 @@ def gtin_confidence(
     """Confidence for an offer found by the product's own barcode.
 
     The same GTIN is the same product however the seller words the title, so the
-    title-overlap, brand and model-spelling checks don't apply. What still can
-    go wrong: a second-hand unit listed under the new product's barcode, a
-    multi-pack, or a price so far off it is something else.
+    brand and model-spelling checks don't apply. What still can go wrong: the
+    seller filed an unrelated item under it, a second-hand unit listed under the
+    new product's barcode, a multi-pack, or a price so far off it is something
+    else.
     """
 
     if not candidate_price_cents or reference_price_cents <= 0:
@@ -341,6 +345,11 @@ def gtin_confidence(
     if not (_PRICE_LOW_RATIO <= ratio <= _PRICE_HIGH_RATIO):
         return 0.0
     title = candidate_title or ""
+    # Sellers assign the barcode / catalogue product themselves, and get it
+    # wrong: a "Lego 4x Black Arch" part was filed under the LEGO Classic 10696
+    # box. The title must still share a fair part of the reference's words.
+    if _title_overlap(_tokens(reference_title), _tokens(title)) < _CATALOGUE_MIN_OVERLAP:
+        return 0.0
     if (_tokens(title) - _tokens(reference_title)) & _SECONDHAND_TITLE_WORDS:
         return 0.0
     if title and _different_quantity(reference_title, title):
