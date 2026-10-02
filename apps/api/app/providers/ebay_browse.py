@@ -23,7 +23,9 @@ hour. Every failure returns ``[]``: eBay is a nice-to-have next to the verdict.
 from __future__ import annotations
 
 import base64
+import logging
 import time
+from collections import Counter
 from datetime import UTC, datetime
 from typing import Any
 
@@ -44,6 +46,28 @@ _MIN_FEEDBACK_SCORE = 50
 _CACHE_SECONDS = 3600
 _TIMEOUT_SECONDS = 6.0
 
+logger = logging.getLogger(__name__)
+
+
+def _describe_failure(exc: Exception) -> str:
+    """Status + eBay's error id/message, never a credential."""
+
+    if isinstance(exc, httpx.HTTPStatusError):
+        step = "token" if "/oauth2/" in exc.request.url.path else "search"
+        detail = ""
+        try:
+            body = exc.response.json()
+        except ValueError:
+            body = None
+        if isinstance(body, dict):
+            errors = body.get("errors")
+            if isinstance(errors, list) and errors and isinstance(errors[0], dict):
+                detail = f"{errors[0].get('errorId', '')} {errors[0].get('message', '')}"
+            else:
+                detail = f"{body.get('error', '')} {body.get('error_description', '')}"
+        return f"{step} HTTP {exc.response.status_code} {detail.strip()}".strip()[:160]
+    return type(exc).__name__
+
 
 class EbayBrowseClient:
     def __init__(
@@ -63,6 +87,15 @@ class EbayBrowseClient:
         self._token: str | None = None
         self._token_expires_at = 0.0
         self._cache: dict[tuple[str, str], tuple[float, list[ProviderOffer]]] = {}
+        self.last_error: str | None = None
+        self.last_search: str | None = None
+
+    def status(self) -> str:
+        """``untried``, the last failure, or what the last search returned and kept."""
+
+        if self.last_error:
+            return f"error: {self.last_error}"
+        return f"ok: {self.last_search}" if self.last_search else "untried"
 
     async def new_offers(
         self,
@@ -104,16 +137,25 @@ class EbayBrowseClient:
                 resp = await client.get(_SEARCH_URL, params=params, headers=headers)
                 resp.raise_for_status()
                 payload = resp.json()
-        except Exception:  # noqa: BLE001 - never let eBay break a price check
+        except Exception as exc:  # noqa: BLE001 - never let eBay break a price check
+            self.last_error = _describe_failure(exc)
+            logger.warning("eBay Browse API unavailable: %s", self.last_error)
             return []
-        offers = [
-            o
-            for o in (
-                _parse_item(item, provider_product_id, matched_by=key[0])
-                for item in payload.get("itemSummaries") or []
-            )
-            if o is not None
-        ][:limit]
+        raw_items = payload.get("itemSummaries") or []
+        dropped: Counter[str] = Counter()
+        offers = []
+        for item in raw_items:
+            offer, why = _parse_item(item, provider_product_id, matched_by=key[0])
+            if offer is None:
+                dropped[why] += 1
+            else:
+                offers.append(offer)
+        offers = offers[:limit]
+        self.last_error = None
+        drops = ", ".join(f"{n} {why}" for why, n in sorted(dropped.items())) or "none"
+        self.last_search = (
+            f"by {key[0]}: {len(raw_items)} returned, {len(offers)} kept (dropped: {drops})"
+        )
         self._cache[key] = (now + _CACHE_SECONDS, offers)
         return offers
 
@@ -145,12 +187,14 @@ def _cents(amount: Any) -> int | None:
 
 def _parse_item(
     item: dict[str, Any], provider_product_id: str, *, matched_by: str
-) -> ProviderOffer | None:
+) -> tuple[ProviderOffer | None, str]:
+    """The offer, or ``None`` and why it was dropped."""
+
     if item.get("conditionId") not in (None, "1000"):
-        return None
+        return None, "not new"
     price = item.get("price") or {}
     if price.get("currency") != "CAD":
-        return None
+        return None, "not CAD"
     price_cents = _cents(price)
     shipping: list[int] = []
     for option in item.get("shippingOptions") or []:
@@ -159,19 +203,19 @@ def _parse_item(
         if cents is not None:
             shipping.append(cents)
     if price_cents is None or not shipping:
-        return None  # can't state a real total
+        return None, "no shipping cost"  # can't state a real total
     seller = item.get("seller") or {}
     try:
         pct = float(seller["feedbackPercentage"])
         score = int(seller["feedbackScore"])
     except (KeyError, TypeError, ValueError):
-        return None
+        return None, "no seller feedback"
     if pct < _MIN_FEEDBACK_PCT or score < _MIN_FEEDBACK_SCORE:
-        return None
+        return None, "weak seller"
     url = item.get("itemAffiliateWebUrl") or item.get("itemWebUrl")
     if not url:
-        return None
-    return ProviderOffer(
+        return None, "no url"
+    offer = ProviderOffer(
         provider="ebay",
         provider_product_id=provider_product_id,
         merchant="eBay",
@@ -190,6 +234,7 @@ def _parse_item(
             "affiliate": bool(item.get("itemAffiliateWebUrl")),
         },
     )
+    return offer, ""
 
 
 _client: EbayBrowseClient | None = None

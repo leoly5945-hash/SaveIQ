@@ -3,6 +3,7 @@ from pydantic import BaseModel
 
 from app.core.settings import get_settings
 from app.providers.amazon_creators import get_creators_client
+from app.providers.ebay_browse import get_ebay_client
 
 router = APIRouter(tags=["health"])
 
@@ -32,14 +33,14 @@ class IntegrationsResponse(BaseModel):
 def integrations() -> IntegrationsResponse:
     """Whether the optional integrations are switched on and answering.
 
-    Coarse states only (``not_configured`` / ``untried`` / ``ok`` / ``error: …``
+    Coarse states only (``not_configured`` / ``untried`` / ``ok…`` / ``error: …``
     with the provider's status and error code) — never a credential.
     """
 
     settings = get_settings()
     creators = get_creators_client(settings)
-    ebay_on = bool(settings.ebay_client_id and settings.ebay_client_secret)
+    ebay = get_ebay_client(settings)
     return IntegrationsResponse(
         amazon_images=creators.status() if creators is not None else "not_configured",
-        ebay_offers="configured" if ebay_on else "not_configured",
+        ebay_offers=ebay.status() if ebay is not None else "not_configured",
     )
