@@ -418,3 +418,20 @@ def test_secondhand_and_liquidation_stores_are_not_store_prices() -> None:
         ]
     )
     assert [o.merchant for o in comp.offers] == ["Best Buy Canada"]
+
+
+def test_a_part_number_split_by_a_hyphen_is_the_same_model() -> None:
+    ref = "Sony MDRZX110 Over-Ear Headphones (Black)"
+    assert _score(ref, "Sony MDR-ZX110 Wired On-Ear Headphones Black", 2498, 2699, "Sony") > 0.55
+    # A genuinely different model is still rejected.
+    assert _score(ref, "Sony MDR-ZX310 Wired On-Ear Headphones Black", 2498, 2699, "Sony") == 0.0
+
+
+def test_a_barcode_match_does_not_depend_on_how_the_seller_words_the_title() -> None:
+    odd_title = "ZX Series stereo headphones black NEW sealed"  # no brand, no model code
+    comp = _sony([_ebay(2699, odd_title)])
+    assert comp.also_on_ebay is not None and comp.also_on_ebay.match_confidence == 0.9
+
+    # ...but a used unit or a multi-pack under the same barcode is not the product.
+    assert _sony([_ebay(2699, "Sony MDR-ZX110 headphones used")]).also_on_ebay is None
+    assert _sony([_ebay(2699, "Sony MDR-ZX110 headphones 2 Pack")]).also_on_ebay is None

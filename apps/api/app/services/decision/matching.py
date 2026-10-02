@@ -205,7 +205,24 @@ def _model_codes(tokens: set[str]) -> set[str]:
     }
 
 
-def _conflicting_variant(reference: set[str], candidate: set[str]) -> bool:
+def _joined_codes(title: str) -> set[str]:
+    """Model codes formed by two neighbouring words: "MDR-ZX110" -> "mdrzx110".
+
+    Sellers split a part number that the reference writes as one word. Used only
+    to *rescue* a match the single-word comparison would reject.
+    """
+
+    words = [t for t in _SPLIT_SPEC_RE.sub(r"\1\2", _norm(title)).split() if t]
+    return _model_codes({a + b for a, b in zip(words, words[1:], strict=False)})
+
+
+def _conflicting_variant(
+    reference: set[str],
+    candidate: set[str],
+    *,
+    reference_joined: frozenset[str] = frozenset(),
+    candidate_joined: frozenset[str] = frozenset(),
+) -> bool:
     """Both titles name a model number / spec, and they disagree.
 
     Title overlap alone matched "APC Back-UPS 600VA (BE600M1)" to a cheaper
@@ -215,7 +232,13 @@ def _conflicting_variant(reference: set[str], candidate: set[str]) -> bool:
     """
 
     ref_models, cand_models = _model_codes(reference), _model_codes(candidate)
-    if ref_models and cand_models and not (ref_models & cand_models):
+    if (
+        ref_models
+        and cand_models
+        and not (ref_models & cand_models)
+        and not (ref_models & candidate_joined)
+        and not (cand_models & reference_joined)
+    ):
         return True
     ref_specs, cand_specs = _specs(reference), _specs(candidate)
     for unit in ref_specs.keys() & cand_specs.keys():
@@ -261,7 +284,12 @@ def score_candidate(
     cand_tokens = _tokens(candidate_title)
     if _looks_like_accessory(cand_tokens, ref_tokens):
         return 0.0
-    if _conflicting_variant(ref_tokens, cand_tokens):
+    if _conflicting_variant(
+        ref_tokens,
+        cand_tokens,
+        reference_joined=frozenset(_joined_codes(reference_title)),
+        candidate_joined=frozenset(_joined_codes(candidate_title)),
+    ):
         return 0.0
     if _different_quantity(reference_title, candidate_title):
         return 0.0
@@ -283,6 +311,39 @@ def score_candidate(
     price_close = max(0.0, 1.0 - abs(ratio - 1.0) / (_PRICE_HIGH_RATIO - 1.0))
 
     return round(0.6 * overlap + 0.25 * brand_ok + 0.15 * price_close, 4)
+
+
+_SECONDHAND_TITLE_WORDS = frozenset(
+    {"refurbished", "renewed", "used", "open", "preowned", "refurb", "parts", "damaged"}
+)
+
+
+def gtin_confidence(
+    *,
+    reference_title: str,
+    reference_price_cents: int,
+    candidate_title: str | None,
+    candidate_price_cents: int | None,
+) -> float:
+    """Confidence for an offer found by the product's own barcode.
+
+    The same GTIN is the same product however the seller words the title, so the
+    title-overlap, brand and model-spelling checks don't apply. What still can
+    go wrong: a second-hand unit listed under the new product's barcode, a
+    multi-pack, or a price so far off it is something else.
+    """
+
+    if not candidate_price_cents or reference_price_cents <= 0:
+        return 0.0
+    ratio = candidate_price_cents / reference_price_cents
+    if not (_PRICE_LOW_RATIO <= ratio <= _PRICE_HIGH_RATIO):
+        return 0.0
+    title = candidate_title or ""
+    if (_tokens(title) - _tokens(reference_title)) & _SECONDHAND_TITLE_WORDS:
+        return 0.0
+    if title and _different_quantity(reference_title, title):
+        return 0.0
+    return _GTIN_MATCH_CONFIDENCE
 
 
 def _offer_detail(offer: ProviderOffer) -> str | None:
@@ -340,8 +401,16 @@ def build_comparison(
             candidate_price_cents=offer.total_cents,
         )
         meta = offer.metadata or {}
-        if confidence > 0 and meta.get("matched_by") == "gtin":
-            confidence = max(confidence, _GTIN_MATCH_CONFIDENCE)
+        if meta.get("matched_by") == "gtin":
+            confidence = max(
+                confidence,
+                gtin_confidence(
+                    reference_title=reference_title,
+                    reference_price_cents=reference_price_cents,
+                    candidate_title=meta.get("title"),
+                    candidate_price_cents=offer.total_cents,
+                ),
+            )
         if confidence < _MIN_CONFIDENCE:
             continue
         # A Dyson V8 Plus never under $449.99 on Amazon in 90 days, "matched" at
