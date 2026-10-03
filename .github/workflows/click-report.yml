@@ -1,9 +1,9 @@
 name: Click report
 
-# Where SaveIQ's outbound clicks come from: real (non-bot) clicks by day, by the
-# page they came from and by product, read from the production API's admin
-# endpoint. The report is written to this run's summary page, so it can be read
-# on GitHub without handling the admin token.
+# Where SaveIQ's outbound clicks come from: real (non-bot) clicks and distinct
+# visitors by day, by the page they came from and by product, read from the
+# production API's admin endpoint. The report is written to this run's summary
+# page, so it can be read on GitHub without handling the admin token.
 #
 # Uses the same configuration as the price poll:
 #   Repo Variable: PRODUCTION_API_URL
@@ -50,13 +50,28 @@ jobs:
               if not rows:
                   print("_none_")
                   return
-              print("| | clicks |\n|---|---:|")
+              # Older API versions send no visitor counts.
+              with_visitors = any("visitors" in row for row in rows)
+              print("| | clicks |" + (" visitors |" if with_visitors else ""))
+              print("|---|---:|" + ("---:|" if with_visitors else ""))
               for row in rows:
                   name = str(row[key]).replace("|", "/")[:90]
-                  print(f"| {name} | {row['clicks']} |")
+                  extra = f" {row.get('visitors', '')} |" if with_visitors else ""
+                  print(f"| {name} | {row['clicks']} |{extra}")
 
           print(f"## SaveIQ click report — last {r['window_days']} days")
-          print(f"\n**{r['clicks']} real clicks** ({r['bot_clicks']} bot clicks excluded)")
+          total = f"**{r['clicks']} real clicks**"
+          if "visitors" in r:
+              total += f" from **{r['visitors']} visitors**"
+          print(f"\n{total} ({r['bot_clicks']} bot clicks excluded)")
+          if "visitors" in r:
+              print(
+                  "\nA visitor is one IP address, stored only as a hash. Until "
+                  "about 2026-09-20 every click carried the web server's address, "
+                  "so older days can show 1 visitor for several people."
+              )
+              if r.get("clicks_without_visitor"):
+                  print(f"Clicks with no address, in no visitor count: {r['clicks_without_visitor']}.")
           table("By day (UTC)", r["by_day"], key="day")
           table("By page type", r["by_page_type"])
           table("Top pages", r["by_page"])

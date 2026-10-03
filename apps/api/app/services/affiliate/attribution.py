@@ -406,7 +406,8 @@ def _page_type(page: str) -> str:
 
 
 def click_report(db: Session, *, days: int = 30, top: int = 15) -> dict[str, Any]:
-    """Real (non-bot) outbound clicks by day, by the page they came from, and by product."""
+    """Real (non-bot) outbound clicks by day, by the page they came from, and by product,
+    each with the number of distinct visitors behind it."""
 
     since = datetime.now(UTC) - timedelta(days=days)
     rows = db.execute(
@@ -421,6 +422,11 @@ def click_report(db: Session, *, days: int = 30, top: int = 15) -> dict[str, Any
     by_page: dict[str, int] = {}
     by_product: dict[str, int] = {}
     by_network: dict[str, int] = {}
+    # Distinct visitors (hashed IP) behind each count: 15 clicks from one
+    # visitor and 15 visitors with one click each are very different days.
+    seen: dict[tuple[str, str], set[str]] = {}
+    everyone: set[str] = set()
+    without_visitor = 0
     bots = 0
     for event, title in rows:
         if event.is_bot:
@@ -438,20 +444,40 @@ def click_report(db: Session, *, days: int = 30, top: int = 15) -> dict[str, Any
         by_product[product] = by_product.get(product, 0) + 1
         net = event.network or "unknown"
         by_network[net] = by_network.get(net, 0) + 1
+        if event.ip_hash:
+            everyone.add(event.ip_hash)
+            for group in (("day", day), ("page", page), ("product", product)):
+                seen.setdefault(group, set()).add(event.ip_hash)
+        else:
+            without_visitor += 1
 
-    def ranked(counts: dict[str, int], limit: int | None = None) -> list[dict[str, Any]]:
+    def visitors(kind: str, name: str) -> int:
+        return len(seen.get((kind, name), ()))
+
+    def ranked(
+        counts: dict[str, int], limit: int | None = None, kind: str | None = None
+    ) -> list[dict[str, Any]]:
         items = sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))
-        return [{"name": k, "clicks": v} for k, v in (items[:limit] if limit else items)]
+        return [
+            {"name": k, "clicks": v, **({"visitors": visitors(kind, k)} if kind else {})}
+            for k, v in (items[:limit] if limit else items)
+        ]
 
     return {
         "window_days": days,
         "since": since.isoformat(),
         "clicks": sum(by_day.values()),
+        "visitors": len(everyone),
+        # Clicks logged with no IP at all; they are in no visitor count.
+        "clicks_without_visitor": without_visitor,
         "bot_clicks": bots,
-        "by_day": [{"day": d, "clicks": c} for d, c in sorted(by_day.items())],
+        "by_day": [
+            {"day": d, "clicks": c, "visitors": visitors("day", d)}
+            for d, c in sorted(by_day.items())
+        ],
         "by_page_type": ranked(by_type),
-        "by_page": ranked(by_page, top),
-        "by_product": ranked(by_product, top),
+        "by_page": ranked(by_page, top, "page"),
+        "by_product": ranked(by_product, top, "product"),
         "by_network": ranked(by_network),
     }
 

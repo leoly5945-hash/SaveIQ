@@ -307,8 +307,11 @@ def test_click_report_groups_real_clicks_by_day_page_and_product() -> None:
         assert report["clicks"] == 3 and report["bot_clicks"] == 1
         assert sum(d["clicks"] for d in report["by_day"]) == 3
         assert {r["name"]: r["clicks"] for r in report["by_page_type"]} == {"check": 2, "deal": 1}
-        assert report["by_page"][0] == {"name": "/check/B004VBC0FM", "clicks": 2}
-        assert report["by_product"][0] == {"name": "B004VBC0FM", "clicks": 2}
+        # Both check clicks came from one visitor; the deal click from the same one.
+        assert report["by_page"][0] == {"name": "/check/B004VBC0FM", "clicks": 2, "visitors": 1}
+        assert report["by_product"][0] == {"name": "B004VBC0FM", "clicks": 2, "visitors": 1}
+        assert report["visitors"] == 1 and report["clicks_without_visitor"] == 0
+        assert report["by_day"][0]["visitors"] == 1
 
         # No referrer: the button type and ASIN still name the page. A click
         # arriving from another site is named by that site, not as "home".
@@ -327,6 +330,9 @@ def test_click_report_groups_real_clicks_by_day_page_and_product() -> None:
                 "by_page"
             ]
         }
+        second = client.get("/admin/affiliate/click-report?days=7", headers=ADMIN).json()
+        # The Facebook click came from another IP: a second visitor that day.
+        assert second["visitors"] == 2 and second["by_day"][0]["visitors"] == 2
         assert pages["/check/B00NJ2M33I"] == 1
         assert pages["(external: l.facebook.com)"] == 1
         assert "/" not in pages
