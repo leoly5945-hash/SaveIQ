@@ -292,12 +292,12 @@ export const GUIDES: Guide[] = [
     title: "Samsung Galaxy S26 in Canada: price, specs and who it’s for",
     description:
       "Canadian list prices and published specifications for the Galaxy S26 family, what the differences add up to, and who each model suits.",
-    updated: "2026-09-18",
-    checked: "2026-09-18",
-    readMinutes: 5,
+    updated: "2026-09-28",
+    checked: "2026-09-28",
+    readMinutes: 6,
     intro: [
       "This is a research guide, not a hands-on review. We have not tested the Galaxy S26. Everything below comes from the prices and specifications Samsung publishes for Canada, plus arithmetic on those numbers, and the source and date for each figure are listed at the end.",
-      "Prices are a snapshot from September 18, 2026. Samsung, retailers and carriers change prices and promotions often, so confirm the current price before you buy.",
+      "Samsung's own prices were last checked September 28, 2026, and had not moved since our first check on September 18. Retail prices are a different story — see \"Retail prices move\" below. Samsung, retailers and carriers change prices and promotions often, so confirm the current price before you buy.",
     ],
     sections: [
       {
@@ -365,11 +365,20 @@ export const GUIDES: Guide[] = [
           "Compare an unlocked phone with a carrier plan on the total cost over the full term, not the monthly figure alone. Then read the retailer’s return policy: it is part of the price.",
         ],
       },
+      {
+        heading: "Retail prices move — Amazon Prime Big Deal Days is October 6–7",
+        body: [
+          "Samsung's own list price is one thing; what a retailer actually charges can move week to week. Amazon.ca cut the Galaxy S26 Ultra 512GB to $1,879.99 for a few days around September 22, 2026 — about $300 off Samsung's $2,179.99 list price. That deal had already ended when we checked again on September 28: the same listing was back to the full $2,179.99. A similar Best Buy promotion was scheduled to end September 24.",
+          "Amazon.ca's own site confirms its Prime Big Deal Days event runs October 6–7, 2026, with early device promotions already appearing. If a lower price matters more to you than buying today, that is a real date to watch — but we can't promise the Galaxy S26 line will be discounted then, and short-lived retailer deals like the one above can appear and disappear with no notice either side of it.",
+        ],
+      },
     ],
     sources: [
-      { label: "Samsung Canada: Galaxy S26, S26+ and S26 FE (buy page, checked 2026-09-18)", url: "https://www.samsung.com/ca/smartphones/galaxy-s26/buy/" },
-      { label: "Samsung Canada: Galaxy S26 Ultra (buy page, checked 2026-09-18)", url: "https://www.samsung.com/ca/smartphones/galaxy-s26-ultra/buy/" },
+      { label: "Samsung Canada: Galaxy S26, S26+ and S26 FE (buy page, checked 2026-09-28)", url: "https://www.samsung.com/ca/smartphones/galaxy-s26/buy/" },
+      { label: "Samsung Canada: Galaxy S26 Ultra (buy page, checked 2026-09-28)", url: "https://www.samsung.com/ca/smartphones/galaxy-s26-ultra/buy/" },
       { label: "MobileSyrup: Galaxy S26 series Canadian pricing (February 25, 2026)", url: "https://mobilesyrup.com/2026/02/25/samsung-galaxy-s26-series-pricing-canada/" },
+      { label: "iPhone in Canada: Galaxy S26 Ultra gets a $300 price cut (September 22, 2026)", url: "https://www.iphoneincanada.ca/2026/09/22/galaxy-s26-ultra-amazon-deal/" },
+      { label: "Amazon.ca: Galaxy S26 Ultra 512GB listing, price reverted to $2,179.99 (checked 2026-09-28)", url: "https://www.amazon.ca/dp/B0GH1KP2T8" },
     ],
     relatedCategories: ["electronics"],
   },
