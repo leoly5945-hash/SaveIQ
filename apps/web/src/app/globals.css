@@ -4239,3 +4239,233 @@ form.pill-search:focus-within {
     grid-template-columns: repeat(5, minmax(0, 1fr));
   }
 }
+
+/* ── Product pages (price check + deal), redesign step 2 ─────────────────────
+   Media on the left, title / verdict / price / actions on the right, then the
+   90-day history with a stats table beside the chart. */
+
+.verdict.pp {
+  gap: 22px;
+  max-width: none;
+  padding: 26px;
+}
+
+.pp-top {
+  align-items: start;
+  display: grid;
+  gap: 28px;
+  grid-template-columns: minmax(0, 260px) minmax(0, 1fr);
+}
+
+.pp-top-deal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 26px;
+}
+
+.pp-media {
+  display: grid;
+  justify-items: center;
+}
+
+.product-art-hero {
+  aspect-ratio: 1;
+  border-radius: 20px;
+  max-width: 260px;
+  width: 100%;
+}
+
+.pp-media .product-image-link {
+  display: block;
+  width: 100%;
+}
+
+.pp-media .product-image {
+  aspect-ratio: 1;
+  border-radius: 20px;
+  height: auto;
+  max-width: 260px;
+  padding: 14px;
+  width: 100%;
+}
+
+.pp-summary {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.pp-summary > p,
+.pp-summary > h1 {
+  margin: 0;
+}
+
+.pp-title {
+  font-size: clamp(1.25rem, 2.4vw, 1.7rem);
+  line-height: 1.25;
+  margin: 0;
+}
+
+.pp-summary .deal-page-title {
+  font-size: clamp(1.5rem, 3vw, 2.1rem);
+  line-height: 1.15;
+}
+
+.pp-verdict {
+  align-items: center;
+  background: #f1f5f9;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  display: flex;
+  gap: 14px;
+  padding: 14px 16px;
+}
+
+.pp-verdict .verdict-blurb {
+  margin: 0;
+}
+
+.pp-verdict-good {
+  background: #ecfdf3;
+  border-color: #bbe7cb;
+}
+
+.pp-verdict-warn {
+  background: #fff4ea;
+  border-color: #f6d3b3;
+}
+
+.pp-at {
+  color: var(--muted);
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.pp-track,
+.pp-actions {
+  margin: 0;
+}
+
+.pp-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 18px;
+}
+
+.pp-track-link,
+.pp-secondary {
+  color: var(--accent-strong);
+  font-size: 0.94rem;
+  font-weight: 700;
+}
+
+.pp-history {
+  border-top: 1px solid var(--border);
+  display: grid;
+  gap: 14px;
+  padding-top: 20px;
+}
+
+.pp-history h2 {
+  font-family: var(--display-font);
+  font-size: 1.2rem;
+  font-weight: 900;
+  margin: 0;
+}
+
+.pp-history-grid {
+  align-items: start;
+  display: grid;
+  gap: 24px;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 300px);
+}
+
+.pp-chart {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.pp-stats {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.pp-stats > div {
+  align-items: baseline;
+  background: #f8fafc;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 11px 14px;
+}
+
+.pp-stats dt {
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.pp-stats dd {
+  font-size: 1.02rem;
+  font-weight: 800;
+  margin: 0;
+}
+
+.pp-stats .pp-stats-now {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.pp-stats .pp-stats-good {
+  background: #ecfdf3;
+  border-color: #bbe7cb;
+}
+
+.pp-stats .pp-stats-good dd {
+  color: #15803d;
+}
+
+.pp-stats .pp-stats-warn {
+  background: #fff4ea;
+  border-color: #f6d3b3;
+}
+
+.pp-stats .pp-stats-warn dd {
+  color: #c2410c;
+}
+
+.pp-stats-row {
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  margin: 18px 0 0;
+}
+
+.home-shell.deal-page,
+.home-shell.pp-shell {
+  max-width: 1040px;
+}
+
+@media (max-width: 760px) {
+  .verdict.pp,
+  .pp-top-deal {
+    padding: 18px 16px;
+  }
+
+  .pp-top {
+    gap: 18px;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .product-art-hero,
+  .pp-media .product-image {
+    max-width: 160px;
+  }
+
+  .pp-history-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

@@ -17,10 +17,19 @@ export function ProductImage({
   title: string;
   href?: string | null;
   categorySlug?: string | null;
-  size?: "card" | "hero";
+  /** "card": thumbnail; "hero": photo only, nothing without one; "page": the
+   * large slot on a product page, always filled (photo or drawing). */
+  size?: "card" | "hero" | "page";
 }) {
   if (!src) {
-    return size === "card" ? <ProductArt categorySlug={categorySlug} title={title} /> : null;
+    if (size === "hero") return null;
+    return (
+      <ProductArt
+        categorySlug={categorySlug}
+        size={size === "page" ? "hero" : "card"}
+        title={title}
+      />
+    );
   }
   const img = (
     // eslint-disable-next-line @next/next/no-img-element -- Amazon's CDN image, not ours to optimise or copy

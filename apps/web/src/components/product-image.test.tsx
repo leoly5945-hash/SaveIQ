@@ -20,6 +20,12 @@ describe("ProductImage", () => {
     expect(ProductImage({ title: "KONG Classic", size: "hero" })).toBeNull();
   });
 
+  it("always fills the large slot on a product page, with a drawing if need be", () => {
+    const el = ProductImage({ title: "KONG Classic", size: "page" }) as ReactElement<AnyProps>;
+    expect(el.type).toBe(ProductArt);
+    expect(el.props.size).toBe("hero");
+  });
+
   it("links the Amazon image to the affiliate URL as a sponsored link", () => {
     const el = ProductImage({
       src: SRC,

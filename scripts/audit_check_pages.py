@@ -83,9 +83,10 @@ def audit(asin: str) -> dict:
     except Exception as exc:  # noqa: BLE001
         return {"asin": asin, "error": f"api: {exc}"}
     try:
-        page = _page_text(_get(WEB + asin))
+        raw_page = _get(WEB + asin)
+        page = _page_text(raw_page)
     except Exception as exc:  # noqa: BLE001
-        page = ""
+        raw_page = page = ""
         problems.append(f"page fetch failed: {exc}")
 
     a = d.get("assessment") or {}
@@ -116,7 +117,10 @@ def audit(asin: str) -> dict:
 
     # 2. page copy bugs
     if page:
-        badge = re.search(r"Price check (Buy|Fair|Wait|BUY|FAIR|WAIT)\b", page)
+        # The badge element itself, wherever the layout puts it.
+        badge = re.search(
+            r'class="verdict-badge"[^>]*>\s*(Buy|Fair|Wait|BUY|FAIR|WAIT)\b', raw_page
+        )
         if not badge:
             problems.append("no verdict badge found on page")
         elif badge.group(1).upper() != verdict:

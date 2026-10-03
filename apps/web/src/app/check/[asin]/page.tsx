@@ -134,7 +134,7 @@ export default async function CheckAsinPage({ params }: Params) {
   };
 
   return (
-    <main className="home-shell privacy-page">
+    <main className="home-shell privacy-page pp-shell">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }}
@@ -144,67 +144,105 @@ export default async function CheckAsinPage({ params }: Params) {
         check
       </p>
 
-      <article className={`verdict verdict-${v.tone}`}>
-        <header className="verdict-head">
-          <span className="verdict-badge">{v.label}</span>
-          <ProductImage
-            href={amazonButtonHref(result, "image")}
-            size="hero"
-            src={result.image_url}
-            title={name}
-          />
-          <div className="verdict-headline">
-            <h1 className="verdict-title">{name}</h1>
-            <p className="verdict-blurb">
-              {result.explanation?.headline ?? v.blurb}
-            </p>
+      <article className={`verdict verdict-${v.tone} pp`}>
+        <div className="pp-top">
+          <div className="pp-media">
+            <ProductImage
+              href={amazonButtonHref(result, "image")}
+              size="page"
+              src={result.image_url}
+              title={name}
+            />
           </div>
-        </header>
+          <div className="pp-summary">
+            <h1 className="verdict-title pp-title">{name}</h1>
+            <div className={`pp-verdict pp-verdict-${v.tone}`}>
+              <span className="verdict-badge">{v.label}</span>
+              <p className="verdict-blurb">
+                {result.explanation?.headline ?? v.blurb}
+              </p>
+            </div>
+            <div className="verdict-price">
+              <span className="verdict-now">{formatMoney(effective, currency)}</span>
+              <span className="pp-at">at Amazon.ca</span>
+              <span className="verdict-conf">confidence: {assessment.confidence}</span>
+            </div>
+            {result.buy_url ?? result.product_url ? (
+              <BuyCta
+                amazonHref={amazonButtonHref(result, "check")}
+                amazonPriceCents={effective}
+                cheapest={result.comparison?.cheapest ?? null}
+                currency={currency}
+                verdict={assessment.verdict}
+                top
+              />
+            ) : null}
+            {result.product_url ? (
+              <p className="pp-track">
+                <Link
+                  className="pp-track-link"
+                  href={`/?url=${encodeURIComponent(result.product_url)}#price-check`}
+                >
+                  Track this price — email me when it drops
+                </Link>
+              </p>
+            ) : null}
+          </div>
+        </div>
 
         {result.narration ? (
           <p className="verdict-narration">{result.narration}</p>
         ) : null}
 
-        <div className="verdict-price">
-          <span className="verdict-now">{formatMoney(effective, currency)}</span>
-          <span className="verdict-conf">confidence: {assessment.confidence}</span>
-        </div>
-
-        {result.explanation?.position ? (
-          <PricePositionBar currency={currency} position={result.explanation.position} />
-        ) : null}
+        <section className="pp-history" aria-labelledby="history-heading">
+          <h2 id="history-heading">90-day price history</h2>
+          <div className="pp-history-grid">
+            <div className="pp-chart">
+              {result.sparkline.length >= 2 ? (
+                <div className="verdict-spark">
+                  <Sparkline points={result.sparkline} tone={v.tone} />
+                  <div className="verdict-spark-scale">
+                    <span>{formatMoney(band.min, currency)}</span>
+                    <span>90 days</span>
+                    <span>{formatMoney(band.max, currency)}</span>
+                  </div>
+                </div>
+              ) : null}
+              {result.explanation?.position ? (
+                <PricePositionBar
+                  currency={currency}
+                  position={result.explanation.position}
+                />
+              ) : null}
+            </div>
+            <dl className="pp-stats">
+              {band.max !== null ? (
+                <div>
+                  <dt>Highest (90 days)</dt>
+                  <dd>{formatMoney(band.max, currency)}</dd>
+                </div>
+              ) : null}
+              {band.min !== null ? (
+                <div>
+                  <dt>Lowest (90 days)</dt>
+                  <dd>{formatMoney(band.min, currency)}</dd>
+                </div>
+              ) : null}
+              {band.avg !== null ? (
+                <div>
+                  <dt>Average</dt>
+                  <dd>{formatMoney(band.avg, currency)}</dd>
+                </div>
+              ) : null}
+              <div className={`pp-stats-now pp-stats-${v.tone}`}>
+                <dt>Current price</dt>
+                <dd>{formatMoney(effective, currency)}</dd>
+              </div>
+            </dl>
+          </div>
+        </section>
 
         <DiscountChecks checks={result.explanation?.discount_checks ?? []} />
-
-        {result.buy_url ?? result.product_url ? (
-          <BuyCta
-            amazonHref={amazonButtonHref(result, "check")}
-            amazonPriceCents={effective}
-            cheapest={result.comparison?.cheapest ?? null}
-            currency={currency}
-            verdict={assessment.verdict}
-            top
-          />
-        ) : null}
-
-        {result.sparkline.length >= 2 ? (
-          <div className="verdict-spark">
-            <Sparkline points={result.sparkline} tone={v.tone} />
-            <div className="verdict-spark-scale">
-              <span>{formatMoney(band.min, currency)}</span>
-              <span>90 days</span>
-              <span>{formatMoney(band.max, currency)}</span>
-            </div>
-          </div>
-        ) : band.min !== null && band.max !== null ? (
-          <p className="verdict-band">
-            90-day range {formatMoney(band.min, currency)} –{" "}
-            {formatMoney(band.max, currency)}
-            {band.avg !== null ? (
-              <> · avg {formatMoney(band.avg, currency)}</>
-            ) : null}
-          </p>
-        ) : null}
 
         {assessment.reasons.length > 0 ? (
           <details className="verdict-details">

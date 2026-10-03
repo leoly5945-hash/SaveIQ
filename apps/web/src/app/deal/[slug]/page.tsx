@@ -14,6 +14,7 @@ import {
   formatMoney,
   UNAVAILABLE_LABEL,
 } from "@/lib/featured-deals";
+import { ProductImage } from "@/components/product-image";
 import { buyLinkRel, getSiteUrl } from "@/lib/config";
 
 export const revalidate = 3600;
@@ -57,6 +58,9 @@ export default async function DealPage({ params }: Params) {
   const price = formatMoney(now.cents, now.currency);
   const checked = now.checked;
   const versus = deal.latest_price ? describeVsAverage(deal.latest_price) : null;
+  const latest = deal.latest_price ?? null;
+  // The Amazon product id, for the link to the full 90-day price check.
+  const asin = /\/dp\/([A-Z0-9]{10})(?:[/?]|$)/.exec(deal.product_url ?? "")?.[1] ?? null;
   const site = getSiteUrl();
 
   const jsonLd = {
@@ -117,52 +121,96 @@ export default async function DealPage({ params }: Params) {
         ) : null}
       </nav>
 
-      <p className="deal-page-merchant">{deal.merchant}</p>
-      <h1 className="home-title deal-page-title">{deal.title}</h1>
-      {deal.brand ? <p className="deal-page-brand">by {deal.brand}</p> : null}
+      <div className="pp-top pp-top-deal">
+        <div className="pp-media">
+          <ProductImage
+            categorySlug={deal.category_slug}
+            href={now.unavailableSince ? null : featuredDealHref(deal)}
+            size="page"
+            src={deal.image_url}
+            title={deal.title}
+          />
+        </div>
+        <div className="pp-summary">
+          <p className="deal-page-merchant">{deal.merchant}</p>
+          <h1 className="home-title deal-page-title">{deal.title}</h1>
+          {deal.brand ? <p className="deal-page-brand">by {deal.brand}</p> : null}
 
-      {now.unavailableSince ? (
-        <>
-          <p className="deal-page-unavailable">{UNAVAILABLE_LABEL}</p>
-          <p className="deal-page-checked">
-            Our daily price check on {now.unavailableSince} found no seller
-            offering it on Amazon.ca, so we are not showing a price or a buy
-            link. We keep checking every morning and the price comes back here
-            as soon as it is on sale again.
-            {now.checked
-              ? ` The last price we checked was ${price} (${now.checked}).`
-              : null}
-          </p>
-        </>
-      ) : null}
-      {!now.unavailableSince ? <p className="deal-page-price">{price}</p> : null}
-      {versus && !now.unavailableSince ? (
-        <p className="price-drop-versus">{versus}</p>
-      ) : null}
-      {checked && !now.unavailableSince ? (
-        <p className="deal-page-checked">
-          {now.daily
-            ? `Recorded ${checked} by our daily price check`
-            : `Price checked ${checked}`}{" "}
-          — this is a snapshot, not a live price. Confirm the current price,
-          delivery time and return policy at {deal.merchant} before you buy.
-        </p>
+          {now.unavailableSince ? (
+            <>
+              <p className="deal-page-unavailable">{UNAVAILABLE_LABEL}</p>
+              <p className="deal-page-checked">
+                Our daily price check on {now.unavailableSince} found no seller
+                offering it on Amazon.ca, so we are not showing a price or a buy
+                link. We keep checking every morning and the price comes back
+                here as soon as it is on sale again.
+                {now.checked
+                  ? ` The last price we checked was ${price} (${now.checked}).`
+                  : null}
+              </p>
+            </>
+          ) : null}
+          {!now.unavailableSince ? <p className="deal-page-price">{price}</p> : null}
+          {versus && !now.unavailableSince ? (
+            <p className="price-drop-versus">{versus}</p>
+          ) : null}
+
+          {!now.unavailableSince ? (
+            <p className="pp-actions">
+              <a
+                className="deal-page-cta"
+                href={featuredDealHref(deal)}
+                rel={buyLinkRel(featuredDealHref(deal))}
+                target="_blank"
+              >
+                View deal at {deal.merchant}
+              </a>
+              {asin ? (
+                <Link className="pp-secondary" href={`/check/${asin}`}>
+                  See 90-day price history
+                </Link>
+              ) : null}
+            </p>
+          ) : null}
+
+          {checked && !now.unavailableSince ? (
+            <p className="deal-page-checked">
+              {now.daily
+                ? `Recorded ${checked} by our daily price check`
+                : `Price checked ${checked}`}{" "}
+              — this is a snapshot, not a live price. Confirm the current price,
+              delivery time and return policy at {deal.merchant} before you buy.
+            </p>
+          ) : null}
+        </div>
+      </div>
+
+      {latest && !now.unavailableSince ? (
+        <dl className="pp-stats pp-stats-row">
+          <div className="pp-stats-now pp-stats-neutral">
+            <dt>Recorded price</dt>
+            <dd>{formatMoney(latest.price_cents, latest.currency)}</dd>
+          </div>
+          {latest.avg90_cents ? (
+            <div>
+              <dt>90-day average</dt>
+              <dd>{formatMoney(latest.avg90_cents, latest.currency)}</dd>
+            </div>
+          ) : null}
+          {typeof latest.pct_below_avg90 === "number" && latest.pct_below_avg90 !== 0 ? (
+            <div>
+              <dt>Compared with the average</dt>
+              <dd>
+                {latest.pct_below_avg90 > 0
+                  ? `${latest.pct_below_avg90}% below`
+                  : `${-latest.pct_below_avg90}% above`}
+              </dd>
+            </div>
+          ) : null}
+        </dl>
       ) : null}
 
       {deal.blurb ? <p className="deal-page-blurb">{deal.blurb}</p> : null}
-
-      {!now.unavailableSince ? (
-        <p>
-          <a
-            className="deal-page-cta"
-            href={featuredDealHref(deal)}
-            rel={buyLinkRel(featuredDealHref(deal))}
-            target="_blank"
-          >
-            View deal at {deal.merchant}
-          </a>
-        </p>
-      ) : null}
 
       <p className="deal-page-disclosure">{AMAZON_ASSOCIATE_DISCLOSURE}</p>
 
