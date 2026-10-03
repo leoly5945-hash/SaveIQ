@@ -1,7 +1,7 @@
 import { isValidElement, type ReactElement } from "react";
 import { describe, expect, it } from "vitest";
 
-import { CategoryIcon } from "@/components/category-icon";
+import { ProductArt } from "@/components/product-art";
 
 import { ProductImage } from "./product-image";
 
@@ -10,10 +10,10 @@ const SRC = "https://m.media-amazon.com/images/I/41cNJGm9ZFL._SL500_.jpg";
 type AnyProps = Record<string, unknown> & { children?: unknown };
 
 describe("ProductImage", () => {
-  it("falls back to the category icon on a card when there is no image", () => {
+  it("falls back to a drawing of the product on a card when there is no image", () => {
     const el = ProductImage({ title: "KONG Classic", categorySlug: "pets" }) as ReactElement;
     expect(isValidElement(el)).toBe(true);
-    expect(el.type).toBe(CategoryIcon);
+    expect(el.type).toBe(ProductArt);
   });
 
   it("renders nothing in the hero slot when there is no image", () => {

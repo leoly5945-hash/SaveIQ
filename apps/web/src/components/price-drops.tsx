@@ -28,6 +28,11 @@ function PriceDropCard({ deal }: { deal: FeaturedDeal }) {
           title={deal.title}
         />
         <p className="deal-card-merchant">{deal.merchant}</p>
+        {typeof latest.pct_below_avg90 === "number" && latest.pct_below_avg90 > 0 ? (
+          <span className="price-drop-badge" title="Compared with its 90-day average price">
+            −{latest.pct_below_avg90}%
+          </span>
+        ) : null}
       </div>
       <h3 className="deal-card-title">
         <Link href={dealPath(deal)}>{deal.title}</Link>

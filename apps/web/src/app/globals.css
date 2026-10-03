@@ -3842,3 +3842,400 @@ form.pill-search:focus-within {
     width: 72px;
   }
 }
+
+/* ── Homepage redesign (2026-10) ─────────────────────────────────────────────
+   White header with the tagline, a two-column hero with an illustration,
+   category tiles, and illustrated cards. New `hp-` classes so the other pages
+   that share `home-*` styles are untouched. */
+
+.product-art {
+  align-items: center;
+  background: #eaf2fc;
+  border-radius: 14px;
+  display: inline-flex;
+  flex-shrink: 0;
+  justify-content: center;
+}
+
+.product-art svg {
+  display: block;
+  height: 72%;
+  width: 72%;
+}
+
+.product-art-card {
+  height: 64px;
+  width: 64px;
+}
+
+.product-art-tile {
+  height: 84px;
+  width: 84px;
+}
+
+.hp-header {
+  background: #ffffff;
+  border-bottom: 1px solid var(--border);
+}
+
+.hp-header-inner {
+  align-items: center;
+  display: flex;
+  gap: 24px;
+  justify-content: space-between;
+  margin: 0 auto;
+  max-width: 1140px;
+  padding: 14px 24px;
+}
+
+.hp-brand {
+  align-items: center;
+  color: var(--foreground);
+  display: flex;
+  gap: 12px;
+  text-decoration: none;
+}
+
+.hp-brand-mark {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.hp-brand-text {
+  display: grid;
+  line-height: 1.1;
+}
+
+.hp-brand-name {
+  font-family: var(--display-font);
+  font-size: 1.5rem;
+  font-weight: 900;
+  letter-spacing: -0.01em;
+}
+
+.hp-brand-tag {
+  align-items: center;
+  color: var(--muted);
+  display: inline-flex;
+  font-size: 0.74rem;
+  font-weight: 700;
+  gap: 5px;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.hp-leaf {
+  height: 13px;
+  width: 13px;
+}
+
+.hp-nav {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.9rem;
+  font-weight: 700;
+  gap: 6px 22px;
+  justify-content: flex-end;
+}
+
+.hp-nav a {
+  color: var(--foreground);
+  text-decoration: none;
+}
+
+.hp-nav a:hover {
+  color: var(--accent);
+}
+
+.hp-main {
+  display: grid;
+  gap: 44px;
+  margin: 0 auto;
+  max-width: 1140px;
+  padding: 44px 24px 64px;
+  width: 100%;
+}
+
+.hp-hero {
+  align-items: center;
+  display: grid;
+  gap: 32px;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+}
+
+.hp-hero-copy {
+  display: grid;
+  gap: 18px;
+}
+
+.hp-hero-svg {
+  display: block;
+  height: auto;
+  margin: 0 auto;
+  max-width: 420px;
+  width: 100%;
+}
+
+.hp-pricecheck {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgb(32 36 44 / 6%);
+  padding: 26px;
+}
+
+.hp-trust {
+  border-top: 1px solid var(--border);
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 18px 0 0;
+}
+
+.hp-trust li {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+}
+
+.hp-trust li > span:last-child {
+  color: var(--muted);
+  display: grid;
+  font-size: 0.86rem;
+}
+
+.hp-trust strong {
+  color: var(--foreground);
+  font-size: 0.98rem;
+}
+
+.hp-trust-icon {
+  align-items: center;
+  background: var(--accent-soft);
+  border-radius: 12px;
+  display: inline-flex;
+  flex-shrink: 0;
+  height: 42px;
+  justify-content: center;
+  width: 42px;
+}
+
+.hp-trust-icon svg {
+  fill: none;
+  height: 24px;
+  stroke: var(--accent);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+  width: 24px;
+}
+
+.hp-section-head {
+  align-items: end;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.hp-section-head h2 {
+  font-family: var(--display-font);
+  font-size: 1.5rem;
+  font-weight: 900;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.hp-section-head p {
+  color: var(--muted);
+  margin: 4px 0 0;
+}
+
+.hp-more {
+  color: var(--accent-strong);
+  flex-shrink: 0;
+  font-size: 0.92rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.hp-more:hover {
+  text-decoration: underline;
+}
+
+.hp-cat-list {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.hp-cat {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  color: var(--foreground);
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+  padding: 16px 10px 14px;
+  text-align: center;
+  text-decoration: none;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+
+.hp-cat:hover {
+  border-color: var(--accent);
+  box-shadow: 0 8px 22px rgb(32 36 44 / 8%);
+}
+
+.hp-cat-name {
+  font-size: 0.92rem;
+  font-weight: 800;
+}
+
+.hp-cat-count {
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+.hp-guides {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.hp-guide-card {
+  align-items: start;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: auto minmax(0, 1fr);
+  padding: 16px;
+}
+
+.hp-guide-tag {
+  color: var(--accent-strong);
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  margin: 0 0 4px;
+  text-transform: uppercase;
+}
+
+.hp-guide-card .guide-card-title {
+  font-size: 1rem;
+  line-height: 1.3;
+  margin: 0 0 6px;
+}
+
+.hp-guide-card .guide-card-meta {
+  margin: 0;
+}
+
+.hp-watch {
+  display: grid;
+  gap: 28px;
+}
+
+.price-drop-badge {
+  background: #15803d;
+  border-radius: 999px;
+  color: #ffffff;
+  font-size: 0.78rem;
+  font-weight: 800;
+  margin-left: auto;
+  padding: 3px 9px;
+}
+
+@media (max-width: 900px) {
+  .hp-hero {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .hp-hero-art {
+    display: none;
+  }
+
+  .hp-guides {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 760px) {
+  .hp-header-inner {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px 16px;
+  }
+
+  .hp-nav {
+    gap: 6px 16px;
+    justify-content: flex-start;
+  }
+
+  .hp-main {
+    gap: 32px;
+    padding: 28px 16px 48px;
+  }
+
+  .hp-pricecheck {
+    padding: 18px 14px;
+  }
+
+  .hp-trust {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .hp-section-head {
+    align-items: start;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .hp-cat-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .product-art-tile {
+    height: 68px;
+    width: 68px;
+  }
+}
+
+/* Card paragraphs kept their default 1em margins inside a grid (no margin
+   collapsing), so each card was ~150px taller than its content. */
+.deal-card > p,
+.deal-card > h3,
+.deal-card-top > p {
+  margin: 0;
+}
+
+.hp-hero .home-title {
+  font-size: clamp(2.2rem, 4.4vw, 3.3rem);
+  margin: 0;
+}
+
+.hp-hero .home-sub {
+  max-width: 540px;
+}
+
+@media (min-width: 901px) {
+  .hp-cat-list {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
