@@ -7,7 +7,7 @@ drift.
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import datetime
 from typing import Any
 
@@ -15,11 +15,12 @@ from sqlalchemy.orm import Session
 
 from app.providers import ProviderCapability, ProviderError, ProviderProductNotFound
 from app.providers.base import ProductDataProvider, ProviderOffer, ProviderPriceHistory
+from app.providers.dataforseo import is_google_url
 from app.providers.ebay_browse import EbayBrowseClient
 from app.providers.registry import ProviderRegistry
 from app.services.affiliate.ebay_link import ebay_affiliate_url
 from app.services.decision.assess import assess_from_provider
-from app.services.decision.comparison_cache import resolve_comparison
+from app.services.decision.comparison_cache import resolve_comparison, resolve_merchant_links
 from app.services.decision.deal_score import DealAssessment
 from app.services.decision.explain import VerdictExplanation, explain_verdict
 from app.services.decision.matching import Comparison, build_comparison
@@ -145,7 +146,7 @@ async def _build_comparison(
                     candidate = candidate.model_copy(update={"url": tagged_url})
             tagged_candidates.append(candidate)
         candidates = tagged_candidates
-    return build_comparison(
+    comparison = build_comparison(
         reference_merchant="Amazon.ca",
         reference_title=title,
         reference_brand=brand,
@@ -154,6 +155,30 @@ async def _build_comparison(
         candidates=candidates,
         low_90d_cents=low_90d_cents,
     )
+    if db is not None and comparison is not None:
+        # Google Shopping rows link to a Google page. For the offers that made it
+        # through matching, look up the store's own product page instead.
+        google_urls = [o.url for o in comparison.offers if o.url and is_google_url(o.url)]
+        if google_urls:
+            links = await resolve_merchant_links(
+                db,
+                registry,
+                provider=reference_provider,
+                provider_product_id=provider_product_id,
+                market=market,
+                shown_urls=google_urls,
+                now=now,
+            )
+            if links:
+                comparison.offers = [
+                    replace(o, url=links.get(o.url or "", o.url)) for o in comparison.offers
+                ]
+                if comparison.cheapest is not None:
+                    cheapest = comparison.cheapest
+                    comparison.cheapest = replace(
+                        cheapest, url=links.get(cheapest.url or "", cheapest.url)
+                    )
+    return comparison
 
 
 async def _build_offer_spread(

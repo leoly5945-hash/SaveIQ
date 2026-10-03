@@ -3,6 +3,7 @@ from pydantic import BaseModel
 
 from app.core.settings import get_settings
 from app.providers.amazon_creators import get_creators_client
+from app.providers.dataforseo import sellers_status
 from app.providers.ebay_browse import get_ebay_client
 
 router = APIRouter(tags=["health"])
@@ -27,6 +28,7 @@ def health() -> HealthResponse:
 class IntegrationsResponse(BaseModel):
     amazon_images: str
     ebay_offers: str
+    store_links: str
 
 
 @router.get("/health/integrations", response_model=IntegrationsResponse)
@@ -43,4 +45,9 @@ def integrations() -> IntegrationsResponse:
     return IntegrationsResponse(
         amazon_images=creators.status() if creators is not None else "not_configured",
         ebay_offers=ebay.status() if ebay is not None else "not_configured",
+        store_links=(
+            sellers_status()
+            if settings.dataforseo_login and settings.dataforseo_password
+            else "not_configured"
+        ),
     )
