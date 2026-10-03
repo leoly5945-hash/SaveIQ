@@ -112,7 +112,15 @@ jobs:
           PY
       - name: pip-audit runtime dependencies
         run: python -m pip_audit -r apps/api/requirements-audit.txt --progress-spinner=off
-      - name: npm audit
+      # Gate on what ships: the web image is installed with --omit=dev, the same
+      # way pip-audit above checks the API's runtime requirements. Dev-only
+      # tooling is reported below without failing the job — on 2026-10-02 an
+      # advisory with no fixed release (braces, via eslint-config-next) blocked
+      # every PR while production dependencies had 0 findings.
+      - name: npm audit (production dependencies)
+        run: npm audit --audit-level=high --omit=dev
+      - name: npm audit (all, including dev tooling — informational)
+        continue-on-error: true
         run: npm audit --audit-level=high
       - name: Trivy filesystem scan
         uses: aquasecurity/trivy-action@v0.36.0
