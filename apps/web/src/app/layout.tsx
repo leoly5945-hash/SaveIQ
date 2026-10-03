@@ -4,6 +4,7 @@ import { Archivo } from "next/font/google";
 import "./globals.css";
 
 import { SiteFooter } from "@/components/site-footer";
+import { SiteHeader } from "@/components/site-header";
 import { CLOUDFLARE_ANALYTICS_TOKEN, getBrandName, getSiteUrl } from "@/lib/config";
 
 const brandName = getBrandName();
@@ -51,6 +52,7 @@ export default function RootLayout({
         {SITE_VERIFICATION.map((tag) =>
           createElement("meta", { key: tag.value, name: tag.name, value: tag.value }),
         )}
+        <SiteHeader />
         {children}
         <SiteFooter />
         {CLOUDFLARE_ANALYTICS_TOKEN ? (

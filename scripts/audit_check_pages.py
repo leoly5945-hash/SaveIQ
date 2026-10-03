@@ -28,7 +28,7 @@ WEB = "https://www.saveiq.ca/check/"
 ROOT = Path(__file__).resolve().parents[1]
 
 PHONE_ONLY = re.compile(
-    r"\b(carrier|BYOD|battery health|current-flagship|gift-card bundles|trade-in credit|"
+    r"\b(carrier|BYOD|current-flagship|gift-card bundles|trade-in credit|"
     r"device financing|unlocked|5G|unlimited\" plan|throttle)\b",
     re.I,
 )

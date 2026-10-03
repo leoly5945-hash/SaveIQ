@@ -214,69 +214,98 @@ function VerdictCard({
   const currency = assessment.effective_price.currency;
   const effective = assessment.effective_price.effective_cents;
   const band = ninetyDayBand(assessment.intelligence);
+  const name = result.title ?? result.provider_product_id;
 
   return (
-    <article className={`verdict verdict-${v.tone}`}>
-      <header className="verdict-head">
-        <span className="verdict-badge">{v.label}</span>
-        <ProductImage
-          href={amazonButtonHref(result, "image")}
-          size="hero"
-          src={result.image_url}
-          title={(result.title ?? result.provider_product_id)}
-        />
-        <div className="verdict-headline">
-          <p className="verdict-title">{result.title ?? result.provider_product_id}</p>
-          <p className="verdict-blurb">
-            {result.explanation?.headline ?? v.blurb}
-          </p>
+    <article className={`verdict verdict-${v.tone} pp`}>
+      <div className="pp-top">
+        <div className="pp-media">
+          <ProductImage
+            href={amazonButtonHref(result, "image")}
+            size="page"
+            src={result.image_url}
+            title={name}
+          />
         </div>
-      </header>
+        <div className="pp-summary">
+          <p className="verdict-title pp-title">{name}</p>
+          <div className={`pp-verdict pp-verdict-${v.tone}`}>
+            <span className="verdict-badge">{v.label}</span>
+            <p className="verdict-blurb">
+              {result.explanation?.headline ?? v.blurb}
+            </p>
+          </div>
+          <div className="verdict-price">
+            <span className="verdict-now">{formatMoney(effective, currency)}</span>
+            <span className="pp-at">at Amazon.ca</span>
+            <span className="verdict-conf">confidence: {assessment.confidence}</span>
+          </div>
+          {result.buy_url ?? result.product_url ? (
+            <BuyCta
+              amazonHref={amazonButtonHref(result, "checkbox")}
+              amazonPriceCents={effective}
+              cheapest={result.comparison?.cheapest ?? null}
+              currency={currency}
+              verdict={assessment.verdict}
+              top
+            />
+          ) : null}
+        </div>
+      </div>
 
       {result.narration ? (
         <p className="verdict-narration">{result.narration}</p>
       ) : null}
 
-      <div className="verdict-price">
-        <span className="verdict-now">{formatMoney(effective, currency)}</span>
-        <span className="verdict-conf">confidence: {assessment.confidence}</span>
-      </div>
-
-      {result.explanation?.position ? (
-        <PricePositionBar currency={currency} position={result.explanation.position} />
-      ) : null}
+      <section className="pp-history" aria-label="90-day price history">
+        <h3>90-day price history</h3>
+        <div className="pp-history-grid">
+          <div className="pp-chart">
+            {result.sparkline.length >= 2 ? (
+              <div className="verdict-spark">
+                <Sparkline points={result.sparkline} tone={v.tone} />
+                <div className="verdict-spark-scale">
+                  <span>{formatMoney(band.min, currency)}</span>
+                  <span>90 days</span>
+                  <span>{formatMoney(band.max, currency)}</span>
+                </div>
+              </div>
+            ) : null}
+            {result.explanation?.position ? (
+              <PricePositionBar
+                currency={currency}
+                position={result.explanation.position}
+              />
+            ) : null}
+          </div>
+          <dl className="pp-stats">
+            {band.max !== null ? (
+              <div>
+                <dt>Highest (90 days)</dt>
+                <dd>{formatMoney(band.max, currency)}</dd>
+              </div>
+            ) : null}
+            {band.min !== null ? (
+              <div>
+                <dt>Lowest (90 days)</dt>
+                <dd>{formatMoney(band.min, currency)}</dd>
+              </div>
+            ) : null}
+            {band.avg !== null ? (
+              <div>
+                <dt>Average</dt>
+                <dd>{formatMoney(band.avg, currency)}</dd>
+              </div>
+            ) : null}
+            <div className={`pp-stats-now pp-stats-${v.tone}`}>
+              <dt>Current price</dt>
+              <dd>{formatMoney(effective, currency)}</dd>
+            </div>
+          </dl>
+        </div>
+      </section>
 
       <DiscountChecks checks={result.explanation?.discount_checks ?? []} />
-
-      {result.buy_url ?? result.product_url ? (
-        <BuyCta
-          amazonHref={amazonButtonHref(result, "checkbox")}
-          amazonPriceCents={effective}
-          cheapest={result.comparison?.cheapest ?? null}
-          currency={currency}
-          verdict={assessment.verdict}
-          top
-        />
-      ) : null}
-
-      {result.sparkline.length >= 2 ? (
-        <div className="verdict-spark">
-          <Sparkline points={result.sparkline} tone={v.tone} />
-          <div className="verdict-spark-scale">
-            <span>{formatMoney(band.min, currency)}</span>
-            <span>90 days</span>
-            <span>{formatMoney(band.max, currency)}</span>
-          </div>
-        </div>
-      ) : band.min !== null && band.max !== null ? (
-        <p className="verdict-band">
-          90-day range {formatMoney(band.min, currency)} –{" "}
-          {formatMoney(band.max, currency)}
-          {band.avg !== null ? (
-            <> · avg {formatMoney(band.avg, currency)}</>
-          ) : null}
-        </p>
-      ) : null}
 
       {assessment.reasons.length > 0 ? (
         <details className="verdict-details">
