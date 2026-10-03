@@ -7,7 +7,7 @@ drift.
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
 
@@ -146,16 +146,21 @@ async def _build_comparison(
                     candidate = candidate.model_copy(update={"url": tagged_url})
             tagged_candidates.append(candidate)
         candidates = tagged_candidates
-    comparison = build_comparison(
-        reference_merchant="Amazon.ca",
-        reference_title=title,
-        reference_brand=brand,
-        reference_price_cents=reference_price_cents,
-        currency=currency,
-        candidates=candidates,
-        low_90d_cents=low_90d_cents,
-    )
-    if db is not None and comparison is not None:
+    reference_title = title
+
+    def _match(offers: list[ProviderOffer]) -> Comparison:
+        return build_comparison(
+            reference_merchant="Amazon.ca",
+            reference_title=reference_title,
+            reference_brand=brand,
+            reference_price_cents=reference_price_cents,
+            currency=currency,
+            candidates=offers,
+            low_90d_cents=low_90d_cents,
+        )
+
+    comparison = _match(candidates)
+    if db is not None:
         # Google Shopping rows link to a Google page. For the offers that made it
         # through matching, look up the store's own product page instead.
         google_urls = [o.url for o in comparison.offers if o.url and is_google_url(o.url)]
@@ -170,14 +175,13 @@ async def _build_comparison(
                 now=now,
             )
             if links:
-                comparison.offers = [
-                    replace(o, url=links.get(o.url or "", o.url)) for o in comparison.offers
-                ]
-                if comparison.cheapest is not None:
-                    cheapest = comparison.cheapest
-                    comparison.cheapest = replace(
-                        cheapest, url=links.get(cheapest.url or "", cheapest.url)
-                    )
+                # Match again: the store page can show it is another size.
+                comparison = _match(
+                    [
+                        c.model_copy(update={"url": links[c.url]}) if c.url in links else c
+                        for c in candidates
+                    ]
+                )
     return comparison
 
 

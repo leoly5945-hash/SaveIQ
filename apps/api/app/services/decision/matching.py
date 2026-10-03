@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
+from urllib.parse import unquote, urlsplit
 
 from app.providers.base import ProviderOffer
 
@@ -357,6 +358,110 @@ def gtin_confidence(
     return _GTIN_MATCH_CONFIDENCE
 
 
+# -- the store's own product page ---------------------------------------------
+#
+# Once a Google Shopping row has been resolved to the store's page, its URL says
+# what is really sold there: "…/instant-pot-duo-v5-7-in-1-pressure-cooker-8qt/…"
+# for a row matched to the 6 Quart pot, "…-white/…" for the Black headphones.
+
+_PAGE_UNIT_ALIASES = {
+    "quart": "qt",
+    "quarts": "qt",
+    "litre": "l",
+    "litres": "l",
+    "liter": "l",
+    "liters": "l",
+    "inch": "in",
+    "inches": "in",
+    "ounce": "oz",
+    "ounces": "oz",
+    "lbs": "lb",
+}
+_PAGE_SPEC_RE = re.compile(
+    rf"(?<![a-z0-9])(\d+(?:\.\d+)?) ?({_SPEC_UNITS}|qt|{'|'.join(_PAGE_UNIT_ALIASES)})(?![a-z0-9])"
+)
+# "7-in-1" is a feature count, not seven inches.
+_N_IN_ONE_RE = re.compile(r"\b\d+ in 1\b")
+# A slug writes "1.5" as "1-5"; read "1 5l" as 1.5 L as well as 5 L.
+_PAGE_DECIMAL_RE = re.compile(r"(?<![a-z0-9])(\d+) (\d)(?= ?[a-z])")
+_COLOURS = (
+    "black",
+    "white",
+    "silver",
+    "grey",
+    "gray",
+    "blue",
+    "red",
+    "green",
+    "pink",
+    "purple",
+    "yellow",
+    "orange",
+    "gold",
+    "beige",
+    "brown",
+    "navy",
+    "teal",
+)
+
+
+def store_page_words(url: str | None) -> str:
+    """The words of a store product URL's path; ``""`` for a Google or eBay link."""
+
+    if not url:
+        return ""
+    parts = urlsplit(url)
+    host = (parts.hostname or "").lower()
+    labels = host.split(".")
+    if not host or "google" in labels or "ebay" in labels:
+        return ""
+    return _norm(unquote(parts.path).replace("-", " ").replace("_", " ").replace("/", " "))
+
+
+def _page_specs(text: str, *, slug: bool = False) -> dict[str, set[str]]:
+    text = re.sub(r"[^a-z0-9. ]+", " ", text.casefold())
+    text = _N_IN_ONE_RE.sub(" ", text)
+    texts = [text]
+    if slug:
+        texts.append(_PAGE_DECIMAL_RE.sub(r"\1.\2", text))
+    specs: dict[str, set[str]] = {}
+    for candidate in texts:
+        for number, unit in _PAGE_SPEC_RE.findall(candidate):
+            value = number.rstrip("0").rstrip(".") if "." in number else number
+            specs.setdefault(_PAGE_UNIT_ALIASES.get(unit, unit), set()).add(value)
+    return specs
+
+
+def store_page_conflict(reference_title: str, page_words: str) -> bool:
+    """The store page names a size or a pack count the reference doesn't have."""
+
+    if not page_words:
+        return False
+    ref_specs, page_specs = _page_specs(reference_title), _page_specs(page_words, slug=True)
+    for unit in ref_specs.keys() & page_specs.keys():
+        if not (ref_specs[unit] & page_specs[unit]):
+            return True
+    page_multi = {n for n in _pack_counts(page_words) if n > 1}
+    return bool(page_multi) and not (page_multi & _pack_counts(reference_title))
+
+
+def _colours(text: str) -> list[str]:
+    words = _norm(text).split()
+    return [c for c in _COLOURS if c in words]
+
+
+def store_page_colour_note(reference_title: str, page_words: str) -> str | None:
+    """A line for the row when the store page is for another colour."""
+
+    ours, theirs = _colours(reference_title), _colours(page_words)
+    if not ours or not theirs or set(ours) & set(theirs):
+        return None
+    grey = {"gray": "grey"}
+    theirs_name = grey.get(theirs[0], theirs[0]).capitalize()
+    ours_name = grey.get(ours[0], ours[0]).capitalize()
+    return f"{theirs_name} at this store · the Amazon.ca price is for {ours_name}"
+
+
 def _offer_detail(offer: ProviderOffer) -> str | None:
     meta = offer.metadata or {}
     pct = meta.get("seller_feedback_pct")
@@ -425,6 +530,9 @@ def build_comparison(
             )
         if confidence < _MIN_CONFIDENCE:
             continue
+        page_words = store_page_words(offer.url)
+        if store_page_conflict(reference_title, page_words):
+            continue
         # A Dyson V8 Plus never under $449.99 on Amazon in 90 days, "matched" at
         # 0.58 to a $279.99 listing: a different variant or a refurb, not a deal.
         # The same went for a V15 Detect Plus (never under $799.99) "matched" at
@@ -450,7 +558,7 @@ def build_comparison(
             currency=offer.currency or currency,
             url=offer.url,
             match_confidence=confidence,
-            detail=_offer_detail(offer),
+            detail=_offer_detail(offer) or store_page_colour_note(reference_title, page_words),
         )
         if not_cheaper:
             if also_on_ebay is None or matched.price_cents < also_on_ebay.price_cents:
