@@ -3,9 +3,13 @@ import Link from "next/link";
 import { getBrandName } from "@/lib/config";
 import { GUIDES, guidePath } from "@/lib/guides";
 
+import { MapleLeaf, ProductArt } from "@/components/product-art";
+
 import { CheckBox } from "./check-box";
 import { DiscoverBox } from "./discover-box";
 import { FeaturedDeals } from "./featured-deals";
+import { HeroArt } from "./hero-art";
+import { HomeCategories } from "./home-categories";
 import { MultiStoreShowcase } from "./multi-store-showcase";
 import { HomePriceDrops } from "./price-drops-section";
 
@@ -27,12 +31,12 @@ export default function Home() {
 
   return (
     <div className="home-page">
-      <header className="home-header">
-        <div className="home-header-inner">
-          <p className="home-brand">
-            <span className="home-brand-mark" aria-hidden="true">
-              <svg width="40" height="40" viewBox="0 0 44 44">
-                <rect width="44" height="44" rx="13" fill="#ffffff" />
+      <header className="hp-header">
+        <div className="hp-header-inner">
+          <Link className="hp-brand" href="/">
+            <span className="hp-brand-mark" aria-hidden="true">
+              <svg width="42" height="42" viewBox="0 0 44 44">
+                <rect width="44" height="44" rx="13" fill="#0f766e" />
                 <text
                   x="22"
                   y="31"
@@ -40,7 +44,7 @@ export default function Home() {
                   fontWeight="900"
                   fontSize="21"
                   letterSpacing="-1"
-                  fill="#0f766e"
+                  fill="#ffffff"
                   style={{ fontFamily: "var(--display-font)" }}
                 >
                   iQ
@@ -48,17 +52,22 @@ export default function Home() {
                 <circle cx="14.6" cy="12" r="2.6" fill="#f97316" />
               </svg>
             </span>
-            {brandName}
-          </p>
-          <nav className="home-nav">
-            <Link href="/guides">Guides</Link>
+            <span className="hp-brand-text">
+              <span className="hp-brand-name">{brandName}</span>
+              <span className="hp-brand-tag">
+                Smarter Shopping in Canada
+                <MapleLeaf className="hp-leaf" />
+              </span>
+            </span>
+          </Link>
+          <nav className="hp-nav" aria-label="Main">
             <a href="#price-check">Price Check</a>
             <Link href="/amazon-price-history">Price History</Link>
             <Link href="/deals">Price Watch</Link>
-            <Link href="/watchlist">Watchlist</Link>
+            <Link href="/guides">Buying Guides</Link>
+            <Link href="/watchlist">Price Alerts</Link>
             <Link href="/extension">Extension</Link>
             <Link href="/about">About</Link>
-            <a href="#how-we-evaluate">How we evaluate</a>
           </nav>
         </div>
         <div className="home-valueprop">
@@ -72,20 +81,32 @@ export default function Home() {
         </div>
       </header>
 
-      <main className="home-shell">
-        <p className="home-eyebrow">Independent buying guides · Canada</p>
-        <h1 className="home-title">
-          Shopping intelligence{" "}
-          <br />
-          <span>at its smartest.</span>
-        </h1>
-        <p className="home-sub">
-          {brandName} publishes buying guides, side-by-side comparisons and
-          price-history analysis for everyday products, and shows its reasoning.
-          We don&apos;t sell products or run coupon codes or cashback programs,
-          and no retailer can pay for a better verdict.
-        </p>
-        <section className="home-pricecheck" id="price-check" aria-labelledby="price-check-heading">
+      <main className="hp-main">
+        <section className="hp-hero">
+          <div className="hp-hero-copy">
+            <p className="home-eyebrow">Independent buying guides · Canada</p>
+            <h1 className="home-title">
+              Shopping intelligence{" "}
+              <br />
+              <span>at its smartest.</span>
+            </h1>
+            <p className="home-sub">
+              {brandName} publishes buying guides, side-by-side comparisons and
+              price-history analysis for everyday products, and shows its
+              reasoning. We don&apos;t sell products or run coupon codes or
+              cashback programs, and no retailer can pay for a better verdict.
+            </p>
+          </div>
+          <div className="hp-hero-art" aria-hidden="true">
+            <HeroArt />
+          </div>
+        </section>
+
+        <section
+          className="home-pricecheck hp-pricecheck"
+          id="price-check"
+          aria-labelledby="price-check-heading"
+        >
           <div className="home-how-head">
             <h2 id="price-check-heading">Check a price</h2>
             <p>
@@ -109,40 +130,86 @@ export default function Home() {
             </p>
           </div>
 
-          {/* Price Watch right under the alert box, so it's seen without
-              scrolling to the bottom of the page. */}
-          <FeaturedDeals />
-
-          <MultiStoreShowcase />
+          <ul className="hp-trust">
+            <li>
+              <span className="hp-trust-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M9.5 14.5c.6 1 1.5 1.5 2.7 1.5 1.5 0 2.5-.8 2.5-2s-1-1.7-2.6-2.1c-1.5-.4-2.4-.9-2.4-2 0-1.1 1-1.9 2.4-1.9 1.1 0 1.9.4 2.4 1.200M12 6.500v11" />
+                </svg>
+              </span>
+              <span>
+                <strong>No fees</strong>
+                Free to use, always
+              </span>
+            </li>
+            <li>
+              <span className="hp-trust-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <circle cx="12" cy="9" r="4" />
+                  <path d="M4.5 20c1.2-3.3 4-5 7.5-5s6.3 1.7 7.5 5" />
+                </svg>
+              </span>
+              <span>
+                <strong>No account</strong>
+                Nothing to sign up for
+              </span>
+            </li>
+            <li>
+              <span className="hp-trust-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <path d="M4 12.500V5.500A1.5 1.5 0 0 1 5.5 4h7l7.5 7.5-8.5 8.500z" />
+                  <circle cx="8.5" cy="8.5" r="1.4" />
+                </svg>
+              </span>
+              <span>
+                <strong>No markup</strong>
+                You pay the retailer&apos;s price, in CAD
+              </span>
+            </li>
+          </ul>
         </section>
+
+        <HomeCategories />
 
         <HomePriceDrops />
 
         <section className="home-latest" aria-labelledby="latest-guides-heading">
-          <div className="home-how-head">
-            <h2 id="latest-guides-heading">Latest buying guides</h2>
-            <p>
-              Plain, factual guides written to be useful to a shopper, not to
-              sell. Each one shows when it was last updated.
-            </p>
+          <div className="hp-section-head">
+            <div>
+              <h2 id="latest-guides-heading">Latest buying guides</h2>
+              <p>
+                Plain, factual guides written to be useful to a shopper, not to
+                sell. Each one shows when it was last updated.
+              </p>
+            </div>
+            <Link className="hp-more" href="/guides">
+              View all guides →
+            </Link>
           </div>
-          <ul className="guides-list">
+          <ul className="hp-guides">
             {LATEST_GUIDES.map((guide) => (
-              <li className="guide-card" key={guide.slug}>
-                <h3 className="guide-card-title">
-                  <Link href={guidePath(guide.slug)}>{guide.title}</Link>
-                </h3>
-                <p className="guide-card-desc">{guide.description}</p>
-                <p className="guide-card-meta">
-                  Updated {formatGuideDate(guide.updated)} · {guide.readMinutes}{" "}
-                  min read
-                </p>
+              <li className="hp-guide-card" key={guide.slug}>
+                <ProductArt categorySlug="guide" size="tile" title={guide.title} />
+                <div>
+                  <p className="hp-guide-tag">Guide</p>
+                  <h3 className="guide-card-title">
+                    <Link href={guidePath(guide.slug)}>{guide.title}</Link>
+                  </h3>
+                  <p className="guide-card-meta">
+                    Updated {formatGuideDate(guide.updated)} · {guide.readMinutes}{" "}
+                    min read
+                  </p>
+                </div>
               </li>
             ))}
           </ul>
-          <p className="deal-page-back">
-            <Link href="/guides">All buying guides →</Link>
-          </p>
+        </section>
+
+        <section className="hp-watch" aria-label="Price Watch">
+          <FeaturedDeals />
+
+          <MultiStoreShowcase />
         </section>
 
         <section className="home-how" id="how-we-evaluate">

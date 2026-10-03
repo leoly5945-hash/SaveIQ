@@ -25,12 +25,18 @@ describe("Home", () => {
 
     expect(text).toContain("SaveIQ");
     expect(text).toContain("Independent buying guides");
+    expect(text).toContain("Smarter Shopping in Canada");
     expect(text).toContain("Shopping intelligence");
     expect(text).toContain("at its smartest.");
     expect(text).toContain("Latest buying guides");
     expect(text).toContain("Check a price");
     // paste-a-link is still offered, just demoted below search
     expect(text).toContain("Already looking at something on Amazon.ca");
+    expect(text).toContain("No fees");
+    expect(text).toContain("No account");
+    expect(text).toContain("No markup");
+    // No accounts exist, so the page must not offer a sign-in.
+    expect(text).not.toContain("Sign in");
     expect(text).toContain("How we evaluate");
     expect(text).toContain("We don't lab-test products.");
     expect(text).toContain("Editorial Guidelines");
