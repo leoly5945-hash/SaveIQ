@@ -17,3 +17,5 @@ coverage/
 *.egg-info/
 *.tsbuildinfo
 artifacts/
+# Copied from node_modules by apps/web/scripts/copy-barcode-wasm.mjs
+apps/web/public/vendor/

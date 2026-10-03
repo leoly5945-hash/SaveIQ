@@ -3,7 +3,9 @@
   "private": true,
   "version": "0.1.0",
   "scripts": {
+    "prebuild": "node scripts/copy-barcode-wasm.mjs",
     "build": "next build",
+    "predev": "node scripts/copy-barcode-wasm.mjs",
     "dev": "next dev",
     "lint": "eslint . --max-warnings=0",
     "start": "next start",
@@ -11,6 +13,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "barcode-detector": "3.2.2",
     "next": "^16.2.10",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
