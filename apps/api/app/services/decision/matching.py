@@ -108,6 +108,8 @@ class MerchantOffer:
     match_confidence: float
     # Shown under the merchant name, e.g. "New · seller 99.8% positive".
     detail: str | None = None
+    # The store page is for another colour: listed, never named "cheaper at".
+    other_variant: bool = False
 
 
 @dataclass
@@ -552,13 +554,15 @@ def build_comparison(
             reference_price_cents * _EBAY_MIN_RATIO
         ):
             continue
+        colour_note = store_page_colour_note(reference_title, page_words)
         matched = MerchantOffer(
             merchant=merchant,
             price_cents=offer.total_cents,
             currency=offer.currency or currency,
             url=offer.url,
             match_confidence=confidence,
-            detail=_offer_detail(offer) or store_page_colour_note(reference_title, page_words),
+            detail=_offer_detail(offer) or colour_note,
+            other_variant=colour_note is not None,
         )
         if not_cheaper:
             if also_on_ebay is None or matched.price_cents < also_on_ebay.price_cents:
@@ -570,12 +574,14 @@ def build_comparison(
 
     offers = sorted(best_per_merchant.values(), key=lambda o: o.price_cents)
     # The cheapest offer we are confident about — a weak match sorted above it
-    # must not stop a solid, genuinely cheaper one from being named.
+    # must not stop a solid, genuinely cheaper one from being named. Another
+    # colour often has another price, so it is never the "cheaper at" offer.
     cheapest = next(
         (
             o
             for o in offers
             if o.match_confidence >= _CHEAPEST_MIN_CONFIDENCE
+            and not o.other_variant
             and o.price_cents <= round(reference_price_cents * (1 - _CHEAPER_MARGIN))
         ),
         None,

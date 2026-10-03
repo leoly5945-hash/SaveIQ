@@ -572,3 +572,34 @@ def test_build_comparison_drops_a_resolved_row_for_another_size() -> None:
     assert len(build_comparison(candidates=[offer(google)], **kwargs).offers) == 1
     assert build_comparison(candidates=[offer(BESTBUY_8QT)], **kwargs).offers == []
     assert len(build_comparison(candidates=[offer(BESTBUY_6QT)], **kwargs).offers) == 1
+
+
+def test_another_colour_is_listed_but_never_named_cheaper() -> None:
+    def offer(merchant: str, price_cents: int, url: str) -> ProviderOffer:
+        return ProviderOffer(
+            provider="dataforseo",
+            provider_product_id="B0CCZ26B5V",
+            merchant=merchant,
+            price_cents=price_cents,
+            currency="CAD",
+            url=url,
+            observed_at=datetime(2026, 10, 3, tzinfo=UTC),
+            metadata={"title": "Bose QuietComfort Headphones Wireless Bluetooth Headphones"},
+        )
+
+    comp = build_comparison(
+        reference_merchant="Amazon.ca",
+        reference_title="Bose QuietComfort Headphones - Wireless Bluetooth Headphones, Black",
+        reference_brand="Bose",
+        reference_price_cents=47900,
+        currency="CAD",
+        candidates=[
+            offer(
+                "Best Buy", 33999, "https://www.bestbuy.ca/en-ca/product/bose-quietcomfort-white/1"
+            ),
+            offer("The Source", 44999, "https://www.thesource.ca/p/bose-quietcomfort-black/2"),
+        ],
+    )
+    assert [o.merchant for o in comp.offers] == ["Best Buy", "The Source"]
+    assert comp.offers[0].other_variant and comp.offers[0].detail is not None
+    assert comp.cheapest is not None and comp.cheapest.merchant == "The Source"
