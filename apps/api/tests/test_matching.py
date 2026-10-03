@@ -5,7 +5,13 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 from app.providers.base import ProviderOffer
-from app.services.decision.matching import build_comparison, score_candidate
+from app.services.decision.matching import (
+    build_comparison,
+    score_candidate,
+    store_page_colour_note,
+    store_page_conflict,
+    store_page_words,
+)
 
 NOW = datetime(2026, 9, 9, tzinfo=UTC)
 REF_TITLE = "Anker SOLIX S2000 Portable Power Station, 2010Wh, 1500W Solar Generator"
@@ -479,3 +485,90 @@ def test_an_unrelated_item_filed_under_the_products_catalogue_id_is_rejected() -
         ],
     )
     assert comp.offers == [] and comp.also_on_ebay is None
+
+
+# -- the store's own product page (a resolved Google Shopping row) ------------
+
+INSTANT_POT = (
+    "Instant Pot Duo 7-in-1 Electric Pressure Cooker, Slow Cooker, Rice Cooker, Steamer, "
+    "Saute, Yogurt Maker, Warmer & Sterilizer, Stainless Steel, 6 Quart"
+)
+BESTBUY_8QT = (
+    "https://www.bestbuy.ca/en-ca/product/instant-pot-duo-v5-7-in-1-pressure-cooker-8qt/16374909"
+)
+BESTBUY_6QT = (
+    "https://www.bestbuy.ca/en-ca/product/instant-pot-duo-v5-7-in-1-pressure-cooker-6qt/16374908"
+)
+
+
+def test_store_page_words_reads_the_path_and_ignores_google_and_ebay() -> None:
+    assert "pressure cooker 8qt" in store_page_words(BESTBUY_8QT)
+    assert store_page_words("https://google.ca/search?ibp=oshop&q=instant+pot+8qt") == ""
+    assert store_page_words("https://www.ebay.ca/itm/267667995506") == ""
+    assert store_page_words(None) == ""
+
+
+def test_store_page_for_another_size_is_a_conflict() -> None:
+    assert store_page_conflict(INSTANT_POT, store_page_words(BESTBUY_8QT))
+    assert not store_page_conflict(INSTANT_POT, store_page_words(BESTBUY_6QT))
+    # "7-in-1" is not a size; a page that names no size is not a conflict
+    assert not store_page_conflict(
+        INSTANT_POT, store_page_words("https://www.walmart.ca/en/ip/instant-pot-duo-7-in-1/123")
+    )
+    # a slug writes 1.5 L as "1-5l"
+    assert not store_page_conflict(
+        "Hamilton Beach Kettle, 1.5 L", store_page_words("https://shop.example/p/kettle-1-5l")
+    )
+    assert store_page_conflict(
+        "Hamilton Beach Kettle, 1.5 L", store_page_words("https://shop.example/p/kettle-1-7-l")
+    )
+
+
+def test_store_page_for_another_pack_count_is_a_conflict() -> None:
+    single = "Crest Pro-Health Toothpaste 130 mL"
+    assert store_page_conflict(single, store_page_words("https://shop.example/p/crest-3-pack"))
+    assert not store_page_conflict(
+        "Crest Pro-Health Toothpaste 130 mL, Pack of 3",
+        store_page_words("https://shop.example/p/crest-pro-health-3-pack"),
+    )
+
+
+def test_store_page_in_another_colour_is_noted_not_dropped() -> None:
+    bose = "Bose QuietComfort Headphones - Wireless Bluetooth Headphones, Black"
+    white = store_page_words(
+        "https://www.bestbuy.ca/en-ca/product/bose-quietcomfort-headphones-white/19184661"
+    )
+    assert not store_page_conflict(bose, white)
+    assert store_page_colour_note(bose, white) == (
+        "White at this store · the Amazon.ca price is for Black"
+    )
+    # same colour, or no colour on either side: nothing to say
+    black = store_page_words("https://www.bestbuy.ca/en-ca/product/bose-quietcomfort-black/1")
+    assert store_page_colour_note(bose, black) is None
+    assert store_page_colour_note("Logitech M185 Wireless Mouse", white) is None
+
+
+def test_build_comparison_drops_a_resolved_row_for_another_size() -> None:
+    def offer(url: str) -> ProviderOffer:
+        return ProviderOffer(
+            provider="dataforseo",
+            provider_product_id="B00FLYWNYQ",
+            merchant="Best Buy Canada",
+            price_cents=12999,
+            currency="CAD",
+            url=url,
+            observed_at=datetime(2026, 10, 3, tzinfo=UTC),
+            metadata={"title": "Instant Pot Duo 7-in-1 Electric Pressure Cooker"},
+        )
+
+    kwargs = dict(
+        reference_merchant="Amazon.ca",
+        reference_title=INSTANT_POT,
+        reference_brand="Instant Pot",
+        reference_price_cents=15999,
+        currency="CAD",
+    )
+    google = "https://google.ca/search?ibp=oshop&q=Instant+Pot+Duo"
+    assert len(build_comparison(candidates=[offer(google)], **kwargs).offers) == 1
+    assert build_comparison(candidates=[offer(BESTBUY_8QT)], **kwargs).offers == []
+    assert len(build_comparison(candidates=[offer(BESTBUY_6QT)], **kwargs).offers) == 1
