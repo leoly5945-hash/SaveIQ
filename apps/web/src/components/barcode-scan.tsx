@@ -4,29 +4,80 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 // The Barcode Detection API isn't in TypeScript's DOM lib yet.
 type DetectedBarcode = { rawValue: string };
-type Detector = { detect(source: HTMLVideoElement): Promise<DetectedBarcode[]> };
-type DetectorCtor = new (options: { formats: string[] }) => Detector;
+type Detector = { detect(source: HTMLVideoElement | ImageData): Promise<DetectedBarcode[]> };
+type NativeDetectorCtor = {
+  new (options: { formats: string[] }): Detector;
+  getSupportedFormats?: () => Promise<string[]>;
+};
+// What the scan loop hands the detector each tick.
+type Scanner = { detector: Detector; needsImageData: boolean };
 
-const RETAIL_FORMATS = ["ean_13", "ean_8", "upc_a", "upc_e"];
+const RETAIL_FORMATS = ["ean_13", "ean_8", "upc_a", "upc_e"] as const;
+// Longest side of the frame given to the bundled decoder.
+const MAX_FRAME_SIDE = 1280;
 
-function detectorCtor(): DetectorCtor | null {
-  if (typeof window === "undefined") return null;
-  const ctor = (window as unknown as { BarcodeDetector?: DetectorCtor }).BarcodeDetector;
-  if (!ctor || !navigator.mediaDevices?.getUserMedia) return null;
-  return ctor;
+function cameraAvailable(): boolean {
+  return typeof window !== "undefined" && Boolean(navigator.mediaDevices?.getUserMedia);
+}
+
+/**
+ * The browser's own detector where it reads retail barcodes (Chrome on Android
+ * and macOS); otherwise a bundled decoder (WebAssembly, loaded from this site
+ * only when the scanner opens) — which is what Safari on iPhone and Firefox use.
+ */
+async function loadScanner(): Promise<Scanner> {
+  const Native = (window as unknown as { BarcodeDetector?: NativeDetectorCtor }).BarcodeDetector;
+  if (Native?.getSupportedFormats) {
+    try {
+      // macOS has no separate "upc_a": it reads UPC-A as EAN-13 with a leading 0.
+      const supported = await Native.getSupportedFormats();
+      const formats = RETAIL_FORMATS.filter((format) => supported.includes(format));
+      if (formats.includes("ean_13")) {
+        return { detector: new Native({ formats }), needsImageData: false };
+      }
+    } catch {
+      // Fall through to the bundled decoder.
+    }
+  }
+  const { BarcodeDetector, prepareZXingModule, ZXING_WASM_VERSION } = await import(
+    "barcode-detector/ponyfill"
+  );
+  prepareZXingModule({
+    overrides: {
+      locateFile: (path: string, prefix: string) =>
+        path.endsWith(".wasm")
+          ? `/vendor/zxing_reader.wasm?v=${ZXING_WASM_VERSION}`
+          : prefix + path,
+    },
+  });
+  return {
+    detector: new BarcodeDetector({ formats: [...RETAIL_FORMATS] }),
+    needsImageData: true,
+  };
+}
+
+function frameOf(video: HTMLVideoElement, canvas: HTMLCanvasElement): ImageData | null {
+  const { videoWidth, videoHeight } = video;
+  if (!videoWidth || !videoHeight) return null;
+  const scale = Math.min(1, MAX_FRAME_SIDE / Math.max(videoWidth, videoHeight));
+  canvas.width = Math.round(videoWidth * scale);
+  canvas.height = Math.round(videoHeight * scale);
+  const context = canvas.getContext("2d", { willReadFrequently: true });
+  if (!context) return null;
+  context.drawImage(video, 0, 0, canvas.width, canvas.height);
+  return context.getImageData(0, 0, canvas.width, canvas.height);
 }
 
 const noopSubscribe = () => () => {};
 
 /**
- * Camera button that scans a product barcode (UPC / EAN) with the browser's
- * built-in detector — Chrome on Android and macOS today. Hidden where
- * unsupported; the box still accepts a typed barcode number there.
+ * Camera button that scans a product barcode (UPC / EAN). Hidden where the
+ * browser has no camera access; the box still accepts a typed barcode number.
  */
 export function BarcodeScanButton({ onCode }: { onCode: (code: string) => void }) {
   const supported = useSyncExternalStore(
     noopSubscribe,
-    () => detectorCtor() !== null,
+    cameraAvailable,
     () => false
   );
   const [open, setOpen] = useState(false);
@@ -93,12 +144,17 @@ function ScannerDialog({
     let stream: MediaStream | null = null;
 
     async function start() {
-      const Ctor = detectorCtor();
-      if (!Ctor) return;
+      // Load the decoder while the shopper answers the camera prompt.
+      const scannerReady = loadScanner().catch(() => null);
       try {
         stream = await navigator.mediaDevices.getUserMedia({
           audio: false,
-          video: { facingMode: { ideal: "environment" } },
+          video: {
+            facingMode: { ideal: "environment" },
+            // A phone's default 640x480 is too coarse for a small barcode.
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          },
         });
       } catch {
         setProblem("Camera access is blocked. Allow it in your browser, or type the barcode number instead.");
@@ -111,12 +167,19 @@ function ScannerDialog({
       const video = videoRef.current;
       video.srcObject = stream;
       await video.play().catch(() => undefined);
-      const detector = new Ctor({ formats: RETAIL_FORMATS });
+      const scanner = await scannerReady;
+      if (stopped) return;
+      if (!scanner) {
+        setProblem("The scanner could not load. Type the barcode number instead.");
+        return;
+      }
+      const canvas = document.createElement("canvas");
 
       const tick = async () => {
         if (stopped) return;
         try {
-          const hits = await detector.detect(video);
+          const source = scanner.needsImageData ? frameOf(video, canvas) : video;
+          const hits = source ? await scanner.detector.detect(source) : [];
           const hit = hits.find((b) => /^\d{8,14}$/.test(b.rawValue));
           if (hit) {
             stopped = true;
@@ -149,7 +212,7 @@ function ScannerDialog({
       <div className="scan-panel">
         <p className="scan-title">Point your camera at the barcode</p>
         <div className="scan-view">
-          <video muted playsInline ref={videoRef} />
+          <video autoPlay muted playsInline ref={videoRef} />
           <span aria-hidden="true" className="scan-frame" />
         </div>
         {problem ? (

@@ -19,7 +19,9 @@ const SECURITY_HEADERS = [
       "default-src 'self'",
       // Next.js needs inline script/style for hydration without a nonce setup.
       // static.cloudflareinsights.com serves the cookie-free Web Analytics beacon.
-      "script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com",
+      // 'wasm-unsafe-eval' lets the barcode decoder's WebAssembly compile (it is
+      // served from this site); it does not allow eval() of JavaScript.
+      "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://static.cloudflareinsights.com",
       "style-src 'self' 'unsafe-inline'",
       // Product photos come straight from Amazon's CDN (Creators API URLs).
       "img-src 'self' data: https://m.media-amazon.com https://images-na.ssl-images-amazon.com",
