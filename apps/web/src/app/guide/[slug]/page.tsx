@@ -7,6 +7,8 @@ import { AMAZON_ASSOCIATE_DISCLOSURE, categoryPath } from "@/lib/featured-deals"
 import { GUIDES, getGuide } from "@/lib/guides";
 import { safeJsonLd } from "@/lib/json-ld";
 
+import { ProductArt } from "@/components/product-art";
+
 export const dynamic = "force-static";
 
 export function generateStaticParams() {
@@ -32,6 +34,13 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
       type: "article",
     },
   };
+}
+
+function sectionId(heading: string): string {
+  return heading
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
 }
 
 const CATEGORY_LABEL: Record<string, string> = {
@@ -98,81 +107,121 @@ export default async function GuidePage({ params }: Params) {
         <Link href="/guides">Guides</Link>
       </nav>
 
-      <h1 className="home-title guide-page-title">{guide.title}</h1>
-      <p className="guide-page-meta">
-        {guide.readMinutes} min read · Updated {updated}
-        {guide.checked
-          ? ` · Prices and specifications checked ${formatDate(guide.checked)}`
-          : null}
-      </p>
+      <header className="gp-head">
+        <ProductArt categorySlug="guide" size="tile" title={guide.title} />
+        <div>
+          <p className="hp-guide-tag">Guide</p>
+          <h1 className="home-title guide-page-title">{guide.title}</h1>
+          <p className="guide-page-meta">
+            {guide.readMinutes} min read · Updated {updated}
+            {guide.checked
+              ? ` · Prices and specifications checked ${formatDate(guide.checked)}`
+              : null}
+          </p>
+        </div>
+      </header>
 
-      {guide.intro.map((p, i) => (
-        <p className="guide-page-lead" key={i}>
-          {p}
-        </p>
-      ))}
-
-      {guide.sections.map((section) => (
-        <section className="guide-section" key={section.heading}>
-          <h2>{section.heading}</h2>
-          {section.body.map((p, i) => (
-            <p key={i}>{p}</p>
-          ))}
-          {section.table ? (
-            <div className="guide-table-wrap">
-              <table className="guide-table">
-                <caption>{section.table.caption}</caption>
-                <thead>
-                  <tr>
-                    {section.table.headers.map((header) => (
-                      <th scope="col" key={header}>
-                        {header}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {section.table.rows.map((row) => (
-                    <tr key={row.join("|")}>
-                      {row.map((cell, i) => (
-                        <td key={i}>{cell}</td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : null}
-        </section>
-      ))}
-
-      {guide.sources && guide.sources.length > 0 ? (
-        <section className="guide-section guide-sources">
-          <h2>Sources</h2>
-          <ul>
-            {guide.sources.map((source) => (
-              <li key={source.url}>
-                <a href={source.url} rel="noopener noreferrer" target="_blank">
-                  {source.label}
-                </a>
+      <div className="gp-layout">
+        <nav className="gp-toc" aria-labelledby="gp-toc-heading">
+          <h2 id="gp-toc-heading">On this page</h2>
+          <ol>
+            {guide.sections.map((section) => (
+              <li key={section.heading}>
+                <a href={`#${sectionId(section.heading)}`}>{section.heading}</a>
               </li>
             ))}
-          </ul>
-        </section>
-      ) : null}
+          </ol>
+        </nav>
 
-      {guide.relatedCategories && guide.relatedCategories.length > 0 ? (
-        <section className="guide-related">
-          <h2>Related price checks</h2>
-          <p className="guide-related-links">
-            {guide.relatedCategories.map((cat) => (
-              <Link href={categoryPath(cat)} key={cat}>
-                {CATEGORY_LABEL[cat] ?? cat}
+        <article className="gp-article">
+          {guide.intro.map((p, i) => (
+            <p className="guide-page-lead" key={i}>
+              {p}
+            </p>
+          ))}
+
+          {guide.sections.map((section) => (
+            <section
+              className="guide-section"
+              id={sectionId(section.heading)}
+              key={section.heading}
+            >
+              <h2>{section.heading}</h2>
+              {section.body.map((p, i) => (
+                <p key={i}>{p}</p>
+              ))}
+              {section.table ? (
+                <div className="guide-table-wrap">
+                  <table className="guide-table">
+                    <caption>{section.table.caption}</caption>
+                    <thead>
+                      <tr>
+                        {section.table.headers.map((header) => (
+                          <th scope="col" key={header}>
+                            {header}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {section.table.rows.map((row) => (
+                        <tr key={row.join("|")}>
+                          {row.map((cell, i) => (
+                            <td key={i}>{cell}</td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : null}
+            </section>
+          ))}
+
+          {guide.sources && guide.sources.length > 0 ? (
+            <section className="guide-section guide-sources">
+              <h2>Sources</h2>
+              <ul>
+                {guide.sources.map((source) => (
+                  <li key={source.url}>
+                    <a href={source.url} rel="noopener noreferrer" target="_blank">
+                      {source.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
+
+          {guide.relatedCategories && guide.relatedCategories.length > 0 ? (
+            <section className="guide-related">
+              <h2>Related price checks</h2>
+              <p className="guide-related-links">
+                {guide.relatedCategories.map((cat) => (
+                  <Link href={categoryPath(cat)} key={cat}>
+                    {CATEGORY_LABEL[cat] ?? cat}
+                  </Link>
+                ))}
+              </p>
+            </section>
+          ) : null}
+
+          {guide.relatedCategories && guide.relatedCategories.length > 0 ? (
+            <aside className="gp-cta">
+              <div>
+                <h2>Check a price before you buy</h2>
+                <p>
+                  Paste an Amazon.ca link and see the last 90 days of prices,
+                  with one clear call. No fees, no account.
+                </p>
+              </div>
+              <Link className="gp-cta-button" href="/#price-check">
+                Check a price →
               </Link>
-            ))}
-          </p>
-        </section>
-      ) : null}
+            </aside>
+          ) : null}
+        </article>
+      </div>
 
       <p className="guide-page-disclosure">
         How we research: see our{" "}

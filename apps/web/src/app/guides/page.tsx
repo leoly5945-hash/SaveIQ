@@ -4,6 +4,8 @@ import type { Metadata } from "next";
 import { getSiteUrl } from "@/lib/config";
 import { GUIDES, guidePath } from "@/lib/guides";
 
+import { ProductArt } from "@/components/product-art";
+
 export const dynamic = "force-static";
 
 const DESCRIPTION =
@@ -21,6 +23,15 @@ export const metadata: Metadata = {
   },
 };
 
+function formatGuideDate(iso: string) {
+  return new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-CA", {
+    day: "numeric",
+    month: "short",
+    timeZone: "UTC",
+    year: "numeric",
+  });
+}
+
 export default function GuidesPage() {
   return (
     <main className="home-shell guides-page">
@@ -35,12 +46,19 @@ export default function GuidesPage() {
 
       <ul className="guides-list">
         {GUIDES.filter((guide) => !guide.unlisted).map((guide) => (
-          <li className="guide-card" key={guide.slug}>
-            <h2 className="guide-card-title">
-              <Link href={guidePath(guide.slug)}>{guide.title}</Link>
-            </h2>
-            <p className="guide-card-desc">{guide.description}</p>
-            <p className="guide-card-meta">{guide.readMinutes} min read</p>
+          <li className="hp-guide-card" key={guide.slug}>
+            <ProductArt categorySlug="guide" size="tile" title={guide.title} />
+            <div>
+              <p className="hp-guide-tag">Guide</p>
+              <h2 className="guide-card-title">
+                <Link href={guidePath(guide.slug)}>{guide.title}</Link>
+              </h2>
+              <p className="guide-card-desc">{guide.description}</p>
+              <p className="guide-card-meta">
+                Updated {formatGuideDate(guide.updated)} · {guide.readMinutes}{" "}
+                min read
+              </p>
+            </div>
           </li>
         ))}
       </ul>

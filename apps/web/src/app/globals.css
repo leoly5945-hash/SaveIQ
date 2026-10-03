@@ -4368,7 +4368,8 @@ form.pill-search:focus-within {
   padding-top: 20px;
 }
 
-.pp-history h2 {
+.pp-history h2,
+.pp-history h3 {
   font-family: var(--display-font);
   font-size: 1.2rem;
   font-weight: 900;
@@ -4467,5 +4468,200 @@ form.pill-search:focus-within {
 
   .pp-history-grid {
     grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ── Redesign step 3: shared header on every page, guide pages, mobile ───── */
+
+.guides-list {
+  gap: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.guides-list .hp-guide-card .guide-card-desc {
+  margin: 0 0 8px;
+}
+
+.home-shell.guide-page,
+.home-shell.guides-page {
+  max-width: 1040px;
+}
+
+.gp-head {
+  align-items: center;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.gp-head .hp-guide-tag,
+.gp-head .guide-page-meta {
+  margin: 0;
+}
+
+.gp-head .guide-page-title {
+  font-size: clamp(1.6rem, 3.2vw, 2.2rem);
+  line-height: 1.12;
+  margin: 4px 0 8px;
+}
+
+.gp-layout {
+  align-items: start;
+  display: grid;
+  gap: 40px;
+  grid-template-columns: minmax(0, 1fr) 250px;
+  margin-top: 10px;
+}
+
+.gp-article {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.gp-article .guide-page-lead,
+.gp-article .guide-section p {
+  margin: 0;
+}
+
+.gp-article .guide-section {
+  scroll-margin-top: 16px;
+}
+
+.gp-article .guide-section h2,
+.gp-article .guide-related h2 {
+  font-family: var(--display-font);
+  font-size: 1.25rem;
+  font-weight: 900;
+  margin: 10px 0 0;
+}
+
+.gp-toc {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  grid-column: 2;
+  grid-row: 1;
+  padding: 16px 18px;
+  position: sticky;
+  top: 16px;
+}
+
+.gp-toc h2 {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  margin: 0 0 10px;
+  text-transform: uppercase;
+}
+
+.gp-toc ol {
+  display: grid;
+  font-size: 0.88rem;
+  gap: 8px;
+  line-height: 1.35;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.gp-toc a {
+  color: var(--foreground);
+  text-decoration: none;
+}
+
+.gp-toc a:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.gp-cta {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-left: 6px solid var(--accent);
+  border-radius: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 24px;
+  justify-content: space-between;
+  margin-top: 14px;
+  padding: 18px 20px;
+}
+
+.gp-cta h2 {
+  font-family: var(--display-font);
+  font-size: 1.1rem;
+  font-weight: 900;
+  margin: 0 0 4px;
+}
+
+.gp-cta p {
+  color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 46ch;
+}
+
+.gp-cta-button {
+  background: var(--promo);
+  border-radius: 999px;
+  color: #ffffff;
+  font-weight: 800;
+  padding: 11px 20px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.gp-cta-button:hover {
+  background: var(--promo-strong);
+}
+
+@media (max-width: 900px) {
+  .gp-layout {
+    gap: 20px;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .gp-toc {
+    grid-column: 1;
+    position: static;
+  }
+}
+
+@media (max-width: 760px) {
+  /* One scrollable row instead of three wrapped rows of links on a phone. */
+  .hp-nav {
+    flex-wrap: nowrap;
+    margin: 0 -16px;
+    overflow-x: auto;
+    padding: 2px 16px;
+    scrollbar-width: none;
+    white-space: nowrap;
+    width: calc(100% + 32px);
+  }
+
+  .hp-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .home-shell {
+    padding: 28px 16px 48px;
+  }
+
+  .guides-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .gp-head {
+    align-items: start;
+    gap: 12px;
+  }
+
+  .gp-cta-button {
+    text-align: center;
+    width: 100%;
   }
 }
