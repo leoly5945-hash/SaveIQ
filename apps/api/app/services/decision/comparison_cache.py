@@ -7,6 +7,10 @@ synchronous price-check. This module is the bridge:
   cached offers when we have them; otherwise submits a DataForSEO task (cold
   product) or polls an in-flight one (a task posted by an earlier check), and
   returns ``None`` for this request. Never raises.
+* :func:`resolve_merchant_links` — called after matching, for the few offers that
+  are actually shown: swaps the Google Shopping link for the store's own product
+  page through DataForSEO's Sellers task (also task-based, so a link appears one
+  check later).
 * :func:`poll_pending_comparisons` — a backstop the alert cron runs so tracked
   products always get their comparison filled within a day even if nobody
   re-checks them.
@@ -29,6 +33,7 @@ from sqlalchemy.orm import Session
 
 from app.models.comparison import ComparisonStatus, MerchantComparison
 from app.providers.base import ProviderOffer
+from app.providers.dataforseo import merchant_direct_url
 from app.providers.registry import ProviderRegistry
 
 logger = logging.getLogger(__name__)
@@ -45,6 +50,12 @@ _MIN_POLL_AGE = timedelta(seconds=20)
 _MAX_ATTEMPTS = 6
 # Re-submit a failed row only after a cool-off.
 _FAILED_RETRY_AFTER = timedelta(hours=6)
+
+# Store links are looked up only for offers that are shown, at most this many per
+# product per refresh (each lookup is a paid Sellers task).
+_MAX_LINK_LOOKUPS = 3
+# Row keys that carry a store-link lookup across a refresh of the same listing.
+_LINK_KEYS = ("merchant_url", "link_state", "link_task_id", "link_requested_at")
 
 _KEYWORD_MAX_WORDS = 8
 _KEYWORD_MAX_CHARS = 90
@@ -102,19 +113,43 @@ def shopping_keyword(title: str, brand: str | None = None) -> str:
     return keyword[:_KEYWORD_MAX_CHARS].strip()
 
 
-def _serialize_offers(offers: list[ProviderOffer]) -> list[dict[str, Any]]:
-    return [
-        {
+def _id_str(value: Any) -> str | None:
+    return str(value) if value not in (None, "") else None
+
+
+def _serialize_offers(
+    offers: list[ProviderOffer], previous: list[dict[str, Any]] | None = None
+) -> list[dict[str, Any]]:
+    """Raw rows for the cache. A store link already found for the same listing
+    (same merchant and title) in ``previous`` is kept, so a daily refresh does
+    not pay for the lookup again."""
+
+    known = {
+        (row.get("merchant"), row.get("title")): row
+        for row in previous or []
+        if row.get("link_state")
+    }
+    rows: list[dict[str, Any]] = []
+    for o in offers:
+        if not o.merchant or o.price_cents is None:
+            continue
+        meta = o.metadata or {}
+        row: dict[str, Any] = {
             "merchant": o.merchant,
             "price_cents": o.price_cents,
             "shipping_cents": o.shipping_cents or 0,
             "currency": o.currency,
             "url": o.url,
-            "title": (o.metadata or {}).get("title"),
+            "title": meta.get("title"),
+            "product_id": _id_str(meta.get("product_id")),
+            "data_docid": _id_str(meta.get("data_docid")),
+            "gid": _id_str(meta.get("gid")),
         }
-        for o in offers
-        if o.merchant and o.price_cents is not None
-    ]
+        old = known.get((row["merchant"], row["title"]))
+        if old is not None:
+            row.update({key: old[key] for key in _LINK_KEYS if old.get(key)})
+        rows.append(row)
+    return rows
 
 
 def _deserialize_offers(
@@ -140,7 +175,8 @@ def _deserialize_offers(
                 currency=str(row.get("currency") or currency),
                 availability="in_stock",
                 condition="new",
-                url=row.get("url"),
+                # The store's own page once the Sellers lookup found it.
+                url=row.get("merchant_url") or row.get("url"),
                 observed_at=observed_at,
                 metadata={"title": row.get("title")},
             )
@@ -302,7 +338,7 @@ async def _poll_row(
         return None
 
     row.status = ComparisonStatus.ready.value
-    row.offers_json = _serialize_offers(offers)
+    row.offers_json = _serialize_offers(offers, row.offers_json)
     row.completed_at = now
     row.expires_at = now + _CACHE_TTL
     db.flush()
@@ -312,6 +348,100 @@ async def _poll_row(
         currency=row.currency,
         observed_at=now,
     )
+
+
+def _same_seller(a: str, b: str) -> bool:
+    left, right = (re.sub(r"[^a-z0-9]+", "", text.casefold()) for text in (a, b))
+    return bool(left and right) and (left in right or right in left)
+
+
+async def resolve_merchant_links(
+    db: Session,
+    registry: ProviderRegistry,
+    *,
+    provider: str,
+    provider_product_id: str,
+    market: str,
+    shown_urls: list[str],
+    now: datetime | None = None,
+) -> dict[str, str]:
+    """Store links for the shown offers: ``{google shopping url: store url}``.
+
+    ``shown_urls`` are the links of the offers the shopper is about to see. For
+    each one still pointing at Google, this submits a Sellers task (first time)
+    or reads its result (a later check). Never raises.
+    """
+
+    now = now or _now()
+    found: dict[str, str] = {}
+    try:
+        task_provider = registry.try_get(COMPARISON_PROVIDER)
+        if (
+            task_provider is None
+            or not task_provider.is_configured()
+            or not hasattr(task_provider, "submit_sellers_task")
+            or not hasattr(task_provider, "fetch_sellers_task")
+        ):
+            return found
+        row = _get_row(
+            db, provider=provider, provider_product_id=provider_product_id, market=market
+        )
+        if row is None or not row.offers_json:
+            return found
+        offers = [dict(offer) for offer in row.offers_json]
+        lookups = sum(1 for offer in offers if offer.get("link_state"))
+        changed = False
+        for offer in offers:
+            if offer.get("url") not in shown_urls:
+                continue
+            state = offer.get("link_state")
+            if state is None:
+                ids = {key: offer.get(key) for key in ("product_id", "data_docid", "gid")}
+                if not any(ids.values()) or lookups >= _MAX_LINK_LOOKUPS:
+                    continue
+                lookups += 1
+                changed = True
+                try:
+                    offer["link_task_id"] = await task_provider.submit_sellers_task(**ids)
+                except Exception:  # noqa: BLE001 - one failed lookup must not stop the rest
+                    logger.warning("sellers task submit failed", exc_info=True)
+                    offer["link_state"] = "failed"
+                    continue
+                offer["link_state"] = "pending"
+                offer["link_requested_at"] = now.isoformat()
+            elif state == "pending":
+                requested_at = datetime.fromisoformat(offer["link_requested_at"])
+                if now - requested_at < _MIN_POLL_AGE:
+                    continue
+                try:
+                    shops = await task_provider.fetch_sellers_task(offer["link_task_id"])
+                except Exception:  # noqa: BLE001
+                    logger.warning("sellers task fetch failed", exc_info=True)
+                    offer["link_state"] = "failed"
+                    changed = True
+                    continue
+                if shops is None:
+                    if now - requested_at > _PENDING_TIMEOUT:
+                        offer["link_state"] = "failed"
+                        changed = True
+                    continue
+                changed = True
+                offer["link_state"] = "no_match"
+                for shop in shops:
+                    if not _same_seller(str(shop.get("seller_name") or ""), offer["merchant"]):
+                        continue
+                    direct = merchant_direct_url(shop.get("url"), shop.get("domain"))
+                    if direct:
+                        offer["merchant_url"] = direct
+                        offer["link_state"] = "ready"
+                        found[offer["url"]] = direct
+                        break
+        if changed:
+            row.offers_json = offers
+            db.flush()
+    except Exception:  # noqa: BLE001 - store links are best-effort, must not break the check
+        logger.warning("merchant link resolve failed", exc_info=True)
+    return found
 
 
 async def poll_pending_comparisons(
@@ -364,7 +494,7 @@ async def poll_pending_comparisons(
                     stats.still_pending += 1
                 continue
             row.status = ComparisonStatus.ready.value
-            row.offers_json = _serialize_offers(offers)
+            row.offers_json = _serialize_offers(offers, row.offers_json)
             row.completed_at = now
             row.expires_at = now + _CACHE_TTL
             stats.completed += 1

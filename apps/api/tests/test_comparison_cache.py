@@ -18,6 +18,7 @@ from app.providers.registry import ProviderRegistry
 from app.services.decision.comparison_cache import (
     poll_pending_comparisons,
     resolve_comparison,
+    resolve_merchant_links,
     shopping_keyword,
 )
 
@@ -238,3 +239,147 @@ async def test_poll_pending_completes_and_reports(db: Session) -> None:
     assert stats.completed == 1
     row = db.query(MerchantComparison).one()
     assert row.status == ComparisonStatus.ready.value
+
+
+# -- store links (Sellers lookup for the offers that are shown) ---------------
+
+GOOGLE_URL = "https://www.google.ca/search?ibp=oshop&q=anker&prds=pid:111"
+
+
+class FakeSellersDFS(FakeDFS):
+    def __init__(self, shops: list[dict[str, str | None]] | None) -> None:
+        super().__init__(
+            offers=[
+                ProviderOffer(
+                    provider="dataforseo",
+                    provider_product_id="B01",
+                    merchant="Walmart Canada",
+                    price_cents=3999,
+                    currency="CAD",
+                    url=GOOGLE_URL,
+                    observed_at=NOW,
+                    metadata={"title": "Anker 737 Power Bank", "product_id": 111, "gid": None},
+                )
+            ]
+        )
+        self._shops = shops
+        self.seller_tasks: list[dict[str, str | None]] = []
+        self.seller_fetches = 0
+
+    async def submit_sellers_task(
+        self, *, product_id: str | None, data_docid: str | None, gid: str | None
+    ) -> str:
+        self.seller_tasks.append({"product_id": product_id, "data_docid": data_docid, "gid": gid})
+        return "sellers-1"
+
+    async def fetch_sellers_task(self, task_id: str) -> list[dict[str, str | None]] | None:
+        self.seller_fetches += 1
+        return self._shops
+
+
+async def _ready_row(db: Session, reg: ProviderRegistry, *, at: datetime) -> dict:
+    kwargs = dict(
+        provider="keepa",
+        provider_product_id="B01",
+        market="CA",
+        title="Anker 737 Power Bank",
+        brand=None,
+        currency="CAD",
+    )
+    await resolve_comparison(db, reg, now=at, **kwargs)
+    await resolve_comparison(db, reg, now=at + timedelta(seconds=30), **kwargs)
+    return kwargs
+
+
+@pytest.mark.asyncio
+async def test_store_link_is_looked_up_once_then_served(db: Session) -> None:
+    dfs = FakeSellersDFS(
+        [
+            {"seller_name": "Other Shop", "url": "https://other.example/p", "domain": None},
+            {
+                "seller_name": "Walmart Canada",
+                "url": "https://www.walmart.ca/en/ip/anker/123?srsltid=zz",
+                "domain": "www.walmart.ca",
+            },
+        ]
+    )
+    reg = _registry(dfs)
+    kwargs = await _ready_row(db, reg, at=NOW)
+    link_kwargs = dict(provider="keepa", provider_product_id="B01", market="CA")
+    t1 = NOW + timedelta(minutes=1)
+
+    # first view: a Sellers task is submitted, nothing to show yet
+    assert (
+        await resolve_merchant_links(db, reg, shown_urls=[GOOGLE_URL], now=t1, **link_kwargs) == {}
+    )
+    assert dfs.seller_tasks == [{"product_id": "111", "data_docid": None, "gid": None}]
+    # too soon to poll
+    soon = t1 + timedelta(seconds=5)
+    assert (
+        await resolve_merchant_links(db, reg, shown_urls=[GOOGLE_URL], now=soon, **link_kwargs)
+        == {}
+    )
+    assert dfs.seller_fetches == 0
+    # later view: the store link is found and cached
+    t2 = t1 + timedelta(seconds=40)
+    found = await resolve_merchant_links(db, reg, shown_urls=[GOOGLE_URL], now=t2, **link_kwargs)
+    assert found == {GOOGLE_URL: "https://www.walmart.ca/en/ip/anker/123"}
+
+    offers = await resolve_comparison(db, reg, now=t2, **kwargs)
+    assert offers is not None and offers[0].url == "https://www.walmart.ca/en/ip/anker/123"
+    # served from the row from now on: no further Sellers calls
+    assert (
+        await resolve_merchant_links(db, reg, shown_urls=[GOOGLE_URL], now=t2, **link_kwargs) == {}
+    )
+    assert len(dfs.seller_tasks) == 1 and dfs.seller_fetches == 1
+
+    # a daily refresh of the same listing keeps the link instead of paying again
+    next_day = t2 + timedelta(hours=25)
+    await resolve_comparison(db, reg, now=next_day, **kwargs)
+    refreshed = await resolve_comparison(db, reg, now=next_day + timedelta(seconds=30), **kwargs)
+    assert refreshed is not None and refreshed[0].url == "https://www.walmart.ca/en/ip/anker/123"
+    assert len(dfs.seller_tasks) == 1
+
+
+@pytest.mark.asyncio
+async def test_store_link_no_matching_seller_keeps_google_link(db: Session) -> None:
+    dfs = FakeSellersDFS(
+        [
+            {
+                "seller_name": "Walmart Canada",
+                "url": "https://www.google.ca/aclk?ai=1",
+                "domain": None,
+            }
+        ]
+    )
+    reg = _registry(dfs)
+    kwargs = await _ready_row(db, reg, at=NOW)
+    link_kwargs = dict(provider="keepa", provider_product_id="B01", market="CA")
+    t1 = NOW + timedelta(minutes=1)
+    await resolve_merchant_links(db, reg, shown_urls=[GOOGLE_URL], now=t1, **link_kwargs)
+    t2 = t1 + timedelta(seconds=40)
+    assert (
+        await resolve_merchant_links(db, reg, shown_urls=[GOOGLE_URL], now=t2, **link_kwargs) == {}
+    )
+    offers = await resolve_comparison(db, reg, now=t2, **kwargs)
+    assert offers is not None and offers[0].url == GOOGLE_URL
+    # not retried on every view
+    await resolve_merchant_links(db, reg, shown_urls=[GOOGLE_URL], now=t2, **link_kwargs)
+    assert len(dfs.seller_tasks) == 1 and dfs.seller_fetches == 1
+
+
+@pytest.mark.asyncio
+async def test_store_link_skips_offers_that_are_not_shown(db: Session) -> None:
+    dfs = FakeSellersDFS([])
+    reg = _registry(dfs)
+    await _ready_row(db, reg, at=NOW)
+    out = await resolve_merchant_links(
+        db,
+        reg,
+        provider="keepa",
+        provider_product_id="B01",
+        market="CA",
+        shown_urls=[],
+        now=NOW + timedelta(minutes=1),
+    )
+    assert out == {} and dfs.seller_tasks == []

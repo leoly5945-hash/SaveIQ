@@ -19,6 +19,8 @@ from app.providers.dataforseo import (
     DataForSEOProvider,
     UrllibDataForSEOTransport,
     _as_price_cents,
+    merchant_direct_url,
+    sellers_status,
 )
 
 _TASK_ID = "00000000-0000-4000-8000-000000000abc"
@@ -333,3 +335,79 @@ def test_transport_get_basic_auth_and_gzip(monkeypatch) -> None:
     assert out["tasks"][0]["result"][0]["items"]
     assert captured["auth"] == "Basic abc123"
     assert captured["method"] == "GET"
+
+
+# -- Sellers: the store's own product link ------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("url", "domain", "expected"),
+    [
+        # already the store's page; Google's click id is dropped
+        (
+            "https://www.walmart.ca/en/ip/anker/123?srsltid=AbC&athcpid=9",
+            "www.walmart.ca",
+            "https://www.walmart.ca/en/ip/anker/123?athcpid=9",
+        ),
+        # Google forwarding link: the store URL is in `q`
+        (
+            "https://www.google.ca/url?q=https://www.bestbuy.ca/en-ca/product/1&sa=U",
+            "bestbuy.ca",
+            "https://www.bestbuy.ca/en-ca/product/1",
+        ),
+        # an ad click link cannot be unwrapped without a request
+        ("https://www.google.com/aclk?sa=l&ai=abc", "www.walmart.ca", None),
+        # a Google search page is not a store link
+        ("https://www.google.ca/search?ibp=oshop&q=anker", None, None),
+        # a link on another host than the seller's domain is not trusted
+        ("https://evil.example/x", "www.walmart.ca", None),
+        ("javascript:alert(1)", None, None),
+        (None, None, None),
+    ],
+)
+def test_merchant_direct_url(url: str | None, domain: str | None, expected: str | None) -> None:
+    assert merchant_direct_url(url, domain) == expected
+
+
+@pytest.mark.asyncio
+async def test_submit_sellers_task_sends_only_known_ids() -> None:
+    transport = FakeTransport()
+    provider = DataForSEOProvider(login="l", password="p", transport=transport)
+    task_id = await provider.submit_sellers_task(product_id="111", data_docid=None, gid="9")
+    assert task_id == _TASK_ID
+    url, _auth, payload = transport.post_calls[0]
+    assert url.endswith("/v3/merchant/google/sellers/task_post")
+    assert payload[0]["product_id"] == "111" and payload[0]["gid"] == "9"
+    assert "data_docid" not in payload[0]
+    with pytest.raises(ProviderError):
+        await provider.submit_sellers_task(product_id=None, data_docid=None, gid=None)
+
+
+@pytest.mark.asyncio
+async def test_fetch_sellers_task_reads_flat_and_nested_shops() -> None:
+    shops = [
+        {
+            "type": "shops_list",
+            "seller_name": "Walmart Canada",
+            "url": "https://www.walmart.ca/en/ip/x/1?srsltid=zz",
+            "domain": "www.walmart.ca",
+        },
+        {
+            "type": "group",
+            "items": [
+                {
+                    "seller_name": "Best Buy Canada",
+                    "url": "https://www.google.ca/aclk?ai=1",
+                    "domain": "www.bestbuy.ca",
+                }
+            ],
+        },
+    ]
+    transport = FakeTransport(gets=[_get_response(None, task_status=40602), _get_response(shops)])
+    provider = DataForSEOProvider(login="l", password="p", transport=transport)
+    assert await provider.fetch_sellers_task(_TASK_ID) is None
+    out = await provider.fetch_sellers_task(_TASK_ID)
+    assert out is not None
+    assert [s["seller_name"] for s in out] == ["Walmart Canada", "Best Buy Canada"]
+    assert transport.get_calls[0][0].endswith(f"/sellers/task_get/advanced/{_TASK_ID}")
+    assert sellers_status() == "ok: 2 shops, 1 with a store link (www.walmart.ca)"

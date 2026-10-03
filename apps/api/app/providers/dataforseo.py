@@ -27,6 +27,7 @@ import zlib
 from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
 from typing import Any, Protocol
+from urllib.parse import parse_qs, parse_qsl, urlencode, urlsplit, urlunsplit
 
 from app.providers.base import (
     ProviderCapability,
@@ -41,6 +42,90 @@ logger = logging.getLogger(__name__)
 DATAFORSEO_API_BASE = "https://api.dataforseo.com"
 _SHOPPING_TASK_POST_PATH = "/v3/merchant/google/products/task_post"
 _SHOPPING_TASK_GET_PATH = "/v3/merchant/google/products/task_get/advanced"
+_SELLERS_TASK_POST_PATH = "/v3/merchant/google/sellers/task_post"
+_SELLERS_TASK_GET_PATH = "/v3/merchant/google/sellers/task_get/advanced"
+
+# Google's own click ids on a merchant link; they identify Google's listing, not
+# the product, so they are dropped from the link we show.
+_GOOGLE_CLICK_PARAMS = frozenset({"srsltid", "gclid", "gclsrc", "gad_source", "gbraid", "wbraid"})
+
+# Last outcome of a Sellers lookup, for /health/integrations. Never a credential.
+_sellers_status = "untried"
+
+
+def sellers_status() -> str:
+    return _sellers_status
+
+
+def _set_sellers_status(value: str) -> None:
+    global _sellers_status
+    _sellers_status = value[:200]
+
+
+def _is_google_host(host: str) -> bool:
+    labels = host.lower().split(".")
+    return "google" in labels or host.lower().endswith("googleadservices.com")
+
+
+def is_google_url(url: str | None) -> bool:
+    return bool(url) and _is_google_host(urlsplit(url or "").hostname or "")
+
+
+def merchant_direct_url(url: str | None, domain: str | None = None) -> str | None:
+    """The seller's own product URL from a Sellers row, or ``None``.
+
+    DataForSEO documents the field as a Google link "forwarding to" the seller;
+    in practice it is either the seller's URL or ``google.*/url?q=<seller url>``.
+    A Google link we cannot unwrap without a request (``/aclk`` ads, search
+    pages) gives ``None``, and so does a URL on a host other than ``domain``.
+    """
+
+    for _ in range(2):
+        if not url:
+            return None
+        parts = urlsplit(url.strip())
+        host = (parts.hostname or "").lower()
+        if parts.scheme not in ("http", "https") or not host:
+            return None
+        if not _is_google_host(host):
+            break
+        if parts.path != "/url":
+            return None
+        query = parse_qs(parts.query)
+        url = next(iter(query.get("q") or query.get("url") or []), None)
+    else:
+        return None
+    if domain:
+        expected = domain.strip().lower().removeprefix("www.")
+        if expected and host.removeprefix("www.") != expected and not host.endswith(f".{expected}"):
+            return None
+    kept = [
+        (k, v)
+        for k, v in parse_qsl(parts.query, keep_blank_values=True)
+        if k.lower() not in _GOOGLE_CLICK_PARAMS
+    ]
+    return urlunsplit(("https", parts.netloc, parts.path, urlencode(kept), ""))
+
+
+def _collect_shops(items: Any, out: list[dict[str, str | None]]) -> None:
+    """Shop rows from a Sellers result, wherever DataForSEO nests them."""
+
+    if not isinstance(items, list):
+        return
+    for item in items:
+        if not isinstance(item, Mapping):
+            continue
+        name = _clean_str(item.get("seller_name"))
+        if name:
+            out.append(
+                {
+                    "seller_name": name,
+                    "url": _clean_str(item.get("url")),
+                    "domain": _clean_str(item.get("domain")),
+                }
+            )
+        _collect_shops(item.get("items"), out)
+
 
 # task-level status codes that mean "not done yet, poll again later".
 _TASK_PENDING_CODES = frozenset({40601, 40602, 40100})
@@ -341,6 +426,79 @@ class DataForSEOProvider:
         rows = [i for i in items if isinstance(i, Mapping)] if isinstance(items, list) else []
         return self._parse_items(rows, provider_product_id or task_id)
 
+    async def submit_sellers_task(
+        self, *, product_id: str | None, data_docid: str | None, gid: str | None
+    ) -> str:
+        """POST a Google Shopping Sellers task for one product; return its task id."""
+
+        ids = {"product_id": product_id, "data_docid": data_docid, "gid": gid}
+        ids = {key: value for key, value in ids.items() if value}
+        if not ids:
+            raise ProviderError("DataForSEO sellers task needs a product identifier")
+        payload = [
+            {
+                **ids,
+                "location_code": self._location_code,
+                "language_code": self._language_code,
+                "priority": 2,
+            }
+        ]
+        try:
+            response = await asyncio.to_thread(
+                self._transport.post_json,
+                f"{DATAFORSEO_API_BASE}{_SELLERS_TASK_POST_PATH}",
+                auth_header=self._auth_header(),
+                payload=payload,
+                timeout_seconds=self._timeout_seconds,
+            )
+            task = self._first_task(response)
+            if task.get("status_code") not in (20000, 20100):
+                raise ProviderError(
+                    f"DataForSEO sellers task_post error: {task.get('status_message')}"
+                )
+            task_id = task.get("id")
+            if not isinstance(task_id, str) or not task_id:
+                raise ProviderError("DataForSEO sellers task_post returned no task id")
+        except ProviderError as exc:
+            _set_sellers_status(f"error: {exc}")
+            raise
+        return task_id
+
+    async def fetch_sellers_task(self, task_id: str) -> list[dict[str, str | None]] | None:
+        """GET a Sellers task. ``None`` while queued; else ``{seller_name, url, domain}`` rows."""
+
+        try:
+            response = await asyncio.to_thread(
+                self._transport.get_json,
+                f"{DATAFORSEO_API_BASE}{_SELLERS_TASK_GET_PATH}/{task_id}",
+                auth_header=self._auth_header(),
+                timeout_seconds=self._timeout_seconds,
+            )
+            task = self._first_task(response)
+            task_code = task.get("status_code")
+            if task_code in _TASK_PENDING_CODES:
+                return None
+            if task_code != 20000:
+                raise ProviderError(
+                    f"DataForSEO sellers task_get error: {task.get('status_message')}"
+                )
+        except ProviderError as exc:
+            _set_sellers_status(f"error: {exc}")
+            raise
+        shops: list[dict[str, str | None]] = []
+        results = task.get("result")
+        if isinstance(results, list):
+            for result in results:
+                if isinstance(result, Mapping):
+                    _collect_shops(result.get("items"), shops)
+        direct = [merchant_direct_url(shop["url"], shop["domain"]) for shop in shops]
+        hosts = sorted({urlsplit(url).hostname or "" for url in direct if url})
+        _set_sellers_status(
+            f"ok: {len(shops)} shops, {len(hosts)} with a store link"
+            + (f" ({', '.join(hosts[:3])})" if hosts else "")
+        )
+        return shops
+
     # -- helpers ------------------------------------------------------------
 
     def _auth_header(self) -> str:
@@ -391,6 +549,8 @@ class DataForSEOProvider:
                         "title": _clean_str(item.get("title")),
                         "rating": item.get("rating"),
                         "product_id": item.get("product_id"),
+                        "data_docid": item.get("data_docid"),
+                        "gid": item.get("gid"),
                     },
                 )
             )
